@@ -1,5 +1,10 @@
 #pragma once
 
+#include <cstdint>
+#include <functional>
+#include <optional>
+#include <string>
+
 #include <libzr/modules/common/zr_paletted_storage.hpp>
 #include <libzr/modules/zvr/zvr.hpp>
 #include <libzr/modules/zpr/zpr.hpp>
