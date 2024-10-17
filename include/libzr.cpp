@@ -347,9 +347,11 @@ void serializeChunk(const ZvrChunk& chunk, std::vector<uint8_t>& data, std::vect
 }
 
 ZResult<ZvrChunk> deserializeChunk(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas, const uint32_t sectionAmount) {
-    Sections sections(sectionAmount);
+    Sections sections;
+    sections.reserve(sectionAmount);
+
     for (size_t sectionIndex = 0; sectionIndex < sectionAmount; ++sectionIndex)
-        sections[sectionIndex] = Try(deserializeBlockStates(data, offset, paletteTable, maxDeltas, SECTION_SIZE));
+        sections.push_back(Try(deserializeBlockStates(data, offset, paletteTable, maxDeltas, SECTION_SIZE)));
 
     const auto sector = Try(deserializeSector(data, offset));
     return ZvrChunk(sections, sector.chunkStates, sector.tileEntities);
