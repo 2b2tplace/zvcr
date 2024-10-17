@@ -14,7 +14,6 @@ class ZrDeltaBlockStates {
 public:
     explicit ZrDeltaBlockStates(const ZrBlockStatesSnapshot& initialState);
     explicit ZrDeltaBlockStates(const std::vector<ZrBlockStatesSnapshot>& reverseDeltas, size_t snapshotLength);
-    explicit ZrDeltaBlockStates();
 
     ZrBlockStatesSnapshot latestSnapshot() const;
     ZrBlockStatesSnapshot delta(size_t deltaIndex) const;

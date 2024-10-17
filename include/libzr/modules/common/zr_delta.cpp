@@ -10,8 +10,6 @@ ZrDeltaBlockStates::ZrDeltaBlockStates(const std::vector<ZrBlockStatesSnapshot>&
     this->reverseDeltas = reverseDeltas;
 }
 
-ZrDeltaBlockStates::ZrDeltaBlockStates() = default;
-
 ZrBlockStatesSnapshot ZrDeltaBlockStates::latestSnapshot() const {
     return delta(0);
 }
