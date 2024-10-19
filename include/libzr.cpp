@@ -54,7 +54,7 @@ size_t writeZFile(const R& file, const std::string& filename, const ZFileSeriali
 }
 
 template<typename R>
-ZResult<R> readZFile(const std::string& filename, const size_t maxDeltas, const ZFileDeserialize<R>& deserialize) {
+ZResult<R> readZFile(const std::string& filename, const ssize_t maxDeltas, const ZFileDeserialize<R>& deserialize) {
     if (!std::filesystem::exists(filename))
         return std::unexpected(FILE_NOT_FOUND);
 
@@ -225,7 +225,7 @@ void serializeBlockStates(const ZrDeltaBlockStates& chunkSection, std::vector<ui
         serializeBlockStatesSnapshot(foo, data, paletteTable);
 }
 
-ZResult<ZrDeltaBlockStates> deserializeBlockStates(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas, const size_t snapshotLength) {
+ZResult<ZrDeltaBlockStates> deserializeBlockStates(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const ssize_t maxDeltas, const size_t snapshotLength) {
     if (offset + sizeof(uint64_t) > data.size())
         return std::unexpected(EXPECTED_DELTA_LENGTH);
 
@@ -236,7 +236,7 @@ ZResult<ZrDeltaBlockStates> deserializeBlockStates(const std::vector<uint8_t>& d
     reverseDeltas.reserve(deltaLength);
 
     for (size_t deltaIndex = 0; deltaIndex < deltaLength; ++deltaIndex) {
-        if (maxDeltas != 0 && deltaIndex >= maxDeltas) {
+        if (maxDeltas != -1 && deltaIndex >= maxDeltas) {
             Propagate(skipBlockStatesSnapshot(data, offset));
             continue;
         }
@@ -346,7 +346,7 @@ void serializeChunk(const ZvrChunk& chunk, std::vector<uint8_t>& data, std::vect
     serializeSector(chunk, data);
 }
 
-ZResult<ZvrChunk> deserializeChunk(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas, const uint32_t sectionAmount) {
+ZResult<ZvrChunk> deserializeChunk(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const ssize_t maxDeltas, const uint32_t sectionAmount) {
     Sections sections;
     sections.reserve(sectionAmount);
 
@@ -366,7 +366,7 @@ void serializeOptionalChunk(const std::optional<ZvrChunk>& chunk, std::vector<ui
     serializeChunk(chunk.value(), data, paletteTable);
 }
 
-ZResult<std::optional<ZvrChunk>> deserializeOptionalChunk(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas, const uint32_t sectionAmount) {
+ZResult<std::optional<ZvrChunk>> deserializeOptionalChunk(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const ssize_t maxDeltas, const uint32_t sectionAmount) {
     if (offset >= data.size())
         return std::unexpected(EXPECTED_CHUNK_INDICATOR);
 
@@ -387,7 +387,7 @@ void serializeZVRegion(const ZvrRegion& region, std::vector<uint8_t>& data) {
     data.insert(data.end(), regionData.begin(), regionData.end());
 }
 
-ZResult<ZvrRegion> deserializeZVRegion(const std::vector<uint8_t>& data, size_t& offset, const size_t maxDeltas, const uint32_t sectionAmount) {
+ZResult<ZvrRegion> deserializeZVRegion(const std::vector<uint8_t>& data, size_t& offset, const ssize_t maxDeltas, const uint32_t sectionAmount) {
     const auto paletteTable = Try(deserializePaletteTable(data, offset));
     Chunks chunks(SEGMENTS_PER_REGION);
     for (size_t chunkIndex = 0; chunkIndex < SEGMENTS_PER_REGION; ++chunkIndex)
@@ -404,7 +404,7 @@ void serializeZVRFile(const ZvrFile& file, std::vector<uint8_t>& data) {
     serializeZVRegion(file.region, data);
 }
 
-ZResult<ZvrFile> deserializeZVRFile(const std::vector<uint8_t>& data, size_t& offset, const size_t maxDeltas) {
+ZResult<ZvrFile> deserializeZVRFile(const std::vector<uint8_t>& data, size_t& offset, const ssize_t maxDeltas) {
     validateZFilePrefix(data, offset, ZVR_PREFIX);
     const auto version = Try(deserializeVersion(data, offset, ZVR_LATEST));
     const auto dimensionType = Try(deserializeDimensionType(data, offset));
@@ -419,7 +419,7 @@ size_t writeZVRFile(const ZvrFile& file, const std::string& filename) {
     return writeZFile(file, filename, ZFileSerialize(serializeZVRFile));
 }
 
-ZResult<ZvrFile> readZVRFile(const std::string& filename, const size_t maxDeltas) {
+ZResult<ZvrFile> readZVRFile(const std::string& filename, const ssize_t maxDeltas) {
     return readZFile(filename, maxDeltas, ZFileDeserialize(deserializeZVRFile));
 }
 
@@ -428,7 +428,7 @@ void serializeLayer(const ZprLayer& layer, std::vector<uint8_t>& data, std::vect
     serializeBlockStates(layer.deltas, data, paletteTable);
 }
 
-ZResult<ZprLayer> deserializeLayer(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas) {
+ZResult<ZprLayer> deserializeLayer(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const ssize_t maxDeltas) {
     if (offset >= data.size())
         return std::unexpected(EXPECTED_LAYER_TYPE);
 
@@ -447,7 +447,7 @@ void serializeLayers(const ZprLayers& layers, std::vector<uint8_t>& data, std::v
         serializeLayer(layer, data, paletteTable);
 }
 
-ZResult<ZprLayers> deserializeLayers(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas) {
+ZResult<ZprLayers> deserializeLayers(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const ssize_t maxDeltas) {
     if (offset + sizeof(uint64_t) > data.size())
         return std::unexpected(EXPECTED_LAYERS_LENGTH);
 
@@ -468,7 +468,7 @@ void serializeSegment(const ZprSegment& segment, std::vector<uint8_t>& data, std
     serializeSector(segment, data);
 }
 
-ZResult<ZprSegment> deserializeSegment(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas) {
+ZResult<ZprSegment> deserializeSegment(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const ssize_t maxDeltas) {
     const auto layers = Try(deserializeLayers(data, offset, paletteTable, maxDeltas));
     const auto sector = Try(deserializeSector(data, offset));
 
@@ -484,7 +484,7 @@ void serializeOptionalSegment(const std::optional<ZprSegment>& segment, std::vec
     serializeSegment(segment.value(), data, paletteTable);
 }
 
-ZResult<std::optional<ZprSegment>> deserializeOptionalSegment(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas) {
+ZResult<std::optional<ZprSegment>> deserializeOptionalSegment(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const ssize_t maxDeltas) {
     if (offset >= data.size())
         return std::unexpected(EXPECTED_CHUNK_INDICATOR);
 
@@ -505,7 +505,7 @@ void serializeZPRegion(const ZprRegion& region, std::vector<uint8_t>& data) {
     data.insert(data.end(), regionData.begin(), regionData.end());
 }
 
-ZResult<ZprRegion> deserializeZPRegion(const std::vector<uint8_t>& data, size_t& offset, const size_t maxDeltas) {
+ZResult<ZprRegion> deserializeZPRegion(const std::vector<uint8_t>& data, size_t& offset, const ssize_t maxDeltas) {
     const auto paletteTable = Try(deserializePaletteTable(data, offset));
     Segments chunks(SEGMENTS_PER_REGION);
     for (size_t segmentIndex = 0; segmentIndex < SEGMENTS_PER_REGION; ++segmentIndex)
@@ -522,7 +522,7 @@ void serializeZPRFile(const ZprFile& file, std::vector<uint8_t>& data) {
     serializeZPRegion(file.region, data);
 }
 
-ZResult<ZprFile> deserializeZPRFile(const std::vector<uint8_t>& data, size_t& offset, const size_t maxDeltas) {
+ZResult<ZprFile> deserializeZPRFile(const std::vector<uint8_t>& data, size_t& offset, const ssize_t maxDeltas) {
     validateZFilePrefix(data, offset, ZPR_PREFIX);
     const auto version = Try(deserializeVersion(data, offset, ZPR_LATEST));
     const auto dimensionType = Try(deserializeDimensionType(data, offset));
@@ -535,7 +535,7 @@ size_t writeZPRFile(const ZprFile& file, const std::string& filename) {
     return writeZFile(file, filename, ZFileSerialize(serializeZPRFile));
 }
 
-ZResult<ZprFile> readZPRFile(const std::string& filename, const size_t maxDeltas) {
+ZResult<ZprFile> readZPRFile(const std::string& filename, const ssize_t maxDeltas) {
     return readZFile(filename, maxDeltas, ZFileDeserialize(deserializeZPRFile));
 }
 
