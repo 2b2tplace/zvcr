@@ -77,7 +77,7 @@ std::optional<ZprSegment> convertZvrOptChunkToZprOptSegment(const std::optional<
 }
 
 ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimensionProperties& properties) {
-    const auto sectionCount = properties.height / 16;
+    const int sectionCount = properties.height / 16;
     TileViewDeltas tileViewDeltas;
 
     std::vector<time_t> timestamps;
