@@ -16,10 +16,9 @@ BlockStatesSnapshots ZvrChunk::snapshotFrom(const time_t timestamp) const {
     BlockStatesSnapshots snapshots;
     snapshots.reserve(this->sections.size());
 
-    for (size_t i = 0; i < this->sections.size(); ++i) {
-        const ZrDeltaBlockStates& section = this->sections[i];
+    for (const auto & section : this->sections)
         snapshots.push_back(section.snapshotFrom(timestamp));
-    }
+
     return snapshots;
 }
 
@@ -27,10 +26,9 @@ BlockStatesSnapshots ZvrChunk::latestSnapshot() const {
     BlockStatesSnapshots snapshots;
     snapshots.reserve(this->sections.size());
 
-    for (size_t i = 0; i < this->sections.size(); ++i) {
-        const ZrDeltaBlockStates& section = this->sections[i];
+    for (const auto & section : this->sections)
         snapshots.push_back(section.latestSnapshot());
-    }
+
     return snapshots;
 }
 
@@ -43,9 +41,11 @@ size_t ZvrChunk::updateSections(const BlockStatesSnapshots &sectionUpdates) {
 }
 
 Sections snapshotsToSections(const BlockStatesSnapshots& snapshots) {
-    auto sections = std::vector<ZrDeltaBlockStates>(snapshots.size());
-    for (size_t i = 0; i < snapshots.size(); ++i) {
-        sections[i] = ZrDeltaBlockStates(snapshots[i]);
-    }
+    auto sections = std::vector<ZrDeltaBlockStates>();
+    sections.reserve(snapshots.size());
+
+    for (const auto & snapshot : snapshots)
+        sections.emplace_back(snapshot);
+
     return sections;
 }
