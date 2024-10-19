@@ -2,9 +2,9 @@
 
 void TileViewDeltas::emplaceMissingView(const uint8_t layerType, const time_t timestamp) {
     auto& topDownViews = viewDeltas[layerType];
-    if (topDownViews.contains(timestamp)) return;
 
-    topDownViews.emplace(timestamp, TILE_SIZE);
+    if (!topDownViews.contains(timestamp))
+        topDownViews.emplace(timestamp, TILE_SIZE);
 }
 
 ZrBlockStatesView& TileViewDeltas::deltaView(const ZprLayerType layerType, const time_t timestamp) {
@@ -28,25 +28,30 @@ ZrBlockStatesView& TileViewDeltas::heightmap(const time_t timestamp) {
     return deltaView(ZprLayerType::HEIGHTMAP, timestamp);
 }
 
+ZrBlockStatesView& TileViewDeltas::heightmapRoofless(const time_t timestamp) {
+    return deltaView(ZprLayerType::HEIGHTMAP_ROOFLESS, timestamp);
+}
+
 ZprLayers TileViewDeltas::createLayers() const {
     ZprLayers layers;
     for (const auto&[layerType, deltas] : viewDeltas) {
         std::vector<ZrBlockStatesSnapshot> reverseDeltas;
         reverseDeltas.reserve(deltas.size());
+        ZrDeltaBlockStates deltaBlockStates(reverseDeltas, TILE_SIZE);
 
         std::vector<time_t> timestamps;
         for (const auto &timestamp: deltas | std::views::keys)
             timestamps.push_back(timestamp);
 
-        std::ranges::sort(timestamps, std::greater<time_t>());
+        std::ranges::sort(timestamps, std::greater());
 
         for (const auto timestamp : timestamps) {
             const auto& view = deltas.at(timestamp);
             const auto packed = ZrBlockStates::pack(view.unpacked);
             const auto snapshot = ZrBlockStatesSnapshot{packed, timestamp};
-            reverseDeltas.push_back(snapshot);
+            deltaBlockStates.insertChanges(snapshot);
         }
-        layers[layerType] = ZprLayer{ZrDeltaBlockStates(reverseDeltas, TILE_SIZE), layerType};
+        layers[layerType] = ZprLayer{deltaBlockStates, layerType};
     }
     return layers;
 }
@@ -75,16 +80,67 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
     const auto sectionCount = properties.height / 16;
     TileViewDeltas tileViewDeltas;
 
-    const auto& sections = zvrChunk.sections;
-    for (int8_t sy = sectionCount - 1; sy >= 0; --sy) {
-        for (const auto& section = sections[sy];
-            const auto&[data, timestamp] : section.reverseDeltas) {
-            const auto sectionView = ZrBlockStatesView(data.unpack());
-
-            renderZprSegmentForSectionSnapshot(timestamp, sy, sectionView, tileViewDeltas);
+    std::vector<time_t> timestamps;
+    for (const auto& section : zvrChunk.sections) {
+        for (const auto&[data, timestamp] : section.reverseDeltas) {
+            if (std::ranges::find(timestamps, timestamp) == timestamps.end())
+                timestamps.push_back(timestamp);
         }
     }
+    std::ranges::sort(timestamps, std::greater());
+    std::unordered_map<time_t, std::unordered_map<int8_t, UnpackedBlockStates>> cachedSnapshots;
+
+    for (const auto timestamp : timestamps) {
+        std::vector<ZrBlockStatesView> chunkAccumulator;
+        for (int8_t sy = 0; sy < sectionCount; ++sy) {
+            const auto& section = zvrChunk.sections[sy];
+
+            UnpackedBlockStates snapshotBuilder;
+            if (cachedSnapshots.contains(timestamp) && cachedSnapshots[timestamp].contains(sy))
+                snapshotBuilder = cachedSnapshots[timestamp].at(sy);
+            else {
+                snapshotBuilder = section.latestSnapshot().data.unpack();
+                for (const auto& [sectionData, deltaTimestamp] : section.reverseDeltas) {
+                    const auto unpacked = sectionData.unpack();
+                    for (size_t j = 0; j < section.snapshotLength; ++j) {
+                        if (const auto state = unpacked[j]; state != STATE_UNCHANGED)
+                            snapshotBuilder[j] = state;
+                    }
+                    cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
+                }
+            }
+            chunkAccumulator.push_back(ZrBlockStatesView(snapshotBuilder));
+        }
+        for (int8_t sy = sectionCount - 1; sy >= 0; --sy)
+            renderZprSegmentForSectionSnapshot(timestamp, sy, chunkAccumulator[sy], tileViewDeltas);
+    }
     return ZprSegment(tileViewDeltas.createLayers(), zvrChunk.chunkStates, zvrChunk.tileEntities);
+}
+
+void renderZprSegment(const uint8_t cx, const uint8_t cz, const uint8_t sy,
+                      const ZrBlockStatesView& sectionView,
+                      ZrBlockStatesView& topDownTileView,
+                      ZrBlockStatesView& heightmapTileView,
+                      const bool ignoreRoof) {
+    const auto current = topDownTileView.get(cx, cz);
+    if (current != 0) return;
+
+    for (int8_t cy = CHUNK_SIDELENGTH - 1; cy >= CHUNK_SIDELENGTH - 1; --cy) {
+        const auto state = sectionView.getBlockState(cx, cy, cz);
+        if (state == 0) continue;
+
+        if (ignoreRoof && (state == 79 /* bedrock */
+                || state == 2354 /* obsidian */
+                || state == 19449 /* crying obsidian */
+                || (state >= 5772 && state <= 5779) /* snow layers 1-8 */)) continue;
+
+        topDownTileView.set(cx, cz, state);
+
+        if (const auto height = sy * 16 + cy; height > heightmapTileView.get(cx, cz))
+            heightmapTileView.set(cx, cz, height);
+
+        break;
+    }
 }
 
 void renderZprSegmentForSectionSnapshot(const time_t timestamp, const uint8_t sy,
@@ -93,28 +149,12 @@ void renderZprSegmentForSectionSnapshot(const time_t timestamp, const uint8_t sy
     auto& topDownTileView = tileViewDeltas.topDown(timestamp);
     auto& rooflessTileView = tileViewDeltas.roofless(timestamp);
     auto& heightmapTileView = tileViewDeltas.heightmap(timestamp);
+    auto& heightmapRooflessTileView = tileViewDeltas.heightmapRoofless(timestamp);
 
     for (uint8_t cx = 0; cx < CHUNK_SIDELENGTH; ++cx) {
         for (uint8_t cz = 0; cz < CHUNK_SIDELENGTH; ++cz) {
-            if (topDownTileView.get(cx, cz) != 0) continue;
-
-            for (int8_t cy = CHUNK_SIDELENGTH - 1; cy >= 0; --cy) {
-                const auto state = sectionView.getBlockState(cx, cy, cz);
-                if (state == 0) continue;
-
-                topDownTileView.set(cx, cz, state);
-
-                if (const auto height = sy * 16 + cy; height > heightmapTileView.get(cx, cz))
-                    heightmapTileView.set(cx, cz, height);
-
-                if (state == 79 /* bedrock */
-                    || state == 2354 /* obsidian */
-                    || state == 19449 /* crying obsidian */
-                    || (state >= 5772 && state <= 5779) /* snow layers 1-8 */) continue;
-
-                rooflessTileView.set(cx, cz, state);
-                break;
-            }
+            renderZprSegment(cx, cz, sy, sectionView, topDownTileView, heightmapTileView, false);
+            renderZprSegment(cx, cz, sy, sectionView, rooflessTileView, heightmapRooflessTileView, true);
         }
     }
 }

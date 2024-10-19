@@ -16,6 +16,7 @@ public:
     ZrBlockStatesView& topDown(time_t timestamp);
     ZrBlockStatesView& roofless(time_t timestamp);
     ZrBlockStatesView& heightmap(time_t timestamp);
+    ZrBlockStatesView& heightmapRoofless(time_t timestamp);
     ZprLayers createLayers() const;
 private:
     std::unordered_map<uint8_t, std::unordered_map<time_t, ZrBlockStatesView>> viewDeltas;

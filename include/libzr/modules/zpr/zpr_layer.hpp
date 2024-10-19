@@ -6,6 +6,7 @@ enum class ZprLayerType {
     TOP_DOWN = 0,
     TOP_DOWN_ROOFLESS = 1,
     HEIGHTMAP = 2,
+    HEIGHTMAP_ROOFLESS = 3,
     CUSTOM
 };
 
