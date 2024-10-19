@@ -7,12 +7,14 @@ enum class ZprLayerType {
     TOP_DOWN_ROOFLESS = 1,
     HEIGHTMAP = 2,
     HEIGHTMAP_ROOFLESS = 3,
+    DRAINED_TOP_DOWN = 4,
+    DRAINED_TOP_DOWN_HEIGHTMAP = 4,
     CUSTOM
 };
 
 struct ZprLayer {
     ZrDeltaBlockStates deltas;
-    uint8_t type;
+    uint8_t type{};
 };
 
 class ZprLayers : public std::unordered_map<uint8_t, ZprLayer> {

@@ -32,6 +32,14 @@ ZrBlockStatesView& TileViewDeltas::heightmapRoofless(const time_t timestamp) {
     return deltaView(ZprLayerType::HEIGHTMAP_ROOFLESS, timestamp);
 }
 
+ZrBlockStatesView& TileViewDeltas::drainedTopDown(const time_t timestamp) {
+    return deltaView(ZprLayerType::DRAINED_TOP_DOWN, timestamp);
+}
+
+ZrBlockStatesView& TileViewDeltas::drainedTopDownHeightmap(const time_t timestamp) {
+    return deltaView(ZprLayerType::DRAINED_TOP_DOWN_HEIGHTMAP, timestamp);
+}
+
 ZprLayers TileViewDeltas::createLayers() const {
     ZprLayers layers;
     for (const auto&[layerType, deltas] : viewDeltas) {
@@ -88,14 +96,14 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
         }
     }
     std::ranges::sort(timestamps, std::greater());
-    std::unordered_map<time_t, std::unordered_map<int8_t, UnpackedBlockStates>> cachedSnapshots;
+    std::unordered_map<time_t, std::vector<UnpackedBlockStates>> cachedSnapshots;
 
     for (int8_t sy = 0; sy < static_cast<int8_t>(sectionCount); ++sy) {
         const auto& section = zvrChunk.sections[sy];
         const auto&[data, timestamp] = section.latestSnapshot();
 
         auto snapshotBuilder = data.unpack();
-        cachedSnapshots[timestamp].emplace(sy, snapshotBuilder);
+        cachedSnapshots[timestamp].push_back(snapshotBuilder);
 
         bool first = true;
         for (const auto& [sectionData, deltaTimestamp] : section.reverseDeltas) {
@@ -108,12 +116,12 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
                 if (const auto state = unpacked[j]; state != STATE_UNCHANGED)
                     snapshotBuilder[j] = state;
             }
-            cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
+            cachedSnapshots[deltaTimestamp].push_back(snapshotBuilder);
         }
     }
     for (const auto timestamp : timestamps) {
         for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0; --sy)
-            renderZprSegmentForSectionSnapshot(timestamp, sy, ZrBlockStatesView(cachedSnapshots[timestamp].at(sy)), tileViewDeltas);
+            renderZprSegmentForSectionSnapshot(timestamp, sy, ZrBlockStatesView(cachedSnapshots[timestamp][sy]), tileViewDeltas);
     }
     return ZprSegment(tileViewDeltas.createLayers(), zvrChunk.chunkStates, zvrChunk.tileEntities);
 }
@@ -122,7 +130,8 @@ void renderZprSegment(const uint8_t cx, const uint8_t cz, const uint8_t sy,
                       const ZrBlockStatesView& sectionView,
                       ZrBlockStatesView& topDownTileView,
                       ZrBlockStatesView& heightmapTileView,
-                      const bool ignoreRoof) {
+                      const bool ignoreRoof,
+                      const bool ignoreWater) {
     const auto current = topDownTileView.get(cx, cz);
     if (current != 0) return;
 
@@ -130,6 +139,7 @@ void renderZprSegment(const uint8_t cx, const uint8_t cz, const uint8_t sy,
         const auto state = sectionView.getBlockState(cx, cy, cz);
         if (state == 0) continue;
 
+        if (ignoreWater && state >= 80 && state <= 95) continue;
         if (ignoreRoof && (state == 79 /* bedrock */
                 || state == 2354 /* obsidian */
                 || state == 19449 /* crying obsidian */
@@ -151,11 +161,14 @@ void renderZprSegmentForSectionSnapshot(const time_t timestamp, const uint8_t sy
     auto& rooflessTileView = tileViewDeltas.roofless(timestamp);
     auto& heightmapTileView = tileViewDeltas.heightmap(timestamp);
     auto& heightmapRooflessTileView = tileViewDeltas.heightmapRoofless(timestamp);
+    auto& drainedTopDownTileView = tileViewDeltas.drainedTopDown(timestamp);
+    auto& drainedTopDownHeightmapTileView = tileViewDeltas.drainedTopDown(timestamp);
 
     for (uint8_t cx = 0; cx < CHUNK_SIDELENGTH; ++cx) {
         for (uint8_t cz = 0; cz < CHUNK_SIDELENGTH; ++cz) {
-            renderZprSegment(cx, cz, sy, sectionView, topDownTileView, heightmapTileView, false);
-            renderZprSegment(cx, cz, sy, sectionView, rooflessTileView, heightmapRooflessTileView, true);
+            renderZprSegment(cx, cz, sy, sectionView, topDownTileView, heightmapTileView, false, false);
+            renderZprSegment(cx, cz, sy, sectionView, drainedTopDownTileView, drainedTopDownHeightmapTileView, false, true);
+            renderZprSegment(cx, cz, sy, sectionView, rooflessTileView, heightmapRooflessTileView, true, false);
         }
     }
 }
