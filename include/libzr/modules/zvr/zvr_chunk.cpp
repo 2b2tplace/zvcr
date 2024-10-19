@@ -34,9 +34,9 @@ BlockStatesSnapshots ZvrChunk::latestSnapshot() const {
 
 size_t ZvrChunk::updateSections(const BlockStatesSnapshots &sectionUpdates) {
     size_t changes = 0;
-    for (size_t section = 0; section < sectionUpdates.size(); ++section) {
+    for (size_t section = 0; section < sectionUpdates.size(); ++section)
         changes += sections[section].insertChanges(sectionUpdates[section]);
-    }
+
     return changes;
 }
 
@@ -44,7 +44,7 @@ Sections snapshotsToSections(const BlockStatesSnapshots& snapshots) {
     auto sections = std::vector<ZrDeltaBlockStates>();
     sections.reserve(snapshots.size());
 
-    for (const auto & snapshot : snapshots)
+    for (const auto& snapshot : snapshots)
         sections.emplace_back(snapshot);
 
     return sections;
