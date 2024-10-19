@@ -44,7 +44,7 @@ template<typename R>
 using ZFileSerialize = std::function<void(const R&, std::vector<uint8_t>&)>;
 
 template<typename R>
-using ZFileDeserialize = std::function<ZResult<R>(const std::vector<uint8_t>&, size_t&, size_t)>;
+using ZFileDeserialize = std::function<ZResult<R>(const std::vector<uint8_t>&, size_t&, ssize_t)>;
 
 ZResult<ZrDimensionType> deserializeDimensionType(const std::vector<uint8_t>& data, size_t& offset);
 
