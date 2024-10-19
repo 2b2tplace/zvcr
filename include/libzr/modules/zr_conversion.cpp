@@ -77,7 +77,7 @@ std::optional<ZprSegment> convertZvrOptChunkToZprOptSegment(const std::optional<
 }
 
 ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimensionProperties& properties) {
-    const int sectionCount = properties.height / 16;
+    const int sectionCount = static_cast<int>(properties.height / 16);
     TileViewDeltas tileViewDeltas;
 
     std::vector<time_t> timestamps;
@@ -92,7 +92,7 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
 
     for (const auto timestamp : timestamps) {
         std::vector<ZrBlockStatesView> chunkAccumulator;
-        for (auto sy = 0; sy < sectionCount; ++sy) {
+        for (int8_t sy = 0; sy < static_cast<int8_t>(sectionCount); ++sy) {
             const auto& section = zvrChunk.sections[sy];
 
             UnpackedBlockStates snapshotBuilder;
