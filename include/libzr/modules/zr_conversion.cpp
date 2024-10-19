@@ -92,7 +92,7 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
 
     for (const auto timestamp : timestamps) {
         std::vector<ZrBlockStatesView> chunkAccumulator;
-        for (int8_t sy = 0; sy < sectionCount; ++sy) {
+        for (auto sy = 0; sy < sectionCount; ++sy) {
             const auto& section = zvrChunk.sections[sy];
 
             UnpackedBlockStates snapshotBuilder;
@@ -109,9 +109,9 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
                     cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
                 }
             }
-            chunkAccumulator.push_back(ZrBlockStatesView(snapshotBuilder));
+            chunkAccumulator.emplace_back(snapshotBuilder);
         }
-        for (int8_t sy = sectionCount - 1; sy >= 0; --sy)
+        for (auto sy = sectionCount - 1; sy >= 0; --sy)
             renderZprSegmentForSectionSnapshot(timestamp, sy, chunkAccumulator[sy], tileViewDeltas);
     }
     return ZprSegment(tileViewDeltas.createLayers(), zvrChunk.chunkStates, zvrChunk.tileEntities);
@@ -125,7 +125,7 @@ void renderZprSegment(const uint8_t cx, const uint8_t cz, const uint8_t sy,
     const auto current = topDownTileView.get(cx, cz);
     if (current != 0) return;
 
-    for (int8_t cy = CHUNK_SIDELENGTH - 1; cy >= CHUNK_SIDELENGTH - 1; --cy) {
+    for (int8_t cy = CHUNK_SIDELENGTH - 1; cy >= 0; --cy) {
         const auto state = sectionView.getBlockState(cx, cy, cz);
         if (state == 0) continue;
 
