@@ -236,7 +236,7 @@ ZResult<ZrDeltaBlockStates> deserializeBlockStates(const std::vector<uint8_t>& d
     reverseDeltas.reserve(deltaLength);
 
     for (size_t deltaIndex = 0; deltaIndex < deltaLength; ++deltaIndex) {
-        if (maxDeltas != -1 && deltaIndex >= maxDeltas) {
+        if (maxDeltas != -1 && deltaIndex > maxDeltas) {
             Propagate(skipBlockStatesSnapshot(data, offset));
             continue;
         }
