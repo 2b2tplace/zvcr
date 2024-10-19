@@ -10,8 +10,6 @@ ZrDeltaBlockStates::ZrDeltaBlockStates(const std::vector<ZrBlockStatesSnapshot>&
     this->reverseDeltas = reverseDeltas;
 }
 
-ZrDeltaBlockStates::ZrDeltaBlockStates() = default;
-
 ZrBlockStatesSnapshot ZrDeltaBlockStates::latestSnapshot() const {
     return delta(0);
 }
@@ -22,7 +20,12 @@ ZrBlockStatesSnapshot ZrDeltaBlockStates::delta(const size_t deltaIndex) const {
 
 ZrBlockStatesSnapshot ZrDeltaBlockStates::snapshotFrom(const time_t timestamp) const {
     auto latestSnapshot = this->latestSnapshot().data.unpack();
+    bool first = true;
     for (const auto& [sectionData, deltaTimestamp] : reverseDeltas) {
+        if (first) {
+            first = false;
+            continue;
+        }
         if (timestamp > deltaTimestamp) break;
 
         const auto unpacked = sectionData.unpack();

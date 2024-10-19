@@ -77,7 +77,7 @@ std::optional<ZprSegment> convertZvrOptChunkToZprOptSegment(const std::optional<
 }
 
 ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimensionProperties& properties) {
-    const int sectionCount = static_cast<int>(properties.height / 16);
+    const auto sectionCount = static_cast<int8_t>(properties.height / 16);
     TileViewDeltas tileViewDeltas;
 
     std::vector<time_t> timestamps;
@@ -90,29 +90,30 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
     std::ranges::sort(timestamps, std::greater());
     std::unordered_map<time_t, std::unordered_map<int8_t, UnpackedBlockStates>> cachedSnapshots;
 
-    for (const auto timestamp : timestamps) {
-        std::vector<ZrBlockStatesView> chunkAccumulator;
-        for (int8_t sy = 0; sy < static_cast<int8_t>(sectionCount); ++sy) {
-            const auto& section = zvrChunk.sections[sy];
+    for (int8_t sy = 0; sy < static_cast<int8_t>(sectionCount); ++sy) {
+        const auto& section = zvrChunk.sections[sy];
+        const auto&[data, timestamp] = section.latestSnapshot();
 
-            UnpackedBlockStates snapshotBuilder;
-            if (cachedSnapshots.contains(timestamp) && cachedSnapshots[timestamp].contains(sy))
-                snapshotBuilder = cachedSnapshots[timestamp].at(sy);
-            else {
-                snapshotBuilder = section.latestSnapshot().data.unpack();
-                for (const auto& [sectionData, deltaTimestamp] : section.reverseDeltas) {
-                    const auto unpacked = sectionData.unpack();
-                    for (size_t j = 0; j < section.snapshotLength; ++j) {
-                        if (const auto state = unpacked[j]; state != STATE_UNCHANGED)
-                            snapshotBuilder[j] = state;
-                    }
-                    cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
-                }
+        auto snapshotBuilder = data.unpack();
+        cachedSnapshots[timestamp].emplace(sy, snapshotBuilder);
+
+        bool first = true;
+        for (const auto& [sectionData, deltaTimestamp] : section.reverseDeltas) {
+            if (first) {
+                first = false;
+                continue;
             }
-            chunkAccumulator.emplace_back(snapshotBuilder);
+            const auto unpacked = sectionData.unpack();
+            for (size_t j = 0; j < section.snapshotLength; ++j) {
+                if (const auto state = unpacked[j]; state != STATE_UNCHANGED)
+                    snapshotBuilder[j] = state;
+            }
+            cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
         }
-        for (auto sy = sectionCount - 1; sy >= 0; --sy)
-            renderZprSegmentForSectionSnapshot(timestamp, sy, chunkAccumulator[sy], tileViewDeltas);
+    }
+    for (const auto timestamp : timestamps) {
+        for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0; --sy)
+            renderZprSegmentForSectionSnapshot(timestamp, sy, ZrBlockStatesView(cachedSnapshots[timestamp].at(sy)), tileViewDeltas);
     }
     return ZprSegment(tileViewDeltas.createLayers(), zvrChunk.chunkStates, zvrChunk.tileEntities);
 }
