@@ -28,4 +28,4 @@ ZprFile convertZvrFileToZprFile(const ZvrFile& zvrFile);
 ZprRegion convertZvrRegionToZprRegion(const ZvrRegion& zvrRegion, const ZvrDimensionProperties& properties);
 std::optional<ZprSegment> convertZvrOptChunkToZprOptSegment(const std::optional<ZvrChunk>& zvrChunkOpt, const ZvrDimensionProperties& properties);
 ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimensionProperties& properties);
-void renderZprSegmentForSectionSnapshot(time_t timestamp, uint8_t sy, const ZrBlockStatesView& sectionView, TileViewDeltas& tileViewDeltas);
+bool renderZprSegmentForSectionSnapshot(time_t timestamp, uint8_t sy, const ZrBlockStatesView& sectionView, TileViewDeltas& tileViewDeltas);
