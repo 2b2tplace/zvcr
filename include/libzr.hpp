@@ -57,7 +57,7 @@ template<typename R>
 size_t writeZFile(const R& file, const std::string& filename, const ZFileSerialize<R>& serialize);
 
 template<typename R>
-ZResult<R> readZFile(const std::string& filename, ssize_t maxDeltas, const ZFileDeserialize<R>& deserialize);
+ZResult<R> readZFile(const std::string& filename, size_t maxDeltas, const ZFileDeserialize<R>& deserialize);
 
 void serializeBlockStatesSnapshot(const ZrBlockStatesSnapshot& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
@@ -71,7 +71,7 @@ std::optional<ZrError> skipBlockStatesSnapshot(const std::vector<uint8_t>& data,
 
 void serializeBlockStates(const ZrDeltaBlockStates& chunkSection, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-ZResult<ZrDeltaBlockStates> deserializeBlockStates(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, ssize_t maxDeltas, size_t snapshotLength);
+ZResult<ZrDeltaBlockStates> deserializeBlockStates(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas, size_t snapshotLength);
 
 void serializeChunkState(const ZrChunkState& chunkState, std::vector<uint8_t>& data);
 
@@ -87,51 +87,51 @@ ZResult<ZrSector> deserializeSector(const std::vector<uint8_t>& data, size_t& of
 
 void serializeChunk(const ZvrChunk& chunk, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-ZResult<ZvrChunk> deserializeChunk(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, ssize_t maxDeltas, uint32_t sectionAmount);
+ZResult<ZvrChunk> deserializeChunk(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas, uint32_t sectionAmount);
 
 void serializeOptionalChunk(const std::optional<ZvrChunk>& chunk, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-ZResult<std::optional<ZvrChunk>> deserializeOptionalChunk(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, ssize_t maxDeltas, uint32_t sectionAmount);
+ZResult<std::optional<ZvrChunk>> deserializeOptionalChunk(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas, uint32_t sectionAmount);
 
 void serializeZVRegion(const ZvrRegion& region, std::vector<uint8_t>& data);
 
-ZResult<ZvrRegion> deserializeZVRegion(const std::vector<uint8_t>& data, size_t& offset, ssize_t maxDeltas, uint32_t sectionAmount);
+ZResult<ZvrRegion> deserializeZVRegion(const std::vector<uint8_t>& data, size_t& offset, size_t maxDeltas, uint32_t sectionAmount);
 
 void serializeZVRFile(const ZvrFile& file, std::vector<uint8_t>& data);
 
-ZResult<ZvrFile> deserializeZVRFile(const std::vector<uint8_t>& data, size_t& offset, ssize_t maxDeltas);
+ZResult<ZvrFile> deserializeZVRFile(const std::vector<uint8_t>& data, size_t& offset, size_t maxDeltas);
 
 size_t writeZVRFile(const ZvrFile& file, const std::string& filename);
 
-ZResult<ZvrFile> readZVRFile(const std::string& filename, ssize_t maxDeltas);
+ZResult<ZvrFile> readZVRFile(const std::string& filename, size_t maxDeltas);
 
 void serializeLayer(const ZprLayer& layer, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-ZResult<ZprLayer> deserializeLayer(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, ssize_t maxDeltas);
+ZResult<ZprLayer> deserializeLayer(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas);
 
 void serializeLayers(const ZprLayers& layers, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-ZResult<ZprLayers> deserializeLayers(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, ssize_t maxDeltas);
+ZResult<ZprLayers> deserializeLayers(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas);
 
 void serializeSegment(const ZprSegment& segment, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-ZResult<ZprSegment> deserializeSegment(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, ssize_t maxDeltas);
+ZResult<ZprSegment> deserializeSegment(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas);
 
 void serializeOptionalSegment(const std::optional<ZprSegment>& segment, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-ZResult<std::optional<ZprSegment>> deserializeOptionalSegment(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, ssize_t maxDeltas);
+ZResult<std::optional<ZprSegment>> deserializeOptionalSegment(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas);
 
 void serializeZPRegion(const ZprRegion& region, std::vector<uint8_t>& data);
 
-ZResult<ZprRegion> deserializeZPRegion(const std::vector<uint8_t>& data, size_t& offset, ssize_t maxDeltas);
+ZResult<ZprRegion> deserializeZPRegion(const std::vector<uint8_t>& data, size_t& offset, size_t maxDeltas);
 
 void serializeZPRFile(const ZprFile& file, std::vector<uint8_t>& data);
 
-ZResult<ZprFile> deserializeZPRFile(const std::vector<uint8_t>& data, size_t& offset, ssize_t maxDeltas);
+ZResult<ZprFile> deserializeZPRFile(const std::vector<uint8_t>& data, size_t& offset, size_t maxDeltas);
 
 size_t writeZPRFile(const ZprFile& file, const std::string& filename);
 
-ZResult<ZprFile> readZPRFile(const std::string& filename, ssize_t maxDeltas);
+ZResult<ZprFile> readZPRFile(const std::string& filename, size_t maxDeltas);
 
 std::vector<uint8_t> compressData(const std::vector<uint8_t>& inputData);
 
