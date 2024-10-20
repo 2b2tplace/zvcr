@@ -87,7 +87,6 @@ std::optional<ZprSegment> convertZvrOptChunkToZprOptSegment(const std::optional<
 ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimensionProperties& properties) {
     const auto sectionCount = static_cast<int8_t>(properties.height / 16);
     TileViewDeltas tileViewDeltas;
-
     std::vector<time_t> timestamps;
     for (const auto& section : zvrChunk.sections) {
         for (const auto&[data, timestamp] : section.reverseDeltas) {
@@ -95,15 +94,14 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
                 timestamps.push_back(timestamp);
         }
     }
-    std::ranges::sort(timestamps, std::greater());
-    std::unordered_map<time_t, std::vector<UnpackedBlockStates>> cachedSnapshots;
+    std::unordered_map<time_t, std::unordered_map<int8_t, ZrBlockStatesView>> cachedSnapshots;
 
     for (int8_t sy = 0; sy < static_cast<int8_t>(sectionCount); ++sy) {
         const auto& section = zvrChunk.sections[sy];
         const auto&[data, timestamp] = section.latestSnapshot();
 
         auto snapshotBuilder = data.unpack();
-        cachedSnapshots[timestamp].push_back(snapshotBuilder);
+        cachedSnapshots[timestamp].emplace(sy, snapshotBuilder);
 
         bool first = true;
         for (const auto& [sectionData, deltaTimestamp] : section.reverseDeltas) {
@@ -116,12 +114,12 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
                 if (const auto state = unpacked[j]; state != STATE_UNCHANGED)
                     snapshotBuilder[j] = state;
             }
-            cachedSnapshots[deltaTimestamp].push_back(snapshotBuilder);
+            cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
         }
     }
     for (const auto timestamp : timestamps) {
         for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0; --sy)
-            renderZprSegmentForSectionSnapshot(timestamp, sy, ZrBlockStatesView(cachedSnapshots[timestamp][sy]), tileViewDeltas);
+            renderZprSegmentForSectionSnapshot(timestamp, sy, cachedSnapshots[timestamp].at(sy), tileViewDeltas);
     }
     return ZprSegment(tileViewDeltas.createLayers(), zvrChunk.chunkStates, zvrChunk.tileEntities);
 }
