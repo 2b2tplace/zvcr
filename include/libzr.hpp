@@ -61,7 +61,7 @@ ZResult<R> readZFile(const std::string& filename, size_t maxDeltas, const ZFileD
 
 void serializeBlockStatesSnapshot(const ZrBlockStatesSnapshot& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-ZResult<ZrBlockStatesSnapshot> deserializeBlockStatesSnapshot(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t snapshotLength);
+ZResult<ZrBlockStatesSnapshot> deserializeBlockStatesSnapshot(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t snapshotLength);
 
 void serializePaletteTable(const std::vector<Palette>& paletteTable, std::vector<uint8_t>& data);
 
