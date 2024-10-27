@@ -111,8 +111,9 @@ UnpackedBlockStates ZrBlockStates::unpack() const {
 }
 
 ZrBlockStates ZrBlockStates::pack(const UnpackedBlockStates& sectionData) {
-    std::vector palette(sectionData.begin(), sectionData.end());
-    palette.erase(std::ranges::unique(palette).begin(), palette.end());
+    std::unordered_set uniqueStates(sectionData.begin(), sectionData.end());
+    std::vector palette(uniqueStates.begin(), uniqueStates.end());
+
     std::ranges::sort(palette);
 
     std::unordered_map<uint16_t, size_t> stateToIndex;
@@ -123,12 +124,9 @@ ZrBlockStates ZrBlockStates::pack(const UnpackedBlockStates& sectionData) {
     const auto snapshotLength = sectionData.size();
     BitStorage bitStorage(getBitsPerIndex(palette), snapshotLength);
 
-    for (size_t i = 0; i < snapshotLength; ++i) {
-        const auto state = sectionData[i];
-        const auto stateIndex = stateToIndex[state];
+    for (size_t i = 0; i < snapshotLength; ++i)
+        bitStorage.set(i, stateToIndex[sectionData[i]]);
 
-        bitStorage.set(i, stateIndex);
-    }
     return ZrBlockStates(palette, bitStorage.data, snapshotLength);
 }
 
