@@ -72,9 +72,10 @@ ZprFile convertZvrFileToZprFile(const ZvrFile& zvrFile) {
 
 ZprRegion convertZvrRegionToZprRegion(const ZvrRegion& zvrRegion, const ZvrDimensionProperties& properties) {
     ZprRegion zprRegion;
-    for (size_t i = 0; i < SEGMENTS_PER_REGION; ++i)
-        zprRegion.segments.push_back(convertZvrOptChunkToZprOptSegment(zvrRegion.segments[i], properties));
-
+    for (size_t i = 0; i < SEGMENTS_PER_REGION; ++i) {
+        const auto segment = convertZvrOptChunkToZprOptSegment(zvrRegion.segments[i], properties);
+        zprRegion.segments.push_back(segment);
+    }
     return zprRegion;
 }
 
@@ -96,9 +97,8 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
     }
     std::unordered_map<time_t, std::unordered_map<int8_t, ZrBlockStatesView>> cachedSnapshots;
 
-    bool finished = false;
     for (const auto ts : timestamps) {
-        for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0 && !finished; --sy) {
+        for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0; --sy) {
             const auto& section = zvrChunk.sections[sy];
             const auto&[data, timestamp] = section.latestSnapshot();
 
@@ -118,9 +118,9 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
                 }
                 cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
             }
-            finished |= renderZprSegmentForSectionSnapshot(ts, sy, cachedSnapshots[ts].at(sy), tileViewDeltas);
+            if (!cachedSnapshots[ts].contains(sy)) continue;
+            if (renderZprSegmentForSectionSnapshot(ts, sy, cachedSnapshots[ts].at(sy), tileViewDeltas)) break;
         }
-        if (finished) break;
     }
     return ZprSegment(tileViewDeltas.createLayers(), zvrChunk.chunkStates, zvrChunk.tileEntities);
 }
