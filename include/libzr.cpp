@@ -47,7 +47,7 @@ size_t writeZFile(const R& file, const std::string& filename, const ZFileSeriali
     const auto bytesCompressed = compressData(bytesUncompressed);
 
     std::ofstream fileStream(filename, std::ios::out | std::ios::binary);
-    fileStream.write(reinterpret_cast<const char*>(bytesCompressed.data()), bytesCompressed.size());
+    fileStream.write(reinterpret_cast<const char*>(bytesCompressed.data()), static_cast<int64_t>(bytesCompressed.size()));
     fileStream.close();
 
     return bytesCompressed.size();
@@ -62,7 +62,7 @@ ZResult<R> readZFile(const std::string& filename, const size_t maxDeltas, const 
         std::ifstream fileStream(filename, std::ios::in | std::ios::binary);
 
         fileStream.seekg(0, std::ios::end);
-        const size_t fileSize = fileStream.tellg();
+        const int64_t fileSize = fileStream.tellg();
         fileStream.seekg(0, std::ios::beg);
 
         const auto bytesCompressed = new char[fileSize];
@@ -95,7 +95,7 @@ void serializeBlockStatesSnapshot(const ZrBlockStatesSnapshot& snapshot, std::ve
     const Palette palette = snapshot.data.palette;
     size_t paletteIndex = paletteTable.size();
     for (size_t i = 0; i < paletteTable.size(); ++i) {
-        if (const auto existingPalette = paletteTable[i]; palette == existingPalette) {
+        if (const auto& existingPalette = paletteTable[i]; palette == existingPalette) {
             paletteIndex = i;
             break;
         }
@@ -137,7 +137,7 @@ ZResult<ZrBlockStatesSnapshot> deserializeBlockStatesSnapshot(const std::vector<
     std::memcpy(&paletteIndex, data.data() + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
-    const auto palette = paletteTable[paletteIndex];
+    const auto& palette = paletteTable[paletteIndex];
     return ZrBlockStatesSnapshot {
         ZrBlockStates(palette, packedData, snapshotLength),
         timestamp
