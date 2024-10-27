@@ -541,13 +541,13 @@ ZResult<ZprFile> readZPRFile(const std::string& filename, const size_t maxDeltas
 
 std::vector<uint8_t> compressData(const std::vector<uint8_t>& inputData) {
     ZSTD_CCtx* cctx = ZSTD_createCCtx();
-    ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, ZSTD_COMPRESSION_THREADS);
+    ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, LIBZR_ZSTD_COMPRESSION_THREADS);
 
     const size_t compressedSize = ZSTD_compressBound(inputData.size());
     std::vector<uint8_t> compressedData(compressedSize);
 
     const size_t actualCompressedSize = ZSTD_compressCCtx(cctx, compressedData.data(), compressedSize,
-        inputData.data(), inputData.size(), ZSTD_COMPRESSION_LEVEL);
+        inputData.data(), inputData.size(), LIBZR_ZSTD_COMPRESSION_LEVEL);
 
     if (ZSTD_isError(actualCompressedSize)) {
         ZSTD_freeCCtx(cctx);

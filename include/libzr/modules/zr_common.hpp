@@ -6,9 +6,6 @@
 #define REGION_SIDELENGTH 32
 #define SEGMENTS_PER_REGION REGION_SIDELENGTH * REGION_SIDELENGTH
 
-#define ZSTD_COMPRESSION_LEVEL 12
-#define ZSTD_COMPRESSION_THREADS 12
-
 #include <cmath>
 #include <utility>
 #include <cstdint>
