@@ -139,7 +139,7 @@ bool renderZprSegment(const uint8_t cx, const uint8_t cz, const uint8_t sy,
         const auto state = sectionView.getBlockState(cx, cy, cz);
         if (state == 0) continue;
 
-        if (ignoreWater && state >= 80 && state <= 95) continue;
+        if (ignoreWater && state >= 80 && state <= 111) continue;
         if (ignoreRoof && (state == 79 /* bedrock */
                 || state == 2354 /* obsidian */
                 || state == 19449 /* crying obsidian */
@@ -147,10 +147,10 @@ bool renderZprSegment(const uint8_t cx, const uint8_t cz, const uint8_t sy,
 
         topDownTileView.set(cx, cz, state);
 
-        if (const auto height = sy * 16 + cy; height > heightmapTileView.get(cx, cz))
+        if (const auto height = sy * 16 + cy; height > heightmapTileView.get(cx, cz)) {
             heightmapTileView.set(cx, cz, height);
-
-        return true;
+            return true;
+        }
     }
     return false;
 }
