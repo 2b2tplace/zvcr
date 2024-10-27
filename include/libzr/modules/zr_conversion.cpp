@@ -72,10 +72,9 @@ ZprFile convertZvrFileToZprFile(const ZvrFile& zvrFile) {
 
 ZprRegion convertZvrRegionToZprRegion(const ZvrRegion& zvrRegion, const ZvrDimensionProperties& properties) {
     ZprRegion zprRegion;
-    for (size_t i = 0; i < SEGMENTS_PER_REGION; ++i) {
-        const auto segment = convertZvrOptChunkToZprOptSegment(zvrRegion.segments[i], properties);
-        zprRegion.segments.push_back(segment);
-    }
+    for (size_t i = 0; i < SEGMENTS_PER_REGION; ++i)
+        zprRegion.segments.push_back(convertZvrOptChunkToZprOptSegment(zvrRegion.segments[i], properties));
+
     return zprRegion;
 }
 
@@ -118,7 +117,9 @@ ZprSegment convertZvrChunkToZprSegment(const ZvrChunk& zvrChunk, const ZvrDimens
                 }
                 cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
             }
-            if (!cachedSnapshots[ts].contains(sy)) continue;
+            if (!cachedSnapshots[ts].contains(sy))
+                cachedSnapshots[ts].emplace(sy, section.snapshotFrom(ts).data.unpack());
+
             if (renderZprSegmentForSectionSnapshot(ts, sy, cachedSnapshots[ts].at(sy), tileViewDeltas)) break;
         }
     }
