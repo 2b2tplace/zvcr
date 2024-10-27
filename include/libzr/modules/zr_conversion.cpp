@@ -133,11 +133,11 @@ bool renderZprSegment(const uint8_t cx, const uint8_t cz, const uint8_t sy,
                       const bool ignoreRoof,
                       const bool ignoreWater) {
     const auto current = topDownTileView.get(cx, cz);
-    if (current != 0) return true;
+    if (current != 0 && current != 12958 && current != 12959) return true;
 
     for (int8_t cy = CHUNK_SIDELENGTH - 1; cy >= 0; --cy) {
         const auto state = sectionView.getBlockState(cx, cy, cz);
-        if (state == 0) continue;
+        if (state == 0 || state == 12958 || state == 12959) continue;
 
         if (ignoreWater && state >= 80 && state <= 111) continue;
         if (ignoreRoof && (state == 79 /* bedrock */
