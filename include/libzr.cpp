@@ -73,7 +73,7 @@ ZResult<R> readZFile(const std::string& filename, const size_t maxDeltas, const 
         const auto bytesUncompressed = decompressData(bytesCompressedVector);
         size_t offset{};
 
-        delete bytesCompressed;
+        delete[] bytesCompressed;
         return deserialize(bytesUncompressed, offset, maxDeltas);
     } catch (const std::length_error&) {
         return std::unexpected(GENERIC_READ_ERROR);
