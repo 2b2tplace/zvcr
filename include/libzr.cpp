@@ -540,7 +540,8 @@ ZResult<ZprFile> readZPRFile(const std::string& filename, const size_t maxDeltas
 }
 
 std::vector<uint8_t> compressData(const std::vector<uint8_t>& inputData) {
-    ZSTD_CCtx* cctx = ZSTD_createCCtx();
+    thread_local ZSTD_CCtx* cctx = ZSTD_createCCtx();
+    ZSTD_CCtx_reset(cctx, ZSTD_reset_session_only);
     ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, LIBZR_ZSTD_COMPRESSION_THREADS);
 
     const size_t compressedSize = ZSTD_compressBound(inputData.size());
@@ -560,7 +561,8 @@ std::vector<uint8_t> compressData(const std::vector<uint8_t>& inputData) {
 
 std::vector<uint8_t> decompressData(const std::vector<uint8_t>& compressedData) {
     std::vector<uint8_t> decompressedData;
-    ZSTD_DCtx* dctx = ZSTD_createDCtx();
+    thread_local ZSTD_DCtx* dctx = ZSTD_createDCtx();
+    ZSTD_DCtx_reset(dctx, ZSTD_reset_session_only);
     const auto decompressedSize = ZSTD_getFrameContentSize(compressedData.data(), compressedData.size());
 
     decompressedData.resize(decompressedSize);
