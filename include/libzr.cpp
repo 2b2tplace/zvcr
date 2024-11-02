@@ -551,10 +551,10 @@ std::vector<uint8_t> compressData(const std::vector<uint8_t>& inputData) {
         inputData.data(), inputData.size(), LIBZR_ZSTD_COMPRESSION_LEVEL);
 
     if (ZSTD_isError(actualCompressedSize)) {
-        ZSTD_freeCCtx(cctx);
+        //ZSTD_freeCCtx(cctx);
         throw std::runtime_error("ZSTD compression failed: " + std::string(ZSTD_getErrorName(actualCompressedSize)));
     }
-    ZSTD_freeCCtx(cctx);
+    //ZSTD_freeCCtx(cctx);
     compressedData.resize(actualCompressedSize);
     return compressedData;
 }
@@ -570,9 +570,9 @@ std::vector<uint8_t> decompressData(const std::vector<uint8_t>& compressedData) 
         compressedData.data(), compressedData.size());
 
     if (ZSTD_isError(actualDecompressedSize)) {
-        ZSTD_freeDCtx(dctx);
+        //ZSTD_freeDCtx(dctx);
         throw std::runtime_error("ZSTD decompression failed: " + std::string(ZSTD_getErrorName(actualDecompressedSize)));
     }
-    ZSTD_freeDCtx(dctx);
+    //ZSTD_freeDCtx(dctx);
     return decompressedData;
 }
