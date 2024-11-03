@@ -125,7 +125,7 @@ ZResult<ZrBlockStatesSnapshot> deserializeBlockStatesSnapshot(const std::vector<
     if (offset + packedLength * sizeof(uint64_t) > data.size())
         return std::unexpected(EXPECTED_PACKED_DATA);
 
-    LongArray packedData(packedLength);
+    const LongArray packedData(packedLength);
     std::memcpy(packedData.data(), data.data() + offset, packedLength * sizeof(uint64_t));
     offset += packedLength * sizeof(uint64_t);
 
@@ -239,7 +239,7 @@ ZResult<ZrDeltaBlockStates> deserializeBlockStates(const std::vector<uint8_t>& d
             Propagate(skipBlockStatesSnapshot(data, offset));
             continue;
         }
-	reverseDeltas.push_back(std::move(Try(deserializeBlockStatesSnapshot(data, offset, paletteTable, snapshotLength))));
+        reverseDeltas.push_back(std::move(Try(deserializeBlockStatesSnapshot(data, offset, paletteTable, snapshotLength))));
     }
     return ZrDeltaBlockStates(reverseDeltas, snapshotLength);
 }
