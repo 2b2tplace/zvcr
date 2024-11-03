@@ -125,7 +125,7 @@ ZResult<ZrBlockStatesSnapshot> deserializeBlockStatesSnapshot(const std::vector<
     if (offset + packedLength * sizeof(uint64_t) > data.size())
         return std::unexpected(EXPECTED_PACKED_DATA);
 
-    const LongArray packedData(packedLength);
+    LongArray packedData(packedLength);
     std::memcpy(packedData.data(), data.data() + offset, packedLength * sizeof(uint64_t));
     offset += packedLength * sizeof(uint64_t);
 

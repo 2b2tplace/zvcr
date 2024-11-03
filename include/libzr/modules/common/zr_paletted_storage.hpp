@@ -1,30 +1,10 @@
 #pragma once
 
 #include <libzr/modules/zr_common.hpp>
-#include <smmalloc.hpp>
 
+typedef std::vector<uint64_t> LongArray;
 typedef std::vector<uint16_t> Palette;
 typedef std::vector<uint16_t> UnpackedBlockStates;
-
-#define PREALLOC_POOL_SIZE 5368709120
-#define PREALLOC_BUCKET_SIZE 52428800
-
-extern size_t ALLOC_TEST_TOTAL;
-extern sm_allocator PREALLOC;
-
-class LongArray {
-public:
-    explicit LongArray(size_t size);
-    ~LongArray();
-    size_t size() const;
-    void resize(size_t size);
-    bool empty() const;
-    uint64_t& operator[](size_t idx) const;
-    uint64_t* data() const;
-private:
-    size_t _size;
-    uint64_t *_data;
-};
 
 class ZrBlockStatesView {
 public:

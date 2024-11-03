@@ -1,36 +1,5 @@
 #include <libzr/modules/common/zr_paletted_storage.hpp>
 
-sm_allocator PREALLOC = _sm_allocator_create(PREALLOC_POOL_SIZE / PREALLOC_BUCKET_SIZE, PREALLOC_BUCKET_SIZE);
-
-LongArray::LongArray(const size_t size): _size(size) {
-    _data = static_cast<uint64_t *>(_sm_malloc(PREALLOC, size, SMM_CACHE_LINE_SIZE));
-}
-
-LongArray::~LongArray() {
-    _sm_free(PREALLOC, _data);
-}
-
-void LongArray::resize(const size_t newSize) {
-    _data = static_cast<uint64_t *>(_sm_realloc(PREALLOC, _data, newSize, SMM_CACHE_LINE_SIZE));
-    _size = newSize;
-}
-
-size_t LongArray::size() const {
-    return _size;
-}
-
-bool LongArray::empty() const {
-    return _size == 0;
-}
-
-uint64_t& LongArray::operator[](const size_t idx) const {
-    return _data[idx];
-}
-
-uint64_t* LongArray::data() const {
-    return _data;
-}
-
 ZrBlockStatesView::ZrBlockStatesView(const UnpackedBlockStates& unpacked) {
     this->unpacked = unpacked;
 }
@@ -69,7 +38,7 @@ size_t ZrBlockStatesView::unpackedIndex(const uint8_t x, const uint8_t z) {
     return unpackedIndex(x, 0, z);
 }
 
-BitStorage::BitStorage(const size_t bits, const size_t size, const LongArray& data = LongArray(0)): data(std::move(data)), bits(bits),
+BitStorage::BitStorage(const size_t bits, const size_t size, const LongArray& data = LongArray(0)): data(data), bits(bits),
     size(size) {
     assert(bits >= 1 && bits <= 32);
 
