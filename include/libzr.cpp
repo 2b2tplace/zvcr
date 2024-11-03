@@ -84,7 +84,7 @@ void serializeBlockStatesSnapshot(const ZrBlockStatesSnapshot& snapshot, std::ve
     data.resize(data.size() + sizeof(time_t));
     std::memcpy(data.data() + data.size() - sizeof(time_t), &snapshot.timestamp, sizeof(time_t));
 
-    const LongArray packedData = snapshot.data.packedData;
+    const auto& packedData = snapshot.data.packedData;
     const uint64_t packedLength = packedData.size();
     const uint64_t packedSize = packedLength * sizeof(uint64_t);
 
@@ -92,7 +92,7 @@ void serializeBlockStatesSnapshot(const ZrBlockStatesSnapshot& snapshot, std::ve
     std::memcpy(data.data() + data.size() - sizeof(uint64_t) - packedSize, &packedLength, sizeof(uint64_t));
     std::memcpy(data.data() + data.size() - packedSize, packedData.data(), packedSize);
 
-    const Palette palette = snapshot.data.palette;
+    const auto& palette = snapshot.data.palette;
     size_t paletteIndex = paletteTable.size();
     for (size_t i = 0; i < paletteTable.size(); ++i) {
         if (const auto& existingPalette = paletteTable[i]; palette == existingPalette) {
@@ -125,8 +125,7 @@ ZResult<ZrBlockStatesSnapshot> deserializeBlockStatesSnapshot(const std::vector<
     if (offset + packedLength * sizeof(uint64_t) > data.size())
         return std::unexpected(EXPECTED_PACKED_DATA);
 
-    LongArray packedData;
-    packedData.resize(packedLength);
+    LongArray packedData(packedLength);
     std::memcpy(packedData.data(), data.data() + offset, packedLength * sizeof(uint64_t));
     offset += packedLength * sizeof(uint64_t);
 
@@ -139,7 +138,7 @@ ZResult<ZrBlockStatesSnapshot> deserializeBlockStatesSnapshot(const std::vector<
 
     const auto& palette = paletteTable[paletteIndex];
     return ZrBlockStatesSnapshot {
-        ZrBlockStates(palette, packedData, snapshotLength),
+	std::move(ZrBlockStates(palette, packedData, snapshotLength)),
         timestamp
     };
 }
@@ -240,8 +239,7 @@ ZResult<ZrDeltaBlockStates> deserializeBlockStates(const std::vector<uint8_t>& d
             Propagate(skipBlockStatesSnapshot(data, offset));
             continue;
         }
-        const auto snapshot = Try(deserializeBlockStatesSnapshot(data, offset, paletteTable, snapshotLength));
-        reverseDeltas.push_back(snapshot);
+	reverseDeltas.push_back(std::move(Try(deserializeBlockStatesSnapshot(data, offset, paletteTable, snapshotLength))));
     }
     return ZrDeltaBlockStates(reverseDeltas, snapshotLength);
 }
@@ -278,19 +276,19 @@ void serializeTileEntityCounts(const ZrTileEntityCounts& tileEntityCounts, std::
 ZResult<ZrTileEntityCounts> deserializeTileEntityCounts(const std::vector<uint8_t>& data, size_t& offset) {
     if (offset + sizeof(uint16_t) * TILE_ENTITIES > data.size())
         return std::unexpected(EXPECTED_TILE_ENTITY_COUNTS);
-    
+
     std::vector<uint16_t> counts(TILE_ENTITIES);
     std::memcpy(counts.data(), data.data() + offset, sizeof(uint16_t) * TILE_ENTITIES);
     offset += sizeof(uint16_t) * TILE_ENTITIES;
-    
+
     if (offset + sizeof(time_t) > data.size())
         return std::unexpected(EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP);
-    
+
     time_t timestamp;
     std::memcpy(&timestamp, data.data() + offset, sizeof(time_t));
     offset += sizeof(time_t);
 
-    return ZrTileEntityCounts {counts, timestamp};
+    return ZrTileEntityCounts {std::move(counts), timestamp};
 }
 
 void serializeSector(const ZrSector& sector, std::vector<uint8_t>& data) {
@@ -320,7 +318,7 @@ ZResult<ZrSector> deserializeSector(const std::vector<uint8_t>& data, size_t& of
     ChunkStates states;
     states.reserve(statesLength);
 
-    for (size_t stateIndex = 0; stateIndex < statesLength; ++stateIndex) 
+    for (size_t stateIndex = 0; stateIndex < statesLength; ++stateIndex)
         states.push_back(Try(deserializeChunkState(data, offset)));
 
     if (offset + sizeof(uint64_t) > data.size())
@@ -334,7 +332,7 @@ ZResult<ZrSector> deserializeSector(const std::vector<uint8_t>& data, size_t& of
     tileEntities.reserve(tileEntitiesLength);
 
     for (size_t tileEntityIndex = 0; tileEntityIndex < tileEntitiesLength; ++tileEntityIndex)
-        tileEntities.push_back(Try(deserializeTileEntityCounts(data, offset)));
+        tileEntities.push_back(std::move(Try(deserializeTileEntityCounts(data, offset))));
 
     return ZrSector(states, tileEntities);
 }
@@ -351,7 +349,7 @@ ZResult<ZvrChunk> deserializeChunk(const std::vector<uint8_t>& data, size_t& off
     sections.reserve(sectionAmount);
 
     for (size_t sectionIndex = 0; sectionIndex < sectionAmount; ++sectionIndex)
-        sections.push_back(Try(deserializeBlockStates(data, offset, paletteTable, maxDeltas, SECTION_SIZE)));
+        sections.push_back(std::move(Try(deserializeBlockStates(data, offset, paletteTable, maxDeltas, SECTION_SIZE))));
 
     const auto sector = Try(deserializeSector(data, offset));
     return ZvrChunk(sections, sector.chunkStates, sector.tileEntities);
@@ -391,7 +389,7 @@ ZResult<ZvrRegion> deserializeZVRegion(const std::vector<uint8_t>& data, size_t&
     const auto paletteTable = Try(deserializePaletteTable(data, offset));
     Chunks chunks(SEGMENTS_PER_REGION);
     for (size_t chunkIndex = 0; chunkIndex < SEGMENTS_PER_REGION; ++chunkIndex)
-        chunks[chunkIndex] = Try(deserializeOptionalChunk(data, offset, paletteTable, maxDeltas, sectionAmount));
+        chunks[chunkIndex] = std::move(Try(deserializeOptionalChunk(data, offset, paletteTable, maxDeltas, sectionAmount)));
 
     return ZvrRegion(chunks);
 }
