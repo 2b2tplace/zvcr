@@ -8,7 +8,7 @@ enum class ZprLayerType {
     HEIGHTMAP = 2,
     HEIGHTMAP_ROOFLESS = 3,
     DRAINED_TOP_DOWN = 4,
-    DRAINED_TOP_DOWN_HEIGHTMAP = 4,
+    DRAINED_TOP_DOWN_HEIGHTMAP = 5,
     CUSTOM
 };
 
