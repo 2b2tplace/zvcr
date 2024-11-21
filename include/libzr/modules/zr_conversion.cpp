@@ -143,6 +143,7 @@ bool renderZprSegment(const uint8_t cx, const uint8_t cz, const uint8_t sy, cons
 
         if (ignoreWater && (state >= 80 && state <= 111 || state == 7271))
             continue;
+
         if (ignoreRoof &&
             (state == 79 /* bedrock */
              || state == 2354 /* obsidian */
