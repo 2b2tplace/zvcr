@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 project(libzr)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 
 link_libraries(zstd)
 file(GLOB_RECURSE LIBS "include/*.hpp" "include/*.h" "include/*.cpp" "include/*.c")

@@ -9,6 +9,8 @@
 #include <libzr/modules/zvr/zvr.hpp>
 #include <libzr/modules/zpr/zpr.hpp>
 
+#include "try.hpp"
+
 enum ZrError {
     FILE_NOT_FOUND,
     GENERIC_READ_ERROR,
@@ -38,7 +40,7 @@ enum ZrError {
 };
 
 template<typename R>
-using ZResult = std::expected<R, ZrError>;
+using ZResult = Result<R, ZrError>;
 
 template<typename R>
 using ZFileSerialize = std::function<void(const R&, std::vector<uint8_t>&)>;

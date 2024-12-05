@@ -5,12 +5,12 @@
 
 ZResult<ZrDimensionType> deserializeDimensionType(const std::vector<uint8_t>& data, size_t& offset) {
     if (offset >= data.size())
-        return std::unexpected(EXPECTED_DIMENSION_TYPE);
+        return Error(EXPECTED_DIMENSION_TYPE);
 
     const auto dimensionTypeId = data[offset++];
 
     if (dimensionTypeId > static_cast<uint8_t>(ZrDimensionType::THE_END))
-        return std::unexpected(INVALID_DIMENSION_TYPE);
+        return Error(INVALID_DIMENSION_TYPE);
 
     return static_cast<ZrDimensionType>(dimensionTypeId);
 }
@@ -18,12 +18,12 @@ ZResult<ZrDimensionType> deserializeDimensionType(const std::vector<uint8_t>& da
 template<typename Version>
 ZResult<Version> deserializeVersion(const std::vector<uint8_t>& data, size_t& offset, const Version latest) {
     if (offset >= data.size())
-        return std::unexpected(EXPECTED_VERSION);
+        return Error(EXPECTED_VERSION);
 
     const auto versionNumber = data[offset++];
 
     if (versionNumber > static_cast<uint8_t>(latest))
-        return std::unexpected(INVALID_VERSION);
+        return Error(INVALID_VERSION);
 
     return static_cast<Version>(versionNumber);
 }
@@ -56,7 +56,7 @@ size_t writeZFile(const R& file, const std::string& filename, const ZFileSeriali
 template<typename R>
 ZResult<R> readZFile(const std::string& filename, const size_t maxDeltas, const ZFileDeserialize<R>& deserialize) {
     if (!std::filesystem::exists(filename))
-        return std::unexpected(FILE_NOT_FOUND);
+        return Error(FILE_NOT_FOUND);
 
     try {
         std::ifstream fileStream(filename, std::ios::in | std::ios::binary);
@@ -76,7 +76,7 @@ ZResult<R> readZFile(const std::string& filename, const size_t maxDeltas, const 
         delete[] bytesCompressed;
         return deserialize(bytesUncompressed, offset, maxDeltas);
     } catch (const std::length_error&) {
-        return std::unexpected(GENERIC_READ_ERROR);
+        return Error(GENERIC_READ_ERROR);
     }
 }
 
@@ -109,28 +109,28 @@ void serializeBlockStatesSnapshot(const ZrBlockStatesSnapshot& snapshot, std::ve
 
 ZResult<ZrBlockStatesSnapshot> deserializeBlockStatesSnapshot(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t snapshotLength) {
     if (offset + sizeof(time_t) > data.size())
-        return std::unexpected(EXPECTED_TIMESTAMP);
+        return Error(EXPECTED_TIMESTAMP);
 
     time_t timestamp;
     std::memcpy(&timestamp, data.data() + offset, sizeof(time_t));
     offset += sizeof(time_t);
 
     if (offset + sizeof(uint64_t) > data.size())
-        return std::unexpected(EXPECTED_PACKED_LENGTH);
+        return Error(EXPECTED_PACKED_LENGTH);
 
     uint64_t packedLength;
     std::memcpy(&packedLength, data.data() + offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
 
     if (offset + packedLength * sizeof(uint64_t) > data.size())
-        return std::unexpected(EXPECTED_PACKED_DATA);
+        return Error(EXPECTED_PACKED_DATA);
 
     LongArray packedData(packedLength);
     std::memcpy(packedData.data(), data.data() + offset, packedLength * sizeof(uint64_t));
     offset += packedLength * sizeof(uint64_t);
 
     if (offset + sizeof(uint32_t) > data.size())
-        return std::unexpected(EXPECTED_PALETTE_INDEX);
+        return Error(EXPECTED_PALETTE_INDEX);
 
     uint32_t paletteIndex;
     std::memcpy(&paletteIndex, data.data() + offset, sizeof(uint32_t));
@@ -160,7 +160,7 @@ void serializePaletteTable(const std::vector<Palette>& paletteTable, std::vector
 
 ZResult<std::vector<Palette>> deserializePaletteTable(const std::vector<uint8_t>& data, size_t& offset) {
     if (offset + sizeof(uint32_t) > data.size())
-        return std::unexpected(EXPECTED_PALETTE_TABLE_LENGTH);
+        return Error(EXPECTED_PALETTE_TABLE_LENGTH);
 
     uint32_t paletteTableLength;
     std::memcpy(&paletteTableLength, data.data() + offset, sizeof(uint32_t));
@@ -169,7 +169,7 @@ ZResult<std::vector<Palette>> deserializePaletteTable(const std::vector<uint8_t>
     std::vector<Palette> paletteTable;
     for (uint32_t i = 0; i < paletteTableLength; ++i) {
         if (offset + sizeof(uint16_t) > data.size())
-            return std::unexpected(EXPECTED_PALETTE_LENGTH);
+            return Error(EXPECTED_PALETTE_LENGTH);
 
         uint16_t paletteLength;
         std::memcpy(&paletteLength, data.data() + offset, sizeof(uint16_t));
@@ -177,7 +177,7 @@ ZResult<std::vector<Palette>> deserializePaletteTable(const std::vector<uint8_t>
 
         const auto paletteLengthSize = static_cast<size_t>(paletteLength);
         if (offset + paletteLengthSize * sizeof(uint16_t) > data.size())
-            return std::unexpected(EXPECTED_PALETTE_DATA);
+            return Error(EXPECTED_PALETTE_DATA);
 
         Palette palette;
         palette.resize(paletteLengthSize);
@@ -226,7 +226,7 @@ void serializeBlockStates(const ZrDeltaBlockStates& chunkSection, std::vector<ui
 
 ZResult<ZrDeltaBlockStates> deserializeBlockStates(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas, const size_t snapshotLength) {
     if (offset + sizeof(uint64_t) > data.size())
-        return std::unexpected(EXPECTED_DELTA_LENGTH);
+        return Error(EXPECTED_DELTA_LENGTH);
 
     size_t deltaLength;
     std::memcpy(&deltaLength, data.data() + offset, sizeof(uint64_t));
@@ -252,12 +252,12 @@ void serializeChunkState(const ZrChunkState& chunkState, std::vector<uint8_t>& d
 
 ZResult<ZrChunkState> deserializeChunkState(const std::vector<uint8_t>& data, size_t& offset) {
     if (offset >= data.size())
-        return std::unexpected(EXPECTED_CHUNK_STATE_TYPE);
+        return Error(EXPECTED_CHUNK_STATE_TYPE);
 
     const auto type = static_cast<ZrChunkStateType>(data[offset++]);
 
     if (offset + sizeof(time_t) > data.size())
-        return std::unexpected(EXPECTED_CHUNK_STATE_TIMESTAMP);
+        return Error(EXPECTED_CHUNK_STATE_TIMESTAMP);
 
     time_t timestamp;
     std::memcpy(&timestamp, data.data() + offset, sizeof(time_t));
@@ -275,14 +275,14 @@ void serializeTileEntityCounts(const ZrTileEntityCounts& tileEntityCounts, std::
 
 ZResult<ZrTileEntityCounts> deserializeTileEntityCounts(const std::vector<uint8_t>& data, size_t& offset) {
     if (offset + sizeof(uint16_t) * TILE_ENTITIES > data.size())
-        return std::unexpected(EXPECTED_TILE_ENTITY_COUNTS);
+        return Error(EXPECTED_TILE_ENTITY_COUNTS);
 
     std::vector<uint16_t> counts(TILE_ENTITIES);
     std::memcpy(counts.data(), data.data() + offset, sizeof(uint16_t) * TILE_ENTITIES);
     offset += sizeof(uint16_t) * TILE_ENTITIES;
 
     if (offset + sizeof(time_t) > data.size())
-        return std::unexpected(EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP);
+        return Error(EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP);
 
     time_t timestamp;
     std::memcpy(&timestamp, data.data() + offset, sizeof(time_t));
@@ -309,7 +309,7 @@ void serializeSector(const ZrSector& sector, std::vector<uint8_t>& data) {
 
 ZResult<ZrSector> deserializeSector(const std::vector<uint8_t>& data, size_t& offset) {
     if (offset + sizeof(uint64_t) > data.size())
-        return std::unexpected(EXPECTED_CHUNK_STATES_LENGTH);
+        return Error(EXPECTED_CHUNK_STATES_LENGTH);
 
     uint64_t statesLength;
     std::memcpy(&statesLength, data.data() + offset, sizeof(uint64_t));
@@ -322,7 +322,7 @@ ZResult<ZrSector> deserializeSector(const std::vector<uint8_t>& data, size_t& of
         states.push_back(Try(deserializeChunkState(data, offset)));
 
     if (offset + sizeof(uint64_t) > data.size())
-        return std::unexpected(EXPECTED_TILE_ENTITIES_LENGTH);
+        return Error(EXPECTED_TILE_ENTITIES_LENGTH);
 
     uint64_t tileEntitiesLength;
     std::memcpy(&tileEntitiesLength, data.data() + offset, sizeof(uint64_t));
@@ -366,12 +366,12 @@ void serializeOptionalChunk(const std::optional<ZvrChunk>& chunk, std::vector<ui
 
 ZResult<std::optional<ZvrChunk>> deserializeOptionalChunk(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas, const uint32_t sectionAmount) {
     if (offset >= data.size())
-        return std::unexpected(EXPECTED_CHUNK_INDICATOR);
+        return Error(EXPECTED_CHUNK_INDICATOR);
 
     if (data[offset++] == 0)
-        return std::nullopt;
+        return static_cast<std::optional<ZvrChunk>>(std::nullopt);
 
-    return Try(deserializeChunk(data, offset, paletteTable, maxDeltas, sectionAmount));
+    return static_cast<std::optional<ZvrChunk>>(Try(deserializeChunk(data, offset, paletteTable, maxDeltas, sectionAmount)));
 }
 
 void serializeZVRegion(const ZvrRegion& region, std::vector<uint8_t>& data) {
@@ -428,7 +428,7 @@ void serializeLayer(const ZprLayer& layer, std::vector<uint8_t>& data, std::vect
 
 ZResult<ZprLayer> deserializeLayer(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas) {
     if (offset >= data.size())
-        return std::unexpected(EXPECTED_LAYER_TYPE);
+        return Error(EXPECTED_LAYER_TYPE);
 
     const auto type = data[offset++];
     const auto deltas = Try(deserializeBlockStates(data, offset, paletteTable, maxDeltas, TILE_SIZE));
@@ -447,7 +447,7 @@ void serializeLayers(const ZprLayers& layers, std::vector<uint8_t>& data, std::v
 
 ZResult<ZprLayers> deserializeLayers(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas) {
     if (offset + sizeof(uint64_t) > data.size())
-        return std::unexpected(EXPECTED_LAYERS_LENGTH);
+        return Error(EXPECTED_LAYERS_LENGTH);
 
     uint64_t layersLength;
     std::memcpy(&layersLength, data.data() + offset, sizeof(uint64_t));
@@ -484,12 +484,12 @@ void serializeOptionalSegment(const std::optional<ZprSegment>& segment, std::vec
 
 ZResult<std::optional<ZprSegment>> deserializeOptionalSegment(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas) {
     if (offset >= data.size())
-        return std::unexpected(EXPECTED_CHUNK_INDICATOR);
+        return Error(EXPECTED_CHUNK_INDICATOR);
 
     if (data[offset++] == 0)
-        return std::nullopt;
+        return static_cast<std::optional<ZprSegment>>(std::nullopt);
 
-    return Try(deserializeSegment(data, offset, paletteTable, maxDeltas));
+    return static_cast<std::optional<ZprSegment>>(Try(deserializeSegment(data, offset, paletteTable, maxDeltas)));
 }
 
 void serializeZPRegion(const ZprRegion& region, std::vector<uint8_t>& data) {
