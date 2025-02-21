@@ -9,5 +9,5 @@ include_directories(zvcr ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # add_library(zvcr INTERFACE ${LIBS})
 add_executable(zvcr ${LIBS} main.cpp)
-target_compile_definitions(zvcr PRIVATE PROTOCOL_VERSION=765)
+target_compile_definitions(zvcr PRIVATE ZVCR_VERSION=ZVCR_0_0_0_0)
 target_include_directories(zvcr INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)

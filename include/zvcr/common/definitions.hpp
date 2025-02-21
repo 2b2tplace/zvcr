@@ -1,6 +1,14 @@
 #pragma once
 
+enum ZVCRCoreVersion {
+    ZVCR_0_0_0_0
+};
+
 namespace zvcr::common::definitions {
+
+#ifdef ZVCR_VERSION == ZVCR_0_0_0_0
+#define PROTOCOL_VERSION 765
+#endif
 
     constexpr size_t REGION_SIDELENGTH_SEGMENTS = 32;
     constexpr size_t SEGMENTS_PER_REGION = REGION_SIDELENGTH_SEGMENTS * REGION_SIDELENGTH_SEGMENTS;
