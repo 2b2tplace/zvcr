@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.29)
-project(libzr)
+project(zvcr)
 
 set(CMAKE_CXX_STANDARD 20)
 
 link_libraries(zstd)
 file(GLOB_RECURSE LIBS "include/*.hpp" "include/*.h" "include/*.cpp" "include/*.c")
+include_directories(zvcr ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_library(libzr STATIC ${LIBS})
-target_include_directories(libzr PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# add_library(zvcr INTERFACE ${LIBS})
+add_executable(zvcr ${LIBS} main.cpp)
+target_compile_definitions(zvcr PRIVATE PROTOCOL_VERSION=765)
+target_include_directories(zvcr INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)

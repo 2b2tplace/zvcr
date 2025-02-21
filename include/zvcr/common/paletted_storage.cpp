@@ -1,0 +1,148 @@
+#include <utility>
+#include <zvcr/common/paletted_storage.hpp>
+#include <zvcr/common/definitions.hpp>
+
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <tuple>
+#include <unordered_map>
+#include <unordered_set>
+
+namespace zvcr::common::paletted_storage {
+
+    using definitions::SEGMENT_SIDELENGTH_BLOCKS;
+
+    BlockStatesView::BlockStatesView(const UnpackedBlockStates& unpacked) {
+        this->unpacked = unpacked;
+    }
+
+    BlockStatesView::BlockStatesView(const size_t snapshotLength) {
+        this->unpacked = UnpackedBlockStates(snapshotLength);
+    }
+
+    uint16_t BlockStatesView::getBlockState(const uint8_t x, const uint8_t y, const uint8_t z) const {
+        return unpacked[unpackedIndex(x, y, z)];
+    }
+
+    void BlockStatesView::setBlockState(const uint8_t x, const uint8_t y, const uint8_t z, const uint16_t blockStateId) {
+        unpacked[unpackedIndex(x, y, z)] = blockStateId;
+    }
+
+    size_t BlockStatesView::unpackedIndex(const uint8_t x, const uint8_t y, const uint8_t z) {
+        assert(x < SEGMENT_SIDELENGTH_BLOCKS);
+        assert(y < SEGMENT_SIDELENGTH_BLOCKS);
+        assert(z < SEGMENT_SIDELENGTH_BLOCKS);
+
+        return static_cast<size_t>(y) * SEGMENT_SIDELENGTH_BLOCKS * SEGMENT_SIDELENGTH_BLOCKS
+             + static_cast<size_t>(z) * SEGMENT_SIDELENGTH_BLOCKS
+             + static_cast<size_t>(x);
+    }
+
+    uint16_t BlockStatesView::get(const uint8_t x, const uint8_t z) const {
+        return unpacked[unpackedIndex(x, z)];
+    }
+
+    void BlockStatesView::set(const uint8_t x, const uint8_t z, const uint16_t blockStateId) {
+        unpacked[unpackedIndex(x, z)] = blockStateId;
+    }
+
+    size_t BlockStatesView::unpackedIndex(const uint8_t x, const uint8_t z) {
+        return unpackedIndex(x, 0, z);
+    }
+
+    BitStorage::BitStorage(const size_t bits, const size_t size, const LongArray& data = LongArray(0)): data(data), bits(bits), // NOLINT(*-pro-type-member-init)
+        size(size) {
+        assert(bits >= 1 && bits <= 32);
+
+        valuesPerLong = 64 / bits;
+        const size_t magicIndex = valuesPerLong - 1;
+        std::tie(divideMul, divideAdd, divideShift) = MAGIC[magicIndex];
+        const size_t calculatedLength = (size + valuesPerLong - 1) / valuesPerLong;
+
+        divideMul = static_cast<uint64_t>(static_cast<uint32_t>(divideMul));
+        divideAdd = static_cast<uint64_t>(static_cast<uint32_t>(divideAdd));
+        mask = (1ULL << bits) - 1;
+
+        if (data.empty()) {
+            this->data.resize(calculatedLength);
+            return;
+        }
+        assert(data.size() == calculatedLength);
+    }
+
+    size_t BitStorage::cellIndex(const uint64_t index) const {
+        return index * divideMul + divideAdd >> 32 >> divideShift;
+    }
+
+    uint64_t BitStorage::get(const size_t index) const {
+        assert(index < size && "Index out of bounds");
+
+        if (data.empty()) return 0;
+
+        const size_t cellIdx = cellIndex(index);
+        const uint64_t cell = data[cellIdx];
+        const size_t bitIndex = (index - cellIdx * valuesPerLong) * bits;
+        return cell >> bitIndex & mask;
+    }
+
+    void BitStorage::set(const size_t index, const uint64_t value) {
+        if (data.empty()) return;
+
+        assert(index < size);
+        assert(value <= mask);
+
+        const size_t cellIdx = cellIndex(index);
+        uint64_t& cell = data[cellIdx];
+        const size_t bitIndex = (index - cellIdx * valuesPerLong) * bits;
+        cell = cell & ~(mask << bitIndex) | (value & mask) << bitIndex;
+    }
+
+    BlockStates::BlockStates(const Palette& palette, LongArray packedData, const size_t snapshotLength): packedData(std::move(packedData)) {
+        this->snapshotLength = snapshotLength;
+        this->palette = palette;
+        this->bitsPerIndex = getBitsPerIndex(palette);
+    }
+
+    uint64_t BlockStates::getBitsPerIndex(const Palette& palette) {
+        return std::max(static_cast<int>(std::ceil(log2(static_cast<double>(palette.size())))), 1);
+    }
+
+    UnpackedBlockStates BlockStates::unpack() const {
+        UnpackedBlockStates unpacked(snapshotLength);
+        const BitStorage bitStorage(bitsPerIndex, snapshotLength, packedData);
+
+        size_t index = 0;
+        for (size_t i = 0; i < snapshotLength; ++i) {
+            const auto slice = bitStorage.get(i);
+            unpacked[index] = palette[slice];
+            ++index;
+        }
+        return unpacked;
+    }
+
+    BlockStates BlockStates::pack(const UnpackedBlockStates& sectionData) {
+        std::unordered_set uniqueStates(sectionData.begin(), sectionData.end());
+        std::vector palette(uniqueStates.begin(), uniqueStates.end());
+
+        std::ranges::sort(palette);
+
+        std::unordered_map<uint16_t, size_t> stateToIndex;
+        stateToIndex.reserve(palette.size());
+        for (size_t i = 0; i < palette.size(); ++i)
+            stateToIndex[palette[i]] = i;
+
+        const auto snapshotLength = sectionData.size();
+        BitStorage bitStorage(getBitsPerIndex(palette), snapshotLength);
+
+        for (size_t i = 0; i < snapshotLength; ++i)
+            bitStorage.set(i, stateToIndex[sectionData[i]]);
+
+        return BlockStates(palette, bitStorage.data, snapshotLength);
+    }
+
+    BlockStatesView BlockStates::view() const {
+        return BlockStatesView(unpack());
+    }
+
+}
