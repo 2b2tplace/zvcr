@@ -1,5 +1,5 @@
 #include <ranges>
-#include <bits/ranges_algo.h>
+#include <algorithm>
 #include <zvcr/serialize/conversion.hpp>
 #include <zvcr/common/definitions.hpp>
 
