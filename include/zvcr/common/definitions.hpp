@@ -6,7 +6,7 @@ enum ZVCRCoreVersion {
 
 namespace zvcr::common::definitions {
 
-#ifdef ZVCR_VERSION == ZVCR_0_0_0_0
+#if ZVCR_VERSION == ZVCR_0_0_0_0
 #define PROTOCOL_VERSION 765
 #endif
 
