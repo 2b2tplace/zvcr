@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/libzr.iml" filepath="$PROJECT_DIR$/.idea/libzr.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/zvcr.iml" filepath="$PROJECT_DIR$/.idea/zvcr.iml" />
     </modules>
   </component>
 </project>
