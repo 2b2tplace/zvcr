@@ -304,9 +304,9 @@ namespace zvcr::serialize::serialization {
         for (const SegmentState& state : segmentInfo.segmentStates)
             serializeSegmentState(state, data);
 
-        const size_t tileEntitiesLength = segmentInfo.tileEntityCounts.size();
+        const size_t tileEntityCountsLength = segmentInfo.tileEntityCounts.size();
         data.resize(data.size() + sizeof(uint64_t));
-        std::memcpy(data.data() + data.size() - sizeof(uint64_t), &tileEntitiesLength, sizeof(uint64_t));
+        std::memcpy(data.data() + data.size() - sizeof(uint64_t), &tileEntityCountsLength, sizeof(uint64_t));
 
         for (const TileEntityCountInfo& tiles : segmentInfo.tileEntityCounts)
             serializeTileEntityCountInfo(tiles, data);
@@ -419,11 +419,11 @@ namespace zvcr::serialize::serialization {
     }
 
     size_t writeZVCR3File(const ZVCR3File& file, const std::string& filename, const int zstdCompressionLevel, const int zstdCompressionThreads) {
-        return writeZFile(file, filename, ZVCRFileSerialize(serializeZVCR3File), zstdCompressionLevel, zstdCompressionThreads);
+        return writeZVCRFile(file, filename, ZVCRFileSerialize(serializeZVCR3File), zstdCompressionLevel, zstdCompressionThreads);
     }
 
     ZVCRResult<ZVCR3File> readZVCR3File(const std::string& filename, const size_t maxDeltas) {
-        return readZFile(filename, maxDeltas, ZVCRFileDeserialize(deserializeZVCR3File));
+        return readZVCRFile(filename, maxDeltas, ZVCRFileDeserialize(deserializeZVCR3File));
     }
 
     void serializeLayer(const Layer2d& layer, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
@@ -535,10 +535,10 @@ namespace zvcr::serialize::serialization {
     }
 
     size_t writeZVCR2File(const ZVCR2File& file, const std::string& filename, const int zstdCompressionLevel, const int zstdCompressionThreads) {
-        return writeZFile(file, filename, ZVCRFileSerialize(serializeZVCR2File), zstdCompressionLevel, zstdCompressionThreads);
+        return writeZVCRFile(file, filename, ZVCRFileSerialize(serializeZVCR2File), zstdCompressionLevel, zstdCompressionThreads);
     }
 
     ZVCRResult<ZVCR2File> readZVCR2File(const std::string& filename, const size_t maxDeltas) {
-        return readZFile(filename, maxDeltas, ZVCRFileDeserialize(deserializeZVCR2File));
+        return readZVCRFile(filename, maxDeltas, ZVCRFileDeserialize(deserializeZVCR2File));
     }
 }
