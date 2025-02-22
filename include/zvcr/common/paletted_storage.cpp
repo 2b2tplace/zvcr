@@ -6,8 +6,8 @@
 #include <cassert>
 #include <cmath>
 #include <tuple>
-#include <unordered_map>
 #include <unordered_set>
+#include <absl/container/flat_hash_map.h>
 
 namespace zvcr::common::paletted_storage {
 
@@ -127,7 +127,7 @@ namespace zvcr::common::paletted_storage {
 
         std::ranges::sort(palette);
 
-        std::unordered_map<uint16_t, size_t> stateToIndex;
+        absl::flat_hash_map<uint16_t, size_t> stateToIndex;
         stateToIndex.reserve(palette.size());
         for (size_t i = 0; i < palette.size(); ++i)
             stateToIndex[palette[i]] = i;
