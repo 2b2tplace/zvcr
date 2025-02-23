@@ -3,8 +3,7 @@
 namespace zvcr::region::dim2::segment2 {
 
     std::optional<Layer2d> Segment2d::getLayer(const uint8_t type) const {
-        if (type >= layers.size()) return std::nullopt;
-
+        if (!layers.contains(type)) return std::nullopt;
         return layers.at(type);
     }
 
@@ -15,8 +14,6 @@ namespace zvcr::region::dim2::segment2 {
     }
 
     bool Segment2d::setLayer(const uint8_t type, const Layer2d &layer) {
-        if (type >= layers.size()) return false;
-
         layers[type] = layer;
         return true;
     }
