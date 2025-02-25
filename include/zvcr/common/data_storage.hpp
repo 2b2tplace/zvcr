@@ -2,7 +2,6 @@
 
 #include <ctime>
 #include <vector>
-#include <optional>
 #include <zvcr/common/result.hpp>
 
 #include <array>
@@ -196,6 +195,7 @@ namespace zvcr::common::paletted_storage {
 namespace zvcr::common::reverse_delta {
 
     using paletted_storage::BlockStates;
+    using result::Option;
 
     static constexpr uint16_t STATE_UNCHANGED = 0xFFFF;
 
@@ -221,13 +221,13 @@ namespace zvcr::common::reverse_delta {
         explicit DeltaBlockStates(const std::vector<BlockStatesSnapshot>& reverseDeltas, size_t snapshotLength);
 
         [[nodiscard]]
-        std::optional<BlockStatesSnapshot> latestSnapshot() const;
+        Option<BlockStatesSnapshot> latestSnapshot() const;
 
         [[nodiscard]]
-        std::optional<BlockStatesSnapshot> delta(size_t deltaIndex) const;
+        Option<BlockStatesSnapshot> delta(size_t deltaIndex) const;
 
         [[nodiscard]]
-        std::optional<BlockStatesSnapshot> snapshotFrom(time_t timestamp) const;
+        Option<BlockStatesSnapshot> snapshotFrom(time_t timestamp) const;
 
         [[nodiscard]]
         DeltaInsertionResult insertSnapshot(const BlockStatesSnapshot& newSnapshot);

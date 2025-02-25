@@ -1,16 +1,17 @@
 #pragma once
 
 #include <cstdint>
-#include <optional>
 #include <vector>
+
+#include "result.hpp"
 
 namespace zvcr::common::generic_region {
 
     template<typename S>
     class GenericRegion {
     public:
-        using SegmentMaybe = std::optional<S>;
-        using Segments = std::vector<std::optional<S>>;
+        using SegmentMaybe = result::Option<S>;
+        using Segments = std::vector<SegmentMaybe>;
 
         Segments segments;
 

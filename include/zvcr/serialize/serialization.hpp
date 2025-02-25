@@ -1,7 +1,6 @@
 #pragma once
 
 #include <functional>
-#include <optional>
 #include <zvcr/common/result.hpp>
 #include <zvcr/common/data_storage.hpp>
 #include <zvcr/region/dimension.hpp>
@@ -69,7 +68,7 @@ namespace zvcr::serialize::serialization {
     template<typename Version>
     ZVCRResult<Version> deserializeVersion(const std::vector<uint8_t>& data, size_t& offset, Version latest);
 
-    std::optional<ZVCRError> validateZVCRFilePrefix(const std::vector<uint8_t>& data, size_t& offset, const std::string& prefix);
+    Option<ZVCRError> validateZVCRFilePrefix(const std::vector<uint8_t>& data, size_t& offset, const std::string& prefix);
 
     template<typename R>
     size_t writeZVCRFile(const R& file, const std::string& filename, const ZVCRFileSerialize<R>& serialize, int zstdCompressionLevel, int zstdCompressionThreads);
@@ -85,7 +84,7 @@ namespace zvcr::serialize::serialization {
 
     ZVCRResult<std::vector<Palette>> deserializePaletteTable(const std::vector<uint8_t>& data, size_t& offset);
 
-    std::optional<ZVCRError> skipBlockStatesSnapshot(const std::vector<uint8_t>& data, size_t& offset);
+    Option<ZVCRError> skipBlockStatesSnapshot(const std::vector<uint8_t>& data, size_t& offset);
 
     void serializeBlockStates(const DeltaBlockStates& section3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
@@ -107,9 +106,9 @@ namespace zvcr::serialize::serialization {
 
     ZVCRResult<Segment3d> deserializeSegment3d(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas, uint32_t sectionAmount);
 
-    void serializeOptSegment3d(const std::optional<Segment3d>& segment3dOpt, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
+    void serializeOptSegment3d(const Option<Segment3d>& segment3dOpt, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-    ZVCRResult<std::optional<Segment3d>> deserializeOptSegment3d(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas, uint32_t sectionAmount);
+    ZVCRResult<Option<Segment3d>> deserializeOptSegment3d(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas, uint32_t sectionAmount);
 
     void serializeRegion3d(const Region3d& region, std::vector<uint8_t>& data);
 
@@ -135,9 +134,9 @@ namespace zvcr::serialize::serialization {
 
     ZVCRResult<Segment2d> deserializeSegment2d(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas);
 
-    void serializeOptSegment2d(const std::optional<Segment2d>& segment, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
+    void serializeOptSegment2d(const Option<Segment2d>& segment, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-    ZVCRResult<std::optional<Segment2d>> deserializeOptSegment2d(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas);
+    ZVCRResult<Option<Segment2d>> deserializeOptSegment2d(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas);
 
     void serializeRegion2d(const Region2d& region, std::vector<uint8_t>& data);
 

@@ -11,8 +11,8 @@ namespace zvcr::region::dim3::segment3 {
         snapshots.reserve(this->sections.size());
 
         for (const auto & section : this->sections) {
-            if (const auto snapshot = section.snapshotFrom(timestamp); snapshot)
-                snapshots.push_back(*snapshot);
+            if (const auto snapshot = section.snapshotFrom(timestamp); snapshot.hasSome())
+                snapshots.push_back(snapshot.unwrap());
         }
 
         return snapshots;
@@ -23,8 +23,8 @@ namespace zvcr::region::dim3::segment3 {
         snapshots.reserve(this->sections.size());
 
         for (const auto & section : this->sections) {
-            if (const auto snapshot = section.latestSnapshot(); snapshot)
-                snapshots.push_back(*snapshot);
+            if (const auto snapshot = section.latestSnapshot(); snapshot.hasSome())
+                snapshots.push_back(snapshot.unwrap());
         }
 
         return snapshots;

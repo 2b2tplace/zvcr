@@ -62,7 +62,7 @@ namespace zvcr::serialize::conversion {
     Region2d convertRegion3dToRegion2d(const Region3d& region3d, const DimensionProperties& properties);
 
     [[nodiscard]]
-    std::optional<Segment2d> convertOptSegment3dToOptSegment2d(const std::optional<Segment3d>& segment3dOpt, const DimensionProperties& properties);
+    Option<Segment2d> convertOptSegment3dToOptSegment2d(const Option<Segment3d>& segment3dOpt, const DimensionProperties& properties);
 
     [[nodiscard]]
     Segment2d convertSegment3dToSegment2d(const Segment3d& segment3dOpt, const DimensionProperties& properties);

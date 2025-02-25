@@ -2,13 +2,13 @@
 
 namespace zvcr::region::dim2::segment2 {
 
-    std::optional<Layer2d> Segment2d::getLayer(const uint8_t type) const {
-        if (!layers.contains(type)) return std::nullopt;
+    Option<Layer2d> Segment2d::getLayer(const uint8_t type) const {
+        if (!layers.contains(type)) return {};
         return layers.at(type);
     }
 
-    std::optional<Layer2d> Segment2d::getLayer(LayerType layerType) const {
-        if (layerType == LayerType::CUSTOM) return std::nullopt;
+    Option<Layer2d> Segment2d::getLayer(LayerType layerType) const {
+        if (layerType == LayerType::CUSTOM) return {};
 
         return getLayer(static_cast<uint8_t>(layerType));
     }

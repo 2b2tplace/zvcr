@@ -6,7 +6,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <optional>
+#include <zvcr/common/result.hpp>
 
 namespace zvcr::region::segment::segment_info {
 
@@ -36,6 +36,7 @@ namespace zvcr::region::segment::segment_info {
 
     using tile_entities::TileEntityCounts;
     using tile_entities::TileEntityCountInfo;
+    using common::result::Option;
 
     class SegmentInfo {
     public:
@@ -49,16 +50,16 @@ namespace zvcr::region::segment::segment_info {
         SegmentInfo() = default;
 
         [[nodiscard]]
-        std::optional<SegmentState> latestState() const;
+        Option<SegmentState> latestState() const;
 
         [[nodiscard]]
-        std::optional<TileEntityCountInfo> latestTileEntityCounts() const;
+        Option<TileEntityCountInfo> latestTileEntityCounts() const;
 
         [[nodiscard]]
-        std::optional<SegmentState> stateFrom(time_t timestamp) const;
+        Option<SegmentState> stateFrom(time_t timestamp) const;
 
         [[nodiscard]]
-        std::optional<TileEntityCountInfo> tileEntityCountsFrom(time_t timestamp) const;
+        Option<TileEntityCountInfo> tileEntityCountsFrom(time_t timestamp) const;
 
         [[nodiscard]]
         bool updateState(const SegmentState& newState);

@@ -81,12 +81,8 @@ namespace zvcr::serialize::conversion {
         return region2d;
     }
 
-    std::optional<Segment2d> convertOptSegment3dToOptSegment2d(const std::optional<Segment3d> &segment3dOpt,
-                                                                const DimensionProperties &properties) {
-        if (!segment3dOpt)
-            return std::nullopt;
-
-        return convertSegment3dToSegment2d(*segment3dOpt, properties);
+    Option<Segment2d> convertOptSegment3dToOptSegment2d(const Option<Segment3d> &segment3dOpt, const DimensionProperties &properties) {
+        return segment3dOpt.andThen([&](const Segment3d& segment) {return convertSegment3dToSegment2d(segment, properties);});
     }
 
     Segment2d convertSegment3dToSegment2d(const Segment3d &segment3dOpt, const DimensionProperties &properties) {
@@ -105,9 +101,9 @@ namespace zvcr::serialize::conversion {
             for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0; --sy) {
                 const auto &section = segment3dOpt.sections[sy];
                 const auto latest = section.latestSnapshot();
-                if (!latest) continue;
+                if (!latest.hasSome()) continue;
 
-                const auto &[data, timestamp] = *latest;
+                const auto &[data, timestamp] = latest.unwrap();
 
                 auto snapshotBuilder = data.unpack();
                 cachedSnapshots[timestamp].emplace(sy, snapshotBuilder);
@@ -126,7 +122,7 @@ namespace zvcr::serialize::conversion {
                     cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
                 }
                 if (!cachedSnapshots[ts].contains(sy)) {
-                    if (const auto snapshot = section.snapshotFrom(ts); snapshot)
+                    if (const auto snapshot = section.snapshotFrom(ts); snapshot.hasSome())
                         cachedSnapshots[ts].emplace(sy, snapshot->data.unpack());
                 }
 
