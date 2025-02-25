@@ -35,8 +35,13 @@ namespace zvcr::region::dimension {
     };
 
     [[nodiscard]]
-    inline std::string to_string(const DimensionType type) {
+    inline const std::string& toString(const DimensionType type) {
         return DimensionTypeToString.at(type);
+    }
+
+    [[nodiscard]]
+    inline const DimensionProperties& getProperties(const DimensionType type) {
+        return DimensionTypePropertyRegistry.at(type);
     }
 
 }

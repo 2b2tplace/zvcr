@@ -11,14 +11,18 @@
 
 namespace zvcr::common::paletted_storage {
 
-    using definitions::SEGMENT_SIDELENGTH_BLOCKS;
-
-    BlockStatesView::BlockStatesView(const UnpackedBlockStates& unpacked) {
-        this->unpacked = unpacked;
-    }
+    using namespace definitions;
 
     BlockStatesView::BlockStatesView(const size_t snapshotLength) {
         this->unpacked = UnpackedBlockStates(snapshotLength);
+    }
+
+    BlockStatesView::BlockStatesView(const size_t snapshotLength, const uint16_t fill) {
+        this->unpacked = UnpackedBlockStates(snapshotLength, fill);
+    }
+
+    BlockStatesView::BlockStatesView(const UnpackedBlockStates& unpacked) {
+        this->unpacked = unpacked;
     }
 
     uint16_t BlockStatesView::getBlockState(const uint8_t x, const uint8_t y, const uint8_t z) const {
@@ -47,8 +51,32 @@ namespace zvcr::common::paletted_storage {
         unpacked[unpackedIndex(x, z)] = blockStateId;
     }
 
+    BlockStates BlockStatesView::pack() const {
+        return BlockStates::pack(unpacked);
+    }
+
+    reverse_delta::BlockStatesSnapshot BlockStatesView::packSnapshot(const time_t timestamp) const {
+        return reverse_delta::BlockStatesSnapshot {pack(), timestamp};
+    }
+
     size_t BlockStatesView::unpackedIndex(const uint8_t x, const uint8_t z) {
         return unpackedIndex(x, 0, z);
+    }
+
+    BlockStatesView BlockStatesView::create2DView(const uint16_t fill) {
+        return {SECTION_2D_SIZE_BLOCKS, fill};
+    }
+
+    BlockStatesView BlockStatesView::create3DView(const uint16_t fill) {
+        return BlockStatesView {SECTION_3D_SIZE_BLOCKS, fill};
+    }
+
+    BlockStatesView BlockStatesView::create2DView() {
+        return BlockStatesView {SECTION_2D_SIZE_BLOCKS};
+    }
+
+    BlockStatesView BlockStatesView::create3DView() {
+        return BlockStatesView {SECTION_3D_SIZE_BLOCKS};
     }
 
     BitStorage::BitStorage(const size_t bits, const size_t size, const LongArray& data = LongArray(0)): data(data), bits(bits), // NOLINT(*-pro-type-member-init)

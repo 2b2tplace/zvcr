@@ -18,6 +18,7 @@ namespace zvcr::region::dim2::segment2 {
         SegmentInfo info;
 
         explicit Segment2d(Layers2d layers, SegmentInfo segmentInfo): layers(std::move(layers)), info(std::move(segmentInfo)) {}
+        Segment2d(): layers(Layers2d {}), info(SegmentInfo {}) {}
 
         [[nodiscard]]
         std::optional<Layer2d> getLayer(uint8_t type) const;

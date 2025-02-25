@@ -35,6 +35,9 @@ namespace zvcr::common::result {
         Result(T&& value) : valueOrError(std::variant<T, Error<E>>{value}) {} // NOLINT(*-explicit-constructor)
 
         // ReSharper disable once CppNonExplicitConvertingConstructor
+        Result(const T& value) : valueOrError(std::variant<T, Error<E>>{value}) {} // NOLINT(*-explicit-constructor)
+
+        // ReSharper disable once CppNonExplicitConvertingConstructor
         Result(const Error<E>& error) : valueOrError(std::variant<T, Error<E>>{error}) {} // NOLINT(*-explicit-constructor)
 
         [[nodiscard]]
@@ -52,6 +55,12 @@ namespace zvcr::common::result {
         const E& error() const {
             if (ok()) throw std::runtime_error("Trying to access non-existent error in Result<T, E>");
             return std::get<Error<E>>(valueOrError).get();
+        }
+
+        [[nodiscard]]
+        const T& orElse(const T& defaultValue) const {
+            if (!ok()) return defaultValue;
+            return value();
         }
     };
 

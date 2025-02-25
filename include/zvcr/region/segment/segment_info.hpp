@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <optional>
 
 namespace zvcr::region::segment::segment_info {
 
@@ -22,7 +23,7 @@ namespace zvcr::region::segment::segment_info {
     };
 
     [[nodiscard]]
-    inline std::string to_string(const SegmentStateType state) {
+    inline std::string toString(const SegmentStateType state) {
         return SegmentStateTypeToString.at(state);
     }
 
@@ -45,17 +46,19 @@ namespace zvcr::region::segment::segment_info {
 
         explicit SegmentInfo(const SegmentStates& chunkStates, const TileEntityCounts& tileEntities);
 
-        [[nodiscard]]
-        SegmentState latestState() const;
+        SegmentInfo() = default;
 
         [[nodiscard]]
-        TileEntityCountInfo latestTileEntityCounts() const;
+        std::optional<SegmentState> latestState() const;
 
         [[nodiscard]]
-        SegmentState stateFrom(time_t timestamp) const;
+        std::optional<TileEntityCountInfo> latestTileEntityCounts() const;
 
         [[nodiscard]]
-        TileEntityCountInfo tileEntityCountsFrom(time_t timestamp) const;
+        std::optional<SegmentState> stateFrom(time_t timestamp) const;
+
+        [[nodiscard]]
+        std::optional<TileEntityCountInfo> tileEntityCountsFrom(time_t timestamp) const;
 
         [[nodiscard]]
         bool updateState(const SegmentState& newState);

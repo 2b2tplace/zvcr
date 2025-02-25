@@ -2,6 +2,11 @@
 
 namespace zvcr::common::reverse_delta {
 
+    DeltaBlockStates::DeltaBlockStates(const size_t snapshotLength) {
+        this->snapshotLength = snapshotLength;
+        this->reverseDeltas = {};
+    }
+
     DeltaBlockStates::DeltaBlockStates(const BlockStatesSnapshot& initialState) {
         this->snapshotLength = initialState.data.snapshotLength;
         this->reverseDeltas.push_back(initialState);
@@ -12,16 +17,19 @@ namespace zvcr::common::reverse_delta {
         this->reverseDeltas = reverseDeltas;
     }
 
-    BlockStatesSnapshot DeltaBlockStates::latestSnapshot() const {
+    std::optional<BlockStatesSnapshot> DeltaBlockStates::latestSnapshot() const {
         return delta(0);
     }
 
-    BlockStatesSnapshot DeltaBlockStates::delta(const size_t deltaIndex) const {
-        return reverseDeltas[deltaIndex];
+    std::optional<BlockStatesSnapshot> DeltaBlockStates::delta(const size_t deltaIndex) const {
+        return reverseDeltas.empty() ? std::nullopt : std::optional(reverseDeltas[deltaIndex]);
     }
 
-    BlockStatesSnapshot DeltaBlockStates::snapshotFrom(const time_t timestamp) const {
-        auto latestSnapshot = this->latestSnapshot().data.unpack();
+    std::optional<BlockStatesSnapshot> DeltaBlockStates::snapshotFrom(const time_t timestamp) const {
+        const auto latest = this->latestSnapshot();
+        if (!latest.has_value()) return std::nullopt;
+
+        auto latestSnapshot = latest->data.unpack();
         bool first = true;
         for (const auto& [sectionData, deltaTimestamp] : reverseDeltas) {
             if (first) {
@@ -39,14 +47,19 @@ namespace zvcr::common::reverse_delta {
         return BlockStatesSnapshot {BlockStates::pack(latestSnapshot), timestamp};
     }
 
-    size_t DeltaBlockStates::insertChanges(const BlockStatesSnapshot& newSnapshot) {
-        if (reverseDeltas.empty()) {
+    DeltaInsertionResult DeltaBlockStates::insertSnapshot(const BlockStatesSnapshot& newSnapshot) {
+        const auto latest = latestSnapshot();
+        if (!latest.has_value()) {
             reverseDeltas.push_back(newSnapshot);
             return newSnapshot.data.snapshotLength;
         }
-        const auto [sectionData, timestamp] = latestSnapshot();
+        if (newSnapshot.data.snapshotLength != this->snapshotLength)
+            return result::Error(DeltaInsertionStatus::INVALID_SNAPSHOT_LENGTH);
 
-        if (!reverseDeltas.empty() && newSnapshot.timestamp <= timestamp) return 0;
+        const auto [sectionData, timestamp] = *latest;
+
+        if (newSnapshot.timestamp <= timestamp)
+            return result::Error(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
 
         paletted_storage::UnpackedBlockStates deltaSnapshotBuilder(snapshotLength);
 
@@ -61,7 +74,8 @@ namespace zvcr::common::reverse_delta {
 
             if (changed) changes++;
         }
-        if (changes == 0) return 0;
+        if (changes == 0)
+            return result::Error(DeltaInsertionStatus::NO_CHANGES_MADE);
 
         const auto deltaSnapshot = BlockStatesSnapshot {
             BlockStates::pack(deltaSnapshotBuilder),

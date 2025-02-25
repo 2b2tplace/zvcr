@@ -1,8 +1,10 @@
 #pragma once
 
-#include <zvcr/common/paletted_storage.hpp>
 #include <ctime>
 #include <vector>
+#include <optional>
+#include <zvcr/common/result.hpp>
+#include <zvcr/common/paletted_storage.hpp>
 
 namespace zvcr::common::reverse_delta {
 
@@ -15,6 +17,14 @@ namespace zvcr::common::reverse_delta {
         time_t timestamp{};
     };
 
+    enum class DeltaInsertionStatus {
+        INVALID_SNAPSHOT_LENGTH,
+        SNAPSHOT_OLDER_THAN_LATEST,
+        NO_CHANGES_MADE
+    };
+
+    using DeltaInsertionResult = result::Result<size_t, DeltaInsertionStatus>;
+
     using BlockStatesSnapshots = std::vector<BlockStatesSnapshot>;
 
     class DeltaBlockStates {
@@ -22,20 +32,23 @@ namespace zvcr::common::reverse_delta {
         size_t snapshotLength;
         std::vector<BlockStatesSnapshot> reverseDeltas;
 
+        explicit DeltaBlockStates(size_t snapshotLength);
+
         explicit DeltaBlockStates(const BlockStatesSnapshot& initialState);
 
         explicit DeltaBlockStates(const std::vector<BlockStatesSnapshot>& reverseDeltas, size_t snapshotLength);
 
         [[nodiscard]]
-        BlockStatesSnapshot latestSnapshot() const;
+        std::optional<BlockStatesSnapshot> latestSnapshot() const;
 
         [[nodiscard]]
-        BlockStatesSnapshot delta(size_t deltaIndex) const;
+        std::optional<BlockStatesSnapshot> delta(size_t deltaIndex) const;
 
         [[nodiscard]]
-        BlockStatesSnapshot snapshotFrom(time_t timestamp) const;
+        std::optional<BlockStatesSnapshot> snapshotFrom(time_t timestamp) const;
 
-        size_t insertChanges(const BlockStatesSnapshot& newSnapshot);
+        [[nodiscard]]
+        DeltaInsertionResult insertSnapshot(const BlockStatesSnapshot& newSnapshot);
     };
 
 }

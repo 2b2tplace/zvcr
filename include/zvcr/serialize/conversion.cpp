@@ -60,9 +60,7 @@ namespace zvcr::serialize::conversion {
 
             for (const auto timestamp : timestamps) {
                 const auto &view = deltas.at(timestamp);
-                const auto packed = BlockStates::pack(view.unpacked);
-                const auto snapshot = BlockStatesSnapshot{packed, timestamp};
-                deltaBlockStates.insertChanges(snapshot);
+                const auto _ = deltaBlockStates.insertSnapshot(view.packSnapshot(timestamp));
             }
             layers[layerType] = Layer2d{deltaBlockStates, layerType};
         }
@@ -106,7 +104,10 @@ namespace zvcr::serialize::conversion {
         for (const auto ts : timestamps) {
             for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0; --sy) {
                 const auto &section = segment3dOpt.sections[sy];
-                const auto &[data, timestamp] = section.latestSnapshot();
+                const auto latest = section.latestSnapshot();
+                if (!latest.has_value()) continue;
+
+                const auto &[data, timestamp] = *latest;
 
                 auto snapshotBuilder = data.unpack();
                 cachedSnapshots[timestamp].emplace(sy, snapshotBuilder);
@@ -124,8 +125,10 @@ namespace zvcr::serialize::conversion {
                     }
                     cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
                 }
-                if (!cachedSnapshots[ts].contains(sy))
-                    cachedSnapshots[ts].emplace(sy, section.snapshotFrom(ts).data.unpack());
+                if (!cachedSnapshots[ts].contains(sy)) {
+                    if (const auto snapshot = section.snapshotFrom(ts); snapshot.has_value())
+                        cachedSnapshots[ts].emplace(sy, snapshot->data.unpack());
+                }
 
                 if (renderSegment2dForSectionSnapshot(ts, sy, cachedSnapshots[ts].at(sy), tileViewDeltas))
                     break;

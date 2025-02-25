@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <tuple>
 #include <vector>
+#include <zvcr/common/reverse_delta.hpp>
 
 namespace zvcr::common::paletted_storage {
 
@@ -12,13 +13,39 @@ namespace zvcr::common::paletted_storage {
     using Palette = std::vector<uint16_t>;
     using UnpackedBlockStates = std::vector<uint16_t>;
 
+    class BlockStatesView;
+
+    class BlockStates {
+    public:
+        explicit BlockStates(const Palette& palette, LongArray packedData, size_t snapshotLength);
+
+        [[nodiscard]]
+        static uint64_t getBitsPerIndex(const Palette& palette);
+
+        [[nodiscard]]
+        static BlockStates pack(const UnpackedBlockStates& sectionData);
+
+        [[nodiscard]]
+        UnpackedBlockStates unpack() const;
+
+        [[nodiscard]]
+        BlockStatesView view() const;
+
+        size_t snapshotLength;
+        LongArray packedData;
+        Palette palette;
+        uint64_t bitsPerIndex;
+    };
+
     class BlockStatesView {
     public:
         UnpackedBlockStates unpacked;
 
-        explicit BlockStatesView(const UnpackedBlockStates& unpacked);
-
         explicit BlockStatesView(size_t snapshotLength);
+
+        BlockStatesView(size_t snapshotLength, uint16_t fill);
+
+        explicit BlockStatesView(const UnpackedBlockStates& unpacked);
 
         [[nodiscard]]
         uint16_t getBlockState(uint8_t x, uint8_t y, uint8_t z) const;
@@ -31,10 +58,28 @@ namespace zvcr::common::paletted_storage {
         void set(uint8_t x, uint8_t z, uint16_t blockStateId);
 
         [[nodiscard]]
+        BlockStates pack() const;
+
+        [[nodiscard]]
+        reverse_delta::BlockStatesSnapshot packSnapshot(time_t timestamp) const;
+
+        [[nodiscard]]
         static size_t unpackedIndex(uint8_t x, uint8_t y, uint8_t z);
 
         [[nodiscard]]
         static size_t unpackedIndex(uint8_t x, uint8_t z);
+
+        [[nodiscard]]
+        static BlockStatesView create2DView(uint16_t fill);
+
+        [[nodiscard]]
+        static BlockStatesView create3DView(uint16_t fill);
+
+        [[nodiscard]]
+        static BlockStatesView create2DView();
+
+        [[nodiscard]]
+        static BlockStatesView create3DView();
     };
 
     class BitStorage {
@@ -58,28 +103,6 @@ namespace zvcr::common::paletted_storage {
         uint64_t divideMul;
         uint64_t divideAdd;
         int32_t divideShift;
-    };
-
-    class BlockStates {
-    public:
-        explicit BlockStates(const Palette& palette, LongArray packedData, size_t snapshotLength);
-
-        [[nodiscard]]
-        static uint64_t getBitsPerIndex(const Palette& palette);
-
-        [[nodiscard]]
-        static BlockStates pack(const UnpackedBlockStates& sectionData);
-
-        [[nodiscard]]
-        UnpackedBlockStates unpack() const;
-
-        [[nodiscard]]
-        BlockStatesView view() const;
-
-        size_t snapshotLength;
-        LongArray packedData;
-        Palette palette;
-        uint64_t bitsPerIndex;
     };
 
     using magic_tuple = std::tuple<int64_t, int64_t, int32_t>;
