@@ -36,7 +36,7 @@ namespace zvcr::common::reverse_delta {
 
     std::optional<BlockStatesSnapshot> DeltaBlockStates::snapshotFrom(const time_t timestamp) const {
         const auto latest = this->latestSnapshot();
-        if (!latest.has_value()) return std::nullopt;
+        if (!latest) return std::nullopt;
 
         auto latestSnapshot = latest->data.unpack();
         bool first = true;
@@ -58,7 +58,7 @@ namespace zvcr::common::reverse_delta {
 
     DeltaInsertionResult DeltaBlockStates::insertSnapshot(const BlockStatesSnapshot& newSnapshot) {
         const auto latest = latestSnapshot();
-        if (!latest.has_value()) {
+        if (!latest) {
             reverseDeltas.push_back(newSnapshot);
             return newSnapshot.data.snapshotLength;
         }

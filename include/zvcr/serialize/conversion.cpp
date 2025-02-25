@@ -86,7 +86,7 @@ namespace zvcr::serialize::conversion {
         if (!segment3dOpt)
             return std::nullopt;
 
-        return convertSegment3dToSegment2d(segment3dOpt.value(), properties);
+        return convertSegment3dToSegment2d(*segment3dOpt, properties);
     }
 
     Segment2d convertSegment3dToSegment2d(const Segment3d &segment3dOpt, const DimensionProperties &properties) {
@@ -105,7 +105,7 @@ namespace zvcr::serialize::conversion {
             for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0; --sy) {
                 const auto &section = segment3dOpt.sections[sy];
                 const auto latest = section.latestSnapshot();
-                if (!latest.has_value()) continue;
+                if (!latest) continue;
 
                 const auto &[data, timestamp] = *latest;
 
@@ -126,7 +126,7 @@ namespace zvcr::serialize::conversion {
                     cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
                 }
                 if (!cachedSnapshots[ts].contains(sy)) {
-                    if (const auto snapshot = section.snapshotFrom(ts); snapshot.has_value())
+                    if (const auto snapshot = section.snapshotFrom(ts); snapshot)
                         cachedSnapshots[ts].emplace(sy, snapshot->data.unpack());
                 }
 
