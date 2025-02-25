@@ -31,6 +31,18 @@ namespace zvcr::region::dim2::segment2 {
 
         [[nodiscard]]
         bool setLayer(LayerType layerType, const Layer2d& layer);
+
+        [[nodiscard]]
+        bool setLayer(uint8_t type, const BlockStatesSnapshot& initialState);
+
+        [[nodiscard]]
+        bool setLayer(LayerType layerType, const BlockStatesSnapshot& initialState);
+
+        [[nodiscard]]
+        bool setLayer(uint8_t type, const std::vector<BlockStatesSnapshot>& reverseDeltas, size_t snapshotLength);
+
+        [[nodiscard]]
+        bool setLayer(LayerType layerType, const std::vector<BlockStatesSnapshot>& reverseDeltas, size_t snapshotLength);
     };
 
     using Region2d = GenericRegion<Segment2d>;
