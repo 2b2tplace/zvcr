@@ -1,7 +1,7 @@
 #pragma once
 
 #include <utility>
-#include <zvcr/common/reverse_delta.hpp>
+#include <zvcr/common/data_storage.hpp>
 #include <zvcr/region/segment/segment_info.hpp>
 #include <zvcr/common/generic_region.hpp>
 

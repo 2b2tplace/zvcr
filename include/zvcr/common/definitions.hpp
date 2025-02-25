@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 enum ZVCRCoreVersion {
     ZVCR_0_0_0_0
 };

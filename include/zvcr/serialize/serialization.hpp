@@ -3,8 +3,7 @@
 #include <functional>
 #include <optional>
 #include <zvcr/common/result.hpp>
-#include <zvcr/common/paletted_storage.hpp>
-#include <zvcr/common/reverse_delta.hpp>
+#include <zvcr/common/data_storage.hpp>
 #include <zvcr/region/dimension.hpp>
 #include <zvcr/region/segment/segment_info.hpp>
 #include <zvcr/region/dim3/segment3.hpp>

@@ -1,11 +1,15 @@
 #pragma once
 
+#include <ctime>
+#include <vector>
+#include <optional>
+#include <zvcr/common/result.hpp>
+
 #include <array>
 #include <cstdint>
 #include <cstddef>
 #include <tuple>
-#include <vector>
-#include <zvcr/common/reverse_delta.hpp>
+#include <zvcr/common/data_storage.hpp>
 
 namespace zvcr::common::paletted_storage {
 
@@ -36,6 +40,19 @@ namespace zvcr::common::paletted_storage {
         Palette palette;
         uint64_t bitsPerIndex;
     };
+
+}
+
+namespace zvcr::common::reverse_delta {
+
+    struct BlockStatesSnapshot {
+        paletted_storage::BlockStates data;
+        time_t timestamp{};
+    };
+
+}
+
+namespace zvcr::common::paletted_storage {
 
     class BlockStatesView {
     public:
@@ -172,6 +189,48 @@ namespace zvcr::common::paletted_storage {
         magic_tuple{69273666, 69273666, 0},
         magic_tuple{68174084, 68174084, 0},
         magic_tuple{-2147483648, 0, 5}
+    };
+
+}
+
+namespace zvcr::common::reverse_delta {
+
+    using paletted_storage::BlockStates;
+
+    static constexpr uint16_t STATE_UNCHANGED = 0xFFFF;
+
+    enum class DeltaInsertionStatus {
+        INVALID_SNAPSHOT_LENGTH,
+        SNAPSHOT_OLDER_THAN_LATEST,
+        NO_CHANGES_MADE
+    };
+
+    using DeltaInsertionResult = result::Result<size_t, DeltaInsertionStatus>;
+
+    using BlockStatesSnapshots = std::vector<BlockStatesSnapshot>;
+
+    class DeltaBlockStates {
+    public:
+        size_t snapshotLength;
+        std::vector<BlockStatesSnapshot> reverseDeltas;
+
+        explicit DeltaBlockStates(size_t snapshotLength);
+
+        explicit DeltaBlockStates(const BlockStatesSnapshot& initialState);
+
+        explicit DeltaBlockStates(const std::vector<BlockStatesSnapshot>& reverseDeltas, size_t snapshotLength);
+
+        [[nodiscard]]
+        std::optional<BlockStatesSnapshot> latestSnapshot() const;
+
+        [[nodiscard]]
+        std::optional<BlockStatesSnapshot> delta(size_t deltaIndex) const;
+
+        [[nodiscard]]
+        std::optional<BlockStatesSnapshot> snapshotFrom(time_t timestamp) const;
+
+        [[nodiscard]]
+        DeltaInsertionResult insertSnapshot(const BlockStatesSnapshot& newSnapshot);
     };
 
 }
