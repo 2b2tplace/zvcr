@@ -7,8 +7,6 @@
 
 namespace zvcr::region::segment::tile_entities {
 
-    // we only officially support 1.20.4-1.20.6!!!
-    // see https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_History
 #if PROTOCOL_VERSION == 765
     constexpr auto TOTAL_TILE_ENTITIES = 41;
 #elif PROTOCOL_VERSION == 766

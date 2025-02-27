@@ -2,15 +2,19 @@
 
 #include <cstddef>
 
+// epoch.major.minor.patch.Pprotocol
+// we only officially support 1.20.4-1.20.6!!!
+// see https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_History
 enum ZVCRCoreVersion {
-    ZVCR_0_0_0_0
+    ZVCR_0_0_0_0_P765,
+    ZVCR_0_0_1_0_P765
 };
 
-namespace zvcr::common::definitions {
-
-#if ZVCR_VERSION == ZVCR_0_0_0_0
+#if ZVCR_VERSION == ZVCR_0_0_0_0_P765 || ZVCR_VERSION == ZVCR_0_0_1_0_P765
 #define PROTOCOL_VERSION 765
 #endif
+
+namespace zvcr::common::definitions {
 
     constexpr size_t REGION_SIDELENGTH_SEGMENTS = 32;
     constexpr size_t SEGMENTS_PER_REGION = REGION_SIDELENGTH_SEGMENTS * REGION_SIDELENGTH_SEGMENTS;

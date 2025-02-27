@@ -134,8 +134,6 @@ namespace zvcr::serialize::conversion {
     }
 
     bool invisibleBlockState(const uint16_t state) {
-        // we only officially support 1.20.4-1.20.6!!!
-        // see https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_History
 #if PROTOCOL_VERSION >= 765 && PROTOCOL_VERSION <= 766
         constexpr uint16_t voidAirId = 12958, caveAirId = 12959,
                            barrierId = 10366, airId = 0;
@@ -146,8 +144,6 @@ namespace zvcr::serialize::conversion {
     }
 
     bool liquidBlockStateOrLilypad(const uint16_t state) {
-        // we only officially support 1.20.4-1.20.6!!!
-        // see https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_History
 #if PROTOCOL_VERSION >= 765 && PROTOCOL_VERSION <= 766
         constexpr uint16_t lowerboundLiquidId = 80, upperboundLiquidId = 111;
         constexpr uint16_t lilypadId = 7271;
@@ -158,8 +154,6 @@ namespace zvcr::serialize::conversion {
     }
 
     bool roofBlockType(const uint16_t state) {
-        // we only officially support 1.20.4-1.20.6!!!
-        // see https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_History
 #if PROTOCOL_VERSION >= 765 && PROTOCOL_VERSION <= 766
         constexpr uint16_t bedrockId = 79, obsidianId = 2354, cryingObsidianId = 19449;
         constexpr uint16_t lowerboundSnowId = 5772, upperboundSnowId = 5779;
