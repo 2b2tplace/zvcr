@@ -8,58 +8,58 @@ namespace zvcr::serialize::conversion {
     using namespace common::definitions;
     
     void TileViewDeltas::emplaceMissingView(const uint8_t layerType, const time_t timestamp) {
-        if (auto &topDownViews = viewDeltas[layerType]; !topDownViews.contains(timestamp))
+        if (auto& topDownViews = viewDeltas[layerType]; !topDownViews.contains(timestamp))
             topDownViews.emplace(timestamp, SECTION_2D_SIZE_BLOCKS);
     }
 
-    BlockStatesView &TileViewDeltas::deltaView(const LayerType layerType, const time_t timestamp) {
+    BlockStatesView& TileViewDeltas::deltaView(const LayerType layerType, const time_t timestamp) {
         return deltaView(static_cast<uint8_t>(layerType), timestamp);
     }
 
-    BlockStatesView &TileViewDeltas::deltaView(const uint8_t layerType, const time_t timestamp) {
+    BlockStatesView& TileViewDeltas::deltaView(const uint8_t layerType, const time_t timestamp) {
         emplaceMissingView(layerType, timestamp);
         return viewDeltas.at(layerType).at(timestamp);
     }
 
-    BlockStatesView &TileViewDeltas::topDown(const time_t timestamp) {
+    BlockStatesView& TileViewDeltas::topDown(const time_t timestamp) {
         return deltaView(LayerType::TOP_DOWN, timestamp);
     }
 
-    BlockStatesView &TileViewDeltas::roofless(const time_t timestamp) {
+    BlockStatesView& TileViewDeltas::roofless(const time_t timestamp) {
         return deltaView(LayerType::TOP_DOWN_ROOFLESS, timestamp);
     }
 
-    BlockStatesView &TileViewDeltas::heightmap(const time_t timestamp) {
+    BlockStatesView& TileViewDeltas::heightmap(const time_t timestamp) {
         return deltaView(LayerType::HEIGHTMAP, timestamp);
     }
 
-    BlockStatesView &TileViewDeltas::heightmapRoofless(const time_t timestamp) {
+    BlockStatesView& TileViewDeltas::heightmapRoofless(const time_t timestamp) {
         return deltaView(LayerType::HEIGHTMAP_ROOFLESS, timestamp);
     }
 
-    BlockStatesView &TileViewDeltas::drainedTopDown(const time_t timestamp) {
+    BlockStatesView& TileViewDeltas::drainedTopDown(const time_t timestamp) {
         return deltaView(LayerType::DRAINED_TOP_DOWN, timestamp);
     }
 
-    BlockStatesView &TileViewDeltas::drainedTopDownHeightmap(const time_t timestamp) {
+    BlockStatesView& TileViewDeltas::drainedTopDownHeightmap(const time_t timestamp) {
         return deltaView(LayerType::DRAINED_TOP_DOWN_HEIGHTMAP, timestamp);
     }
 
     Layers2d TileViewDeltas::createLayers() const {
         Layers2d layers;
-        for (const auto &[layerType, deltas] : viewDeltas) {
+        for (const auto& [layerType, deltas] : viewDeltas) {
             std::vector<BlockStatesSnapshot> reverseDeltas;
             reverseDeltas.reserve(deltas.size());
             DeltaBlockStates deltaBlockStates(reverseDeltas, SECTION_2D_SIZE_BLOCKS);
 
             std::vector<time_t> timestamps;
-            for (const auto &timestamp : deltas | std::views::keys)
+            for (const auto timestamp : deltas | std::views::keys)
                 timestamps.push_back(timestamp);
 
             std::ranges::sort(timestamps, std::greater());
 
             for (const auto timestamp : timestamps) {
-                const auto &view = deltas.at(timestamp);
+                const auto& view = deltas.at(timestamp);
                 const auto _ = deltaBlockStates.insertSnapshot(view.packSnapshot(timestamp));
             }
             layers[layerType] = Layer2d{deltaBlockStates, layerType};
@@ -67,13 +67,13 @@ namespace zvcr::serialize::conversion {
         return layers;
     }
 
-    ZVCR2File convertZVCR3FileToZVCR2File(const ZVCR3File &zvcr3File) {
-        const auto [version, dimensionType, region] = zvcr3File;
-        const auto properties = region::dimension::DimensionTypePropertyRegistry.at(dimensionType);
+    ZVCR2File convertZVCR3FileToZVCR2File(const ZVCR3File& zvcr3File) {
+        const auto& [version, dimensionType, region] = zvcr3File;
+        const auto& properties = region::dimension::DimensionTypePropertyRegistry.at(dimensionType);
         return ZVCR2File{ZVCR2_VER_LATEST, dimensionType, convertRegion3dToRegion2d(region, properties)};
     }
 
-    Region2d convertRegion3dToRegion2d(const Region3d &region3d, const DimensionProperties &properties) {
+    Region2d convertRegion3dToRegion2d(const Region3d& region3d, const DimensionProperties &properties) {
         Region2d region2d;
         for (size_t i = 0; i < SEGMENTS_PER_REGION; ++i)
             region2d.segments.push_back(convertOptSegment3dToOptSegment2d(region3d.segments[i], properties));
@@ -81,16 +81,16 @@ namespace zvcr::serialize::conversion {
         return region2d;
     }
 
-    Option<Segment2d> convertOptSegment3dToOptSegment2d(const Option<Segment3d> &segment3dOpt, const DimensionProperties &properties) {
+    Option<Segment2d> convertOptSegment3dToOptSegment2d(const Option<Segment3d>& segment3dOpt, const DimensionProperties &properties) {
         return segment3dOpt.andThen([&](const Segment3d& segment) {return convertSegment3dToSegment2d(segment, properties);});
     }
 
-    Segment2d convertSegment3dToSegment2d(const Segment3d &segment3dOpt, const DimensionProperties &properties) {
+    Segment2d convertSegment3dToSegment2d(const Segment3d& segment3dOpt, const DimensionProperties &properties) {
         const auto sectionCount = static_cast<int8_t>(properties.height / 16);
         TileViewDeltas tileViewDeltas;
         std::vector<time_t> timestamps;
-        for (const auto &section : segment3dOpt.sections) {
-            for (const auto &[data, timestamp] : section.reverseDeltas) {
+        for (const auto& section : segment3dOpt.sections) {
+            for (const auto& [data, timestamp] : section.reverseDeltas) {
                 if (std::ranges::find(timestamps, timestamp) == timestamps.end())
                     timestamps.push_back(timestamp);
             }
@@ -99,17 +99,17 @@ namespace zvcr::serialize::conversion {
 
         for (const auto ts : timestamps) {
             for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0; --sy) {
-                const auto &section = segment3dOpt.sections[sy];
+                const auto& section = segment3dOpt.sections[sy];
                 const auto latest = section.latestSnapshot();
                 if (!latest.hasSome()) continue;
 
-                const auto &[data, timestamp] = latest.unwrap();
+                const auto& [data, timestamp] = latest.unwrap();
 
                 auto snapshotBuilder = data.unpack();
                 cachedSnapshots[timestamp].emplace(sy, snapshotBuilder);
 
                 bool first = true;
-                for (const auto &[sectionData, deltaTimestamp] : section.reverseDeltas) {
+                for (const auto& [sectionData, deltaTimestamp] : section.reverseDeltas) {
                     if (first) {
                         first = false;
                         continue;
@@ -172,8 +172,8 @@ namespace zvcr::serialize::conversion {
 #endif
     }
 
-    bool renderSegment2d(const uint8_t cx, const uint8_t cz, const uint8_t sy, const BlockStatesView &sectionView,
-                          BlockStatesView &topDownTileView, BlockStatesView &heightmapTileView, const bool ignoreRoof,
+    bool renderSegment2d(const uint8_t cx, const uint8_t cz, const uint8_t sy, const BlockStatesView& sectionView,
+                          BlockStatesView& topDownTileView, BlockStatesView& heightmapTileView, const bool ignoreRoof,
                           const bool ignoreLiquids) {
         if (const auto current = topDownTileView.get(cx, cz); !invisibleBlockState(current))
             return true;
@@ -195,15 +195,15 @@ namespace zvcr::serialize::conversion {
         return false;
     }
 
-    bool renderSegment2dForSectionSnapshot(const time_t timestamp, const uint8_t sy, const BlockStatesView &sectionView,
-                                            TileViewDeltas &tileViewDeltas) {
+    bool renderSegment2dForSectionSnapshot(const time_t timestamp, const uint8_t sy, const BlockStatesView& sectionView,
+                                            TileViewDeltas& tileViewDeltas) {
 
-        auto &topDownTileView = tileViewDeltas.topDown(timestamp);
-        auto &rooflessTileView = tileViewDeltas.roofless(timestamp);
-        auto &heightmapTileView = tileViewDeltas.heightmap(timestamp);
-        auto &heightmapRooflessTileView = tileViewDeltas.heightmapRoofless(timestamp);
-        auto &drainedTopDownTileView = tileViewDeltas.drainedTopDown(timestamp);
-        auto &drainedTopDownHeightmapTileView = tileViewDeltas.drainedTopDownHeightmap(timestamp);
+        auto& topDownTileView = tileViewDeltas.topDown(timestamp);
+        auto& rooflessTileView = tileViewDeltas.roofless(timestamp);
+        auto& heightmapTileView = tileViewDeltas.heightmap(timestamp);
+        auto& heightmapRooflessTileView = tileViewDeltas.heightmapRoofless(timestamp);
+        auto& drainedTopDownTileView = tileViewDeltas.drainedTopDown(timestamp);
+        auto& drainedTopDownHeightmapTileView = tileViewDeltas.drainedTopDownHeightmap(timestamp);
 
         bool finished = true;
 

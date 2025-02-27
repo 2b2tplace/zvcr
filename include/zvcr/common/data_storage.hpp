@@ -195,7 +195,7 @@ namespace zvcr::common::paletted_storage {
 namespace zvcr::common::reverse_delta {
 
     using paletted_storage::BlockStates;
-    using result::Option;
+    using namespace result;
 
     static constexpr uint16_t STATE_UNCHANGED = 0xFFFF;
 
@@ -221,10 +221,10 @@ namespace zvcr::common::reverse_delta {
         explicit DeltaBlockStates(const std::vector<BlockStatesSnapshot>& reverseDeltas, size_t snapshotLength);
 
         [[nodiscard]]
-        Option<BlockStatesSnapshot> latestSnapshot() const;
+        OptionCRef<BlockStatesSnapshot> latestSnapshot() const;
 
         [[nodiscard]]
-        Option<BlockStatesSnapshot> delta(size_t deltaIndex) const;
+        OptionCRef<BlockStatesSnapshot> delta(size_t deltaIndex) const;
 
         [[nodiscard]]
         Option<BlockStatesSnapshot> snapshotFrom(time_t timestamp) const;

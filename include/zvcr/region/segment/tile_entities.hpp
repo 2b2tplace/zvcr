@@ -175,7 +175,7 @@ namespace zvcr::region::segment::tile_entities {
     }
 
     [[nodiscard]]
-    inline TileEntityType fromString(const std::string &type) {
+    inline TileEntityType fromString(const std::string& type) {
         return TileEntityTypeFromString.at(type);
     }
 

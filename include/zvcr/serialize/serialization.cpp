@@ -446,7 +446,7 @@ namespace zvcr::serialize::serialization {
         data.resize(data.size() + sizeof(uint64_t));
         std::memcpy(data.data() + data.size() - sizeof(uint64_t), &layersLength, sizeof(uint64_t));
 
-        for (const auto &layer: layers | std::views::values)
+        for (const auto& layer: layers | std::views::values)
             serializeLayer(layer, data, paletteTable);
     }
 

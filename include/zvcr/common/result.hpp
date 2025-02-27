@@ -132,4 +132,43 @@ namespace zvcr::common::result {
 
     };
 
+    template <typename T>
+    class OptionRef {
+        Option<std::reference_wrapper<T>> option;
+    public:
+        // ReSharper disable once CppNonExplicitConvertingConstructor
+        OptionRef(T&& value) : option(value) {} // NOLINT(*-explicit-constructor)
+
+        // ReSharper disable once CppNonExplicitConvertingConstructor
+        OptionRef(const T& value) : option(value) {} // NOLINT(*-explicit-constructor)
+
+        // ReSharper disable once CppNonExplicitConvertingConstructor
+        OptionRef() : option() {} // NOLINT(*-explicit-constructor)
+
+        [[nodiscard]]
+        bool hasSome() const {
+            return option.hasSome();
+        }
+
+        [[nodiscard]]
+        const T& unwrap() const {
+            return option.unwrap().get();
+        }
+
+        [[nodiscard]]
+        const T* operator->() const {
+            return &unwrap();
+        }
+
+        [[nodiscard]]
+        const T& orElse(const T& defaultValue) const {
+            if (!hasSome()) return defaultValue;
+            return unwrap();
+        }
+
+    };
+
+    template <typename T>
+    using OptionCRef = OptionRef<const T>;
+
 }

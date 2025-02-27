@@ -10,7 +10,7 @@ namespace zvcr::region::dim3::segment3 {
         BlockStatesSnapshots snapshots{};
         snapshots.reserve(this->sections.size());
 
-        for (const auto & section : this->sections) {
+        for (const auto& section : this->sections) {
             if (const auto snapshot = section.snapshotFrom(timestamp); snapshot.hasSome())
                 snapshots.push_back(snapshot.unwrap());
         }
@@ -22,7 +22,7 @@ namespace zvcr::region::dim3::segment3 {
         BlockStatesSnapshots snapshots{};
         snapshots.reserve(this->sections.size());
 
-        for (const auto & section : this->sections) {
+        for (const auto& section : this->sections) {
             if (const auto snapshot = section.latestSnapshot(); snapshot.hasSome())
                 snapshots.push_back(snapshot.unwrap());
         }
@@ -30,7 +30,7 @@ namespace zvcr::region::dim3::segment3 {
         return snapshots;
     }
 
-    size_t Segment3d::updateSections(const BlockStatesSnapshots &sectionUpdates) {
+    size_t Segment3d::updateSections(const BlockStatesSnapshots& sectionUpdates) {
         size_t changes = 0;
         for (size_t section = 0; section < sectionUpdates.size(); ++section)
             changes += sections[section].insertSnapshot(sectionUpdates[section]).orElse(0);

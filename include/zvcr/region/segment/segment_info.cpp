@@ -7,21 +7,21 @@ namespace zvcr::region::segment::segment_info {
         this->tileEntityCounts.push_back(initialTileEntityCounts);
     }
 
-    SegmentInfo::SegmentInfo(const SegmentStates& chunkStates, const TileEntityCounts &tileEntities) {
+    SegmentInfo::SegmentInfo(const SegmentStates& chunkStates, const TileEntityCounts& tileEntities) {
         this->segmentStates = chunkStates;
         this->tileEntityCounts = tileEntities;
     }
 
-    Option<SegmentState> SegmentInfo::latestState() const {
-        return segmentStates.empty() ? Option<SegmentState>() : Option(segmentStates[0]);
+    OptionCRef<SegmentState> SegmentInfo::latestState() const {
+        return segmentStates.empty() ? OptionCRef<SegmentState>() : OptionCRef(segmentStates[0]);
     }
 
-    Option<TileEntityCountInfo> SegmentInfo::latestTileEntityCounts() const {
-        return tileEntityCounts.empty() ? Option<TileEntityCountInfo>() : Option(tileEntityCounts[0]);
+    OptionCRef<TileEntityCountInfo> SegmentInfo::latestTileEntityCounts() const {
+        return tileEntityCounts.empty() ? OptionCRef<TileEntityCountInfo>() : OptionCRef(tileEntityCounts[0]);
     }
 
     Option<SegmentState> SegmentInfo::stateFrom(const time_t timestamp) const {
-        const auto latest = this->latestState();
+        const auto& latest = this->latestState();
         if (!latest.hasSome()) return {};
 
         auto latestStateType = latest->type;

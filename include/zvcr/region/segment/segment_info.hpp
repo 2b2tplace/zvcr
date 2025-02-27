@@ -36,7 +36,7 @@ namespace zvcr::region::segment::segment_info {
 
     using tile_entities::TileEntityCounts;
     using tile_entities::TileEntityCountInfo;
-    using common::result::Option;
+    using namespace common::result;
 
     class SegmentInfo {
     public:
@@ -50,10 +50,10 @@ namespace zvcr::region::segment::segment_info {
         SegmentInfo() = default;
 
         [[nodiscard]]
-        Option<SegmentState> latestState() const;
+        OptionCRef<SegmentState> latestState() const;
 
         [[nodiscard]]
-        Option<TileEntityCountInfo> latestTileEntityCounts() const;
+        OptionCRef<TileEntityCountInfo> latestTileEntityCounts() const;
 
         [[nodiscard]]
         Option<SegmentState> stateFrom(time_t timestamp) const;

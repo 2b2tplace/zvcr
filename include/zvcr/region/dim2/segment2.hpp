@@ -10,7 +10,7 @@ namespace zvcr::region::dim2::segment2 {
     using namespace segment::segment_info;
     using namespace layer;
     using common::generic_region::GenericRegion;
-    using common::result::Option;
+    using common::result::OptionRef;
 
     class Segment2d {
     public:
@@ -21,10 +21,10 @@ namespace zvcr::region::dim2::segment2 {
         Segment2d(): layers(Layers2d {}), info(SegmentInfo {}) {}
 
         [[nodiscard]]
-        Option<Layer2d> getLayer(uint8_t type) const;
+        OptionRef<const Layer2d> getLayer(uint8_t type) const;
 
         [[nodiscard]]
-        Option<Layer2d> getLayer(LayerType layerType) const;
+        OptionRef<const Layer2d> getLayer(LayerType layerType) const;
 
         [[nodiscard]]
         bool setLayer(uint8_t type, const Layer2d& layer);
