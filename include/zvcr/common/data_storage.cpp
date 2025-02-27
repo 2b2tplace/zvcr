@@ -65,7 +65,7 @@ namespace zvcr::common::reverse_delta {
         if (newSnapshot.data.snapshotLength != this->snapshotLength)
             return Error(DeltaInsertionStatus::INVALID_SNAPSHOT_LENGTH);
 
-        const auto [sectionData, timestamp] = latest.unwrap();
+        const auto& [sectionData, timestamp] = latest.unwrap();
 
         if (newSnapshot.timestamp <= timestamp)
             return Error(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
