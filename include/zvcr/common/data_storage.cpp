@@ -84,7 +84,7 @@ namespace zvcr::common::reverse_delta {
             if (changed) changes++;
         }
         if (changes == 0)
-            return result::Error(DeltaInsertionStatus::NO_CHANGES_MADE);
+            return Error(DeltaInsertionStatus::NO_CHANGES_MADE);
 
         const auto deltaSnapshot = BlockStatesSnapshot {
             BlockStates::pack(deltaSnapshotBuilder),

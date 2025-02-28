@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <ctime>
-#include <optional>
 #include <unordered_map>
 #include <zvcr/region/dim2/layer.hpp>
 #include <zvcr/region/dim2/segment2.hpp>

@@ -205,7 +205,7 @@ namespace zvcr::common::reverse_delta {
         NO_CHANGES_MADE
     };
 
-    using DeltaInsertionResult = result::Result<size_t, DeltaInsertionStatus>;
+    using DeltaInsertionResult = Result<size_t, DeltaInsertionStatus>;
 
     using BlockStatesSnapshots = std::vector<BlockStatesSnapshot>;
 

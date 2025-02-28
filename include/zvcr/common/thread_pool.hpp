@@ -75,7 +75,7 @@ namespace zvcr::thread_pool {
             std::unique_lock lock(queue_mutex);
             if (stop) throw std::runtime_error("enqueue on stopped ThreadPool");
 
-            tasks.emplace([task](){ (*task)(); });
+            tasks.emplace([task]{ (*task)(); });
         }
         condition.notify_one();
         return res;
