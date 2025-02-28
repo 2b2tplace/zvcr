@@ -26,6 +26,8 @@ namespace zvcr::serialize::serialization {
     using namespace zvcr::common::definitions;
     using namespace region::dimension;
 
+    using Palette = std::vector<BlockStateId>;
+
     enum ZVCRError {
         FILE_NOT_FOUND,
         GENERIC_READ_ERROR,
@@ -76,9 +78,9 @@ namespace zvcr::serialize::serialization {
     template<typename R>
     ZVCRResult<R> readZVCRFile(const std::string& filename, size_t maxDeltas, const ZVCRFileDeserialize<R>& deserialize);
 
-    void serializeBlockStatesSnapshot(const BlockStatesSnapshot& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
+    void serializeBlockStatesSnapshot(const PackedSnapshot<BlockStateId>& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-    ZVCRResult<BlockStatesSnapshot> deserializeBlockStatesSnapshot(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t snapshotLength);
+    ZVCRResult<PackedSnapshot<BlockStateId>> deserializeBlockStatesSnapshot(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t snapshotLength);
 
     void serializePaletteTable(const std::vector<Palette>& paletteTable, std::vector<uint8_t>& data);
 
@@ -86,9 +88,9 @@ namespace zvcr::serialize::serialization {
 
     Option<ZVCRError> skipBlockStatesSnapshot(const std::vector<uint8_t>& data, size_t& offset);
 
-    void serializeBlockStates(const DeltaBlockStates& section3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
+    void serializeBlockStates(const PackedDeltaData<BlockStateId>& section3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-    ZVCRResult<DeltaBlockStates> deserializeBlockStates(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas, size_t snapshotLength);
+    ZVCRResult<PackedDeltaData<BlockStateId>> deserializeBlockStates(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas, size_t snapshotLength);
 
     void serializeSegmentState(const SegmentState& segmentState, std::vector<uint8_t>& data);
 
@@ -126,9 +128,9 @@ namespace zvcr::serialize::serialization {
 
     ZVCRResult<Layer2d> deserializeLayer(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas);
 
-    void serializeLayers(const Layers2d& layers, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
+    void serializeLayers(const LayerContainer2d& layers, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-    ZVCRResult<Layers2d> deserializeLayers(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas);
+    ZVCRResult<LayerContainer2d> deserializeLayers(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, size_t maxDeltas);
 
     void serializeSegment2d(const Segment2d& segment, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 

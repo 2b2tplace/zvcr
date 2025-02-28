@@ -2,41 +2,44 @@
 
 #include <ctime>
 #include <vector>
-#include <zvcr/common/result.hpp>
-
 #include <array>
 #include <cstdint>
 #include <cstddef>
 #include <tuple>
 #include <zvcr/common/data_storage.hpp>
+#include <zvcr/common/definitions.hpp>
+#include <zvcr/common/result.hpp>
 
 namespace zvcr::common::paletted_storage {
 
     using LongArray = std::vector<uint64_t>;
-    using Palette = std::vector<uint16_t>;
-    using UnpackedBlockStates = std::vector<uint16_t>;
+    using namespace definitions;
 
-    class BlockStatesView;
+    template<typename T>
+    class UnpackedView;
 
-    class BlockStates {
+    template<typename T>
+    class PackedData {
     public:
-        explicit BlockStates(const Palette& palette, LongArray packedData, size_t snapshotLength);
+        using UnpackedData = std::vector<T>;
+
+        explicit PackedData(const UnpackedData& palette, LongArray packedData, size_t snapshotLength);
 
         [[nodiscard]]
-        static uint64_t getBitsPerIndex(const Palette& palette);
+        static uint64_t getBitsPerIndex(const UnpackedData& palette);
 
         [[nodiscard]]
-        static BlockStates pack(const UnpackedBlockStates& sectionData);
+        static PackedData pack(const UnpackedData& sectionData);
 
         [[nodiscard]]
-        UnpackedBlockStates unpack() const;
+        UnpackedData unpack() const;
 
         [[nodiscard]]
-        BlockStatesView view() const;
+        UnpackedView<T> view() const;
 
         size_t snapshotLength;
         LongArray packedData;
-        Palette palette;
+        UnpackedData palette;
         uint64_t bitsPerIndex;
     };
 
@@ -44,8 +47,9 @@ namespace zvcr::common::paletted_storage {
 
 namespace zvcr::common::reverse_delta {
 
-    struct BlockStatesSnapshot {
-        paletted_storage::BlockStates data;
+    template<typename T>
+    struct PackedSnapshot {
+        paletted_storage::PackedData<T> data;
         time_t timestamp{};
     };
 
@@ -53,31 +57,34 @@ namespace zvcr::common::reverse_delta {
 
 namespace zvcr::common::paletted_storage {
 
-    class BlockStatesView {
+    template<typename T>
+    class UnpackedView {
     public:
-        UnpackedBlockStates unpacked;
+        using UnpackedData = std::vector<T>;
 
-        explicit BlockStatesView(size_t snapshotLength);
+        UnpackedData unpacked;
 
-        BlockStatesView(size_t snapshotLength, uint16_t fill);
+        explicit UnpackedView(size_t snapshotLength);
 
-        explicit BlockStatesView(const UnpackedBlockStates& unpacked);
+        explicit UnpackedView(size_t snapshotLength, T fill);
 
-        [[nodiscard]]
-        uint16_t getBlockState(uint8_t x, uint8_t y, uint8_t z) const;
-
-        void setBlockState(uint8_t x, uint8_t y, uint8_t z, uint16_t blockStateId);
+        explicit UnpackedView(const UnpackedData& unpacked);
 
         [[nodiscard]]
-        uint16_t get(uint8_t x, uint8_t z) const;
+        T getVoxel(uint8_t x, uint8_t y, uint8_t z) const;
 
-        void set(uint8_t x, uint8_t z, uint16_t blockStateId);
-
-        [[nodiscard]]
-        BlockStates pack() const;
+        void setVoxel(uint8_t x, uint8_t y, uint8_t z, T voxel);
 
         [[nodiscard]]
-        reverse_delta::BlockStatesSnapshot packSnapshot(time_t timestamp) const;
+        T getPixel(uint8_t x, uint8_t z) const;
+
+        void setPixel(uint8_t x, uint8_t z, T pixel);
+
+        [[nodiscard]]
+        PackedData<T> pack() const;
+
+        [[nodiscard]]
+        reverse_delta::PackedSnapshot<T> packSnapshot(time_t timestamp) const;
 
         [[nodiscard]]
         static size_t unpackedIndex(uint8_t x, uint8_t y, uint8_t z);
@@ -86,16 +93,16 @@ namespace zvcr::common::paletted_storage {
         static size_t unpackedIndex(uint8_t x, uint8_t z);
 
         [[nodiscard]]
-        static BlockStatesView create2DView(uint16_t fill);
+        static UnpackedView create2DView(T fill);
 
         [[nodiscard]]
-        static BlockStatesView create3DView(uint16_t fill);
+        static UnpackedView create3DView(T fill);
 
         [[nodiscard]]
-        static BlockStatesView create2DView();
+        static UnpackedView create2DView();
 
         [[nodiscard]]
-        static BlockStatesView create3DView();
+        static UnpackedView create3DView();
     };
 
     class BitStorage {
@@ -194,7 +201,7 @@ namespace zvcr::common::paletted_storage {
 
 namespace zvcr::common::reverse_delta {
 
-    using paletted_storage::BlockStates;
+    using paletted_storage::PackedData;
     using namespace result;
 
     static constexpr uint16_t STATE_UNCHANGED = 0xFFFF;
@@ -207,30 +214,29 @@ namespace zvcr::common::reverse_delta {
 
     using DeltaInsertionResult = Result<size_t, DeltaInsertionStatus>;
 
-    using BlockStatesSnapshots = std::vector<BlockStatesSnapshot>;
-
-    class DeltaBlockStates {
+    template<typename T>
+    class PackedDeltaData {
     public:
         size_t snapshotLength;
-        std::vector<BlockStatesSnapshot> reverseDeltas;
+        std::vector<PackedSnapshot<T>> reverseDeltas;
 
-        explicit DeltaBlockStates(size_t snapshotLength);
+        explicit PackedDeltaData(size_t snapshotLength);
 
-        explicit DeltaBlockStates(const BlockStatesSnapshot& initialState);
+        explicit PackedDeltaData(const PackedSnapshot<T>& initialState);
 
-        explicit DeltaBlockStates(const std::vector<BlockStatesSnapshot>& reverseDeltas, size_t snapshotLength);
-
-        [[nodiscard]]
-        OptionCRef<BlockStatesSnapshot> latestSnapshot() const;
+        explicit PackedDeltaData(const std::vector<PackedSnapshot<T>>& reverseDeltas, size_t snapshotLength);
 
         [[nodiscard]]
-        OptionCRef<BlockStatesSnapshot> delta(size_t deltaIndex) const;
+        OptionCRef<PackedSnapshot<T>> latestSnapshot() const;
 
         [[nodiscard]]
-        Option<BlockStatesSnapshot> snapshotFrom(time_t timestamp) const;
+        OptionCRef<PackedSnapshot<T>> delta(size_t deltaIndex) const;
 
         [[nodiscard]]
-        DeltaInsertionResult insertSnapshot(const BlockStatesSnapshot& newSnapshot);
+        Option<PackedSnapshot<T>> snapshotFrom(time_t timestamp) const;
+
+        [[nodiscard]]
+        DeltaInsertionResult insertSnapshot(const PackedSnapshot<T>& newSnapshot);
     };
 
 }

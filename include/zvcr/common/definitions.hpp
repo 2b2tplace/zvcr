@@ -23,4 +23,8 @@ namespace zvcr::common::definitions {
     constexpr size_t SECTION_2D_SIZE_BLOCKS = SEGMENT_SIDELENGTH_BLOCKS * SEGMENT_SIDELENGTH_BLOCKS;
     constexpr size_t SECTION_3D_SIZE_BLOCKS = SEGMENT_SIDELENGTH_BLOCKS * SEGMENT_SIDELENGTH_BLOCKS * SEGMENT_SIDELENGTH_BLOCKS;
 
+    using BlockStateId = uint16_t;
+    using Segment2dAtom = uint16_t;
+    using BiomeId = uint8_t;
+
 }

@@ -11,30 +11,36 @@
 
 namespace zvcr::common::reverse_delta {
 
-    DeltaBlockStates::DeltaBlockStates(const size_t snapshotLength) {
+    template<typename T>
+    PackedDeltaData<T>::PackedDeltaData(const size_t snapshotLength) {
         this->snapshotLength = snapshotLength;
         this->reverseDeltas = {};
     }
 
-    DeltaBlockStates::DeltaBlockStates(const BlockStatesSnapshot& initialState) {
+    template<typename T>
+    PackedDeltaData<T>::PackedDeltaData(const PackedSnapshot<T>& initialState) {
         this->snapshotLength = initialState.data.snapshotLength;
         this->reverseDeltas.push_back(initialState);
     }
 
-    DeltaBlockStates::DeltaBlockStates(const std::vector<BlockStatesSnapshot>& reverseDeltas, const size_t snapshotLength) {
+    template<typename T>
+    PackedDeltaData<T>::PackedDeltaData(const std::vector<PackedSnapshot<T>>& reverseDeltas, const size_t snapshotLength) {
         this->snapshotLength = snapshotLength;
         this->reverseDeltas = reverseDeltas;
     }
 
-    OptionCRef<BlockStatesSnapshot> DeltaBlockStates::latestSnapshot() const {
+    template<typename T>
+    OptionCRef<PackedSnapshot<T>> PackedDeltaData<T>::latestSnapshot() const {
         return delta(0);
     }
 
-    OptionCRef<BlockStatesSnapshot> DeltaBlockStates::delta(const size_t deltaIndex) const {
-        return reverseDeltas.empty() ? OptionCRef<BlockStatesSnapshot>() : OptionCRef(reverseDeltas[deltaIndex]);
+    template<typename T>
+    OptionCRef<PackedSnapshot<T>> PackedDeltaData<T>::delta(const size_t deltaIndex) const {
+        return reverseDeltas.empty() ? OptionCRef<PackedSnapshot<T>>() : OptionCRef(reverseDeltas[deltaIndex]);
     }
 
-    Option<BlockStatesSnapshot> DeltaBlockStates::snapshotFrom(const time_t timestamp) const {
+    template<typename T>
+    Option<PackedSnapshot<T>> PackedDeltaData<T>::snapshotFrom(const time_t timestamp) const {
         const auto latest = this->latestSnapshot();
         if (!latest.hasSome()) return {};
 
@@ -53,10 +59,11 @@ namespace zvcr::common::reverse_delta {
                     latestSnapshot[j] = state;
             }
         }
-        return BlockStatesSnapshot {BlockStates::pack(latestSnapshot), timestamp};
+        return PackedSnapshot {PackedData<T>::pack(latestSnapshot), timestamp};
     }
 
-    DeltaInsertionResult DeltaBlockStates::insertSnapshot(const BlockStatesSnapshot& newSnapshot) {
+    template<typename T>
+    DeltaInsertionResult PackedDeltaData<T>::insertSnapshot(const PackedSnapshot<T>& newSnapshot) {
         const auto latest = latestSnapshot();
         if (!latest.hasSome()) {
             reverseDeltas.push_back(newSnapshot);
@@ -70,7 +77,7 @@ namespace zvcr::common::reverse_delta {
         if (newSnapshot.timestamp <= timestamp)
             return Error(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
 
-        paletted_storage::UnpackedBlockStates deltaSnapshotBuilder(snapshotLength);
+        std::vector<T> deltaSnapshotBuilder(snapshotLength);
 
         const auto previousUnpacked = sectionData.unpack();
         const auto newUnpacked = newSnapshot.data.unpack();
@@ -86,8 +93,8 @@ namespace zvcr::common::reverse_delta {
         if (changes == 0)
             return Error(DeltaInsertionStatus::NO_CHANGES_MADE);
 
-        const auto deltaSnapshot = BlockStatesSnapshot {
-            BlockStates::pack(deltaSnapshotBuilder),
+        const auto deltaSnapshot = PackedSnapshot {
+            PackedData<T>::pack(deltaSnapshotBuilder),
             timestamp
         };
         reverseDeltas.erase(reverseDeltas.begin());
@@ -102,27 +109,33 @@ namespace zvcr::common::paletted_storage {
 
     using namespace definitions;
 
-    BlockStatesView::BlockStatesView(const size_t snapshotLength) {
-        this->unpacked = UnpackedBlockStates(snapshotLength);
+    template<typename T>
+    UnpackedView<T>::UnpackedView(const size_t snapshotLength) {
+        this->unpacked = std::vector<T>(snapshotLength);
     }
 
-    BlockStatesView::BlockStatesView(const size_t snapshotLength, const uint16_t fill) {
-        this->unpacked = UnpackedBlockStates(snapshotLength, fill);
+    template<typename T>
+    UnpackedView<T>::UnpackedView(const size_t snapshotLength, const T fill) {
+        this->unpacked = std::vector<T>(snapshotLength, fill);
     }
 
-    BlockStatesView::BlockStatesView(const UnpackedBlockStates& unpacked) {
+    template<typename T>
+    UnpackedView<T>::UnpackedView(const std::vector<T>& unpacked) {
         this->unpacked = unpacked;
     }
 
-    uint16_t BlockStatesView::getBlockState(const uint8_t x, const uint8_t y, const uint8_t z) const {
+    template<typename T>
+    T UnpackedView<T>::getVoxel(const uint8_t x, const uint8_t y, const uint8_t z) const {
         return unpacked[unpackedIndex(x, y, z)];
     }
 
-    void BlockStatesView::setBlockState(const uint8_t x, const uint8_t y, const uint8_t z, const uint16_t blockStateId) {
-        unpacked[unpackedIndex(x, y, z)] = blockStateId;
+    template<typename T>
+    void UnpackedView<T>::setVoxel(const uint8_t x, const uint8_t y, const uint8_t z, const T voxel) {
+        unpacked[unpackedIndex(x, y, z)] = voxel;
     }
 
-    size_t BlockStatesView::unpackedIndex(const uint8_t x, const uint8_t y, const uint8_t z) {
+    template<typename T>
+    size_t UnpackedView<T>::unpackedIndex(const uint8_t x, const uint8_t y, const uint8_t z) {
         assert(x < SEGMENT_SIDELENGTH_BLOCKS);
         assert(y < SEGMENT_SIDELENGTH_BLOCKS);
         assert(z < SEGMENT_SIDELENGTH_BLOCKS);
@@ -132,40 +145,49 @@ namespace zvcr::common::paletted_storage {
              + static_cast<size_t>(x);
     }
 
-    uint16_t BlockStatesView::get(const uint8_t x, const uint8_t z) const {
+    template<typename T>
+    T UnpackedView<T>::getPixel(const uint8_t x, const uint8_t z) const {
         return unpacked[unpackedIndex(x, z)];
     }
 
-    void BlockStatesView::set(const uint8_t x, const uint8_t z, const uint16_t blockStateId) {
-        unpacked[unpackedIndex(x, z)] = blockStateId;
+    template<typename T>
+    void UnpackedView<T>::setPixel(const uint8_t x, const uint8_t z, const T pixel) {
+        unpacked[unpackedIndex(x, z)] = pixel;
     }
 
-    BlockStates BlockStatesView::pack() const {
-        return BlockStates::pack(unpacked);
+    template<typename T>
+    PackedData<T> UnpackedView<T>::pack() const {
+        return PackedData<T>::pack(unpacked);
     }
 
-    reverse_delta::BlockStatesSnapshot BlockStatesView::packSnapshot(const time_t timestamp) const {
-        return reverse_delta::BlockStatesSnapshot {pack(), timestamp};
+    template<typename T>
+    reverse_delta::PackedSnapshot<T> UnpackedView<T>::packSnapshot(const time_t timestamp) const {
+        return reverse_delta::PackedSnapshot {pack(), timestamp};
     }
 
-    size_t BlockStatesView::unpackedIndex(const uint8_t x, const uint8_t z) {
+    template<typename T>
+    size_t UnpackedView<T>::unpackedIndex(const uint8_t x, const uint8_t z) {
         return unpackedIndex(x, 0, z);
     }
 
-    BlockStatesView BlockStatesView::create2DView(const uint16_t fill) {
+    template<typename T>
+    UnpackedView<T> UnpackedView<T>::create2DView(const T fill) {
         return {SECTION_2D_SIZE_BLOCKS, fill};
     }
 
-    BlockStatesView BlockStatesView::create3DView(const uint16_t fill) {
-        return BlockStatesView {SECTION_3D_SIZE_BLOCKS, fill};
+    template<typename T>
+    UnpackedView<T> UnpackedView<T>::create3DView(const T fill) {
+        return UnpackedView {SECTION_3D_SIZE_BLOCKS, fill};
     }
 
-    BlockStatesView BlockStatesView::create2DView() {
-        return BlockStatesView {SECTION_2D_SIZE_BLOCKS};
+    template<typename T>
+    UnpackedView<T> UnpackedView<T>::create2DView() {
+        return UnpackedView {SECTION_2D_SIZE_BLOCKS};
     }
 
-    BlockStatesView BlockStatesView::create3DView() {
-        return BlockStatesView {SECTION_3D_SIZE_BLOCKS};
+    template<typename T>
+    UnpackedView<T> UnpackedView<T>::create3DView() {
+        return UnpackedView {SECTION_3D_SIZE_BLOCKS};
     }
 
     BitStorage::BitStorage(const size_t bits, const size_t size, const LongArray& data = LongArray(0)): data(data), bits(bits), // NOLINT(*-pro-type-member-init)
@@ -215,18 +237,21 @@ namespace zvcr::common::paletted_storage {
         cell = cell & ~(mask << bitIndex) | (value & mask) << bitIndex;
     }
 
-    BlockStates::BlockStates(const Palette& palette, LongArray packedData, const size_t snapshotLength): packedData(std::move(packedData)) {
+    template<typename T>
+    PackedData<T>::PackedData(const UnpackedData& palette, LongArray packedData, const size_t snapshotLength): packedData(std::move(packedData)) {
         this->snapshotLength = snapshotLength;
         this->palette = palette;
         this->bitsPerIndex = getBitsPerIndex(palette);
     }
 
-    uint64_t BlockStates::getBitsPerIndex(const Palette& palette) {
+    template<typename T>
+    uint64_t PackedData<T>::getBitsPerIndex(const UnpackedData& palette) {
         return std::max(static_cast<int>(std::ceil(log2(static_cast<double>(palette.size())))), 1);
     }
 
-    UnpackedBlockStates BlockStates::unpack() const {
-        UnpackedBlockStates unpacked(snapshotLength);
+    template<typename T>
+    typename PackedData<T>::UnpackedData PackedData<T>::unpack() const {
+        UnpackedData unpacked(snapshotLength);
         const BitStorage bitStorage(bitsPerIndex, snapshotLength, packedData);
 
         size_t index = 0;
@@ -238,7 +263,8 @@ namespace zvcr::common::paletted_storage {
         return unpacked;
     }
 
-    BlockStates BlockStates::pack(const UnpackedBlockStates& sectionData) {
+    template<typename T>
+    PackedData<T> PackedData<T>::pack(const UnpackedData& sectionData) {
         std::unordered_set uniqueStates(sectionData.begin(), sectionData.end());
         std::vector palette(uniqueStates.begin(), uniqueStates.end());
 
@@ -255,11 +281,12 @@ namespace zvcr::common::paletted_storage {
         for (size_t i = 0; i < snapshotLength; ++i)
             bitStorage.set(i, stateToIndex[sectionData[i]]);
 
-        return BlockStates(palette, bitStorage.data, snapshotLength);
+        return PackedData(palette, bitStorage.data, snapshotLength);
     }
 
-    BlockStatesView BlockStates::view() const {
-        return BlockStatesView(unpack());
+    template<typename T>
+    UnpackedView<T> PackedData<T>::view() const {
+        return UnpackedView(unpack());
     }
 
 }

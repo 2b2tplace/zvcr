@@ -7,6 +7,7 @@
 namespace zvcr::region::dim2::layer {
 
     using namespace common::reverse_delta;
+    using namespace common::definitions;
 
     enum class LayerType {
         TOP_DOWN = 0,
@@ -18,17 +19,19 @@ namespace zvcr::region::dim2::layer {
         CUSTOM
     };
 
+    using LayerTypeId = uint8_t;
+
     struct Layer2d {
-        DeltaBlockStates deltas;
-        uint8_t type{};
+        PackedDeltaData<Segment2dAtom> deltas;
+        LayerTypeId type{};
     };
 
-    class Layers2d : public std::unordered_map<uint8_t, Layer2d> {
+    class LayerContainer2d : public std::unordered_map<LayerTypeId, Layer2d> {
     public:
         [[nodiscard]]
         Layer2d& operator[](LayerType layerType);
 
         [[nodiscard]]
-        Layer2d& operator[](uint8_t layerType);
+        Layer2d& operator[](LayerTypeId layerType);
     };
 }

@@ -85,7 +85,7 @@ namespace zvcr::serialize::serialization {
         }
     }
 
-    void serializeBlockStatesSnapshot(const BlockStatesSnapshot& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
+    void serializeBlockStatesSnapshot(const PackedSnapshot<BlockStateId>& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
         data.resize(data.size() + sizeof(time_t));
         std::memcpy(data.data() + data.size() - sizeof(time_t), &snapshot.timestamp, sizeof(time_t));
 
@@ -112,7 +112,8 @@ namespace zvcr::serialize::serialization {
         std::memcpy(data.data() + data.size() - sizeof(uint32_t), &paletteIndex, sizeof(uint32_t));
     }
 
-    ZVCRResult<BlockStatesSnapshot> deserializeBlockStatesSnapshot(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t snapshotLength) {
+    ZVCRResult<PackedSnapshot<BlockStateId>> deserializeBlockStatesSnapshot(const std::vector<uint8_t>& data, size_t& offset,
+                                                                            const std::vector<Palette>& paletteTable, const size_t snapshotLength) {
         if (offset + sizeof(time_t) > data.size())
             return Error(EXPECTED_TIMESTAMP);
 
@@ -142,8 +143,8 @@ namespace zvcr::serialize::serialization {
         offset += sizeof(uint32_t);
 
         const auto& palette = paletteTable[paletteIndex];
-        return BlockStatesSnapshot {
-            std::move(BlockStates(palette, packedData, snapshotLength)),
+        return PackedSnapshot {
+            std::move(PackedData(palette, packedData, snapshotLength)),
                 timestamp
             };
     }
@@ -220,23 +221,24 @@ namespace zvcr::serialize::serialization {
         return {};
     }
 
-    void serializeBlockStates(const DeltaBlockStates& section3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
+    void serializeBlockStates(const PackedDeltaData<BlockStateId>& section3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
         const uint64_t deltaLength = section3d.reverseDeltas.size();
         data.resize(data.size() + sizeof(uint64_t));
         std::memcpy(data.data() + data.size() - sizeof(uint64_t), &deltaLength, sizeof(uint64_t));
 
-        for (const BlockStatesSnapshot& foo : section3d.reverseDeltas)
-            serializeBlockStatesSnapshot(foo, data, paletteTable);
+        for (const PackedSnapshot<BlockStateId>& snapshot : section3d.reverseDeltas)
+            serializeBlockStatesSnapshot(snapshot, data, paletteTable);
     }
 
-    ZVCRResult<DeltaBlockStates> deserializeBlockStates(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas, const size_t snapshotLength) {
+    ZVCRResult<PackedDeltaData<BlockStateId>> deserializeBlockStates(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable,
+                                                                     const size_t maxDeltas, const size_t snapshotLength) {
         if (offset + sizeof(uint64_t) > data.size())
             return Error(EXPECTED_DELTA_LENGTH);
 
         size_t deltaLength;
         std::memcpy(&deltaLength, data.data() + offset, sizeof(uint64_t));
         offset += sizeof(uint64_t);
-        std::vector<BlockStatesSnapshot> reverseDeltas;
+        std::vector<PackedSnapshot<BlockStateId>> reverseDeltas;
         reverseDeltas.reserve(deltaLength);
 
         for (size_t deltaIndex = 0; deltaIndex < deltaLength; ++deltaIndex) {
@@ -246,7 +248,7 @@ namespace zvcr::serialize::serialization {
             }
             reverseDeltas.push_back(std::move(Try(deserializeBlockStatesSnapshot(data, offset, paletteTable, snapshotLength))));
         }
-        return DeltaBlockStates(reverseDeltas, snapshotLength);
+        return PackedDeltaData(reverseDeltas, snapshotLength);
     }
 
     void serializeSegmentState(const SegmentState& segmentState, std::vector<uint8_t>& data) {
@@ -343,7 +345,7 @@ namespace zvcr::serialize::serialization {
     }
 
     void serializeSegment3d(const Segment3d& segment3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
-        for (const DeltaBlockStates& section : segment3d.sections)
+        for (const PackedDeltaData<BlockStateId>& section : segment3d.sections)
             serializeBlockStates(section, data, paletteTable);
 
         serializeSegmentInfo(segment3d.info, data);
@@ -441,7 +443,7 @@ namespace zvcr::serialize::serialization {
         return Layer2d {deltas, type};
     }
 
-    void serializeLayers(const Layers2d& layers, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
+    void serializeLayers(const LayerContainer2d& layers, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
         const uint64_t layersLength = layers.size();
         data.resize(data.size() + sizeof(uint64_t));
         std::memcpy(data.data() + data.size() - sizeof(uint64_t), &layersLength, sizeof(uint64_t));
@@ -450,7 +452,7 @@ namespace zvcr::serialize::serialization {
             serializeLayer(layer, data, paletteTable);
     }
 
-    ZVCRResult<Layers2d> deserializeLayers(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas) {
+    ZVCRResult<LayerContainer2d> deserializeLayers(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas) {
         if (offset + sizeof(uint64_t) > data.size())
             return Error(EXPECTED_LAYERS_LENGTH);
 
@@ -458,7 +460,7 @@ namespace zvcr::serialize::serialization {
         std::memcpy(&layersLength, data.data() + offset, sizeof(uint64_t));
         offset += sizeof(uint64_t);
 
-        Layers2d layers;
+        LayerContainer2d layers;
         for (size_t layerIndex = 0; layerIndex < layersLength; ++layerIndex) {
             const auto layer = Try(deserializeLayer(data, offset, paletteTable, maxDeltas));
             layers[layer.type] = layer;

@@ -12,45 +12,45 @@ namespace zvcr::serialize::conversion {
             topDownViews.emplace(timestamp, SECTION_2D_SIZE_BLOCKS);
     }
 
-    BlockStatesView& TileViewDeltas::deltaView(const LayerType layerType, const time_t timestamp) {
+    UnpackedView<Segment2dAtom>& TileViewDeltas::deltaView(const LayerType layerType, const time_t timestamp) {
         return deltaView(static_cast<uint8_t>(layerType), timestamp);
     }
 
-    BlockStatesView& TileViewDeltas::deltaView(const uint8_t layerType, const time_t timestamp) {
+    UnpackedView<Segment2dAtom>& TileViewDeltas::deltaView(const uint8_t layerType, const time_t timestamp) {
         emplaceMissingView(layerType, timestamp);
         return viewDeltas.at(layerType).at(timestamp);
     }
 
-    BlockStatesView& TileViewDeltas::topDown(const time_t timestamp) {
+    UnpackedView<Segment2dAtom>& TileViewDeltas::topDown(const time_t timestamp) {
         return deltaView(LayerType::TOP_DOWN, timestamp);
     }
 
-    BlockStatesView& TileViewDeltas::roofless(const time_t timestamp) {
+    UnpackedView<Segment2dAtom>& TileViewDeltas::roofless(const time_t timestamp) {
         return deltaView(LayerType::TOP_DOWN_ROOFLESS, timestamp);
     }
 
-    BlockStatesView& TileViewDeltas::heightmap(const time_t timestamp) {
+    UnpackedView<Segment2dAtom>& TileViewDeltas::heightmap(const time_t timestamp) {
         return deltaView(LayerType::HEIGHTMAP, timestamp);
     }
 
-    BlockStatesView& TileViewDeltas::heightmapRoofless(const time_t timestamp) {
+    UnpackedView<Segment2dAtom>& TileViewDeltas::heightmapRoofless(const time_t timestamp) {
         return deltaView(LayerType::HEIGHTMAP_ROOFLESS, timestamp);
     }
 
-    BlockStatesView& TileViewDeltas::drainedTopDown(const time_t timestamp) {
+    UnpackedView<Segment2dAtom>& TileViewDeltas::drainedTopDown(const time_t timestamp) {
         return deltaView(LayerType::DRAINED_TOP_DOWN, timestamp);
     }
 
-    BlockStatesView& TileViewDeltas::drainedTopDownHeightmap(const time_t timestamp) {
+    UnpackedView<Segment2dAtom>& TileViewDeltas::drainedTopDownHeightmap(const time_t timestamp) {
         return deltaView(LayerType::DRAINED_TOP_DOWN_HEIGHTMAP, timestamp);
     }
 
-    Layers2d TileViewDeltas::createLayers() const {
-        Layers2d layers;
+    LayerContainer2d TileViewDeltas::createLayers() const {
+        LayerContainer2d layers;
         for (const auto& [layerType, deltas] : viewDeltas) {
-            std::vector<BlockStatesSnapshot> reverseDeltas;
+            std::vector<PackedSnapshot<Segment2dAtom>> reverseDeltas;
             reverseDeltas.reserve(deltas.size());
-            DeltaBlockStates deltaBlockStates(reverseDeltas, SECTION_2D_SIZE_BLOCKS);
+            PackedDeltaData<Segment2dAtom> deltaBlockStates(reverseDeltas, SECTION_2D_SIZE_BLOCKS);
 
             std::vector<time_t> timestamps;
             for (const auto timestamp : deltas | std::views::keys)
@@ -95,7 +95,7 @@ namespace zvcr::serialize::conversion {
                     timestamps.push_back(timestamp);
             }
         }
-        std::unordered_map<time_t, std::unordered_map<int8_t, BlockStatesView>> cachedSnapshots;
+        std::unordered_map<time_t, std::unordered_map<int8_t, UnpackedView<BlockStateId>>> cachedSnapshots;
 
         for (const auto ts : timestamps) {
             for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0; --sy) {
@@ -166,30 +166,30 @@ namespace zvcr::serialize::conversion {
 #endif
     }
 
-    bool renderSegment2d(const uint8_t cx, const uint8_t cz, const uint8_t sy, const BlockStatesView& sectionView,
-                          BlockStatesView& topDownTileView, BlockStatesView& heightmapTileView, const bool ignoreRoof,
-                          const bool ignoreLiquids) {
-        if (const auto current = topDownTileView.get(cx, cz); !invisibleBlockState(current))
+    bool renderSegment2d(const uint8_t cx, const uint8_t cz, const uint8_t sy, const UnpackedView<BlockStateId>& sectionView,
+                          UnpackedView<Segment2dAtom>& topDownTileView, UnpackedView<Segment2dAtom>& heightmapTileView,
+                          const bool ignoreRoof, const bool ignoreLiquids) {
+        if (const auto current = topDownTileView.getPixel(cx, cz); !invisibleBlockState(current))
             return true;
 
         for (int8_t cy = SEGMENT_SIDELENGTH_BLOCKS - 1; cy >= 0; --cy) {
-            const auto state = sectionView.getBlockState(cx, cy, cz);
+            const auto state = sectionView.getVoxel(cx, cy, cz);
 
             if (invisibleBlockState(state)) continue;
             if (ignoreLiquids && liquidBlockStateOrLilypad(state)) continue;
             if (ignoreRoof && roofBlockType(state)) continue;
 
-            topDownTileView.set(cx, cz, state);
+            topDownTileView.setPixel(cx, cz, state);
 
-            if (const auto height = sy * 16 + cy; height > heightmapTileView.get(cx, cz)) {
-                heightmapTileView.set(cx, cz, height);
+            if (const auto height = sy * 16 + cy; height > heightmapTileView.getPixel(cx, cz)) {
+                heightmapTileView.setPixel(cx, cz, height);
                 return true;
             }
         }
         return false;
     }
 
-    bool renderSegment2dForSectionSnapshot(const time_t timestamp, const uint8_t sy, const BlockStatesView& sectionView,
+    bool renderSegment2dForSectionSnapshot(const time_t timestamp, const uint8_t sy, const UnpackedView<BlockStateId>& sectionView,
                                             TileViewDeltas& tileViewDeltas) {
 
         auto& topDownTileView = tileViewDeltas.topDown(timestamp);
