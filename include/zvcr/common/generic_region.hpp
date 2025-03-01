@@ -2,10 +2,13 @@
 
 #include <cstdint>
 #include <vector>
-
-#include "result.hpp"
+#include <cassert>
+#include <zvcr/common/result.hpp>
+#include <zvcr/common/definitions.hpp>
 
 namespace zvcr::common::generic_region {
+
+    using definitions::REGION_SIDELENGTH_SEGMENTS;
 
     template<typename S>
     class GenericRegion {
@@ -15,16 +18,24 @@ namespace zvcr::common::generic_region {
 
         Segments segments;
 
-        explicit GenericRegion(const Segments& segments);
+        explicit GenericRegion(const Segments& segments): segments(segments) {}
         GenericRegion() = default;
 
         [[nodiscard]]
-        SegmentMaybe get(uint8_t x, uint8_t z) const;
+        SegmentMaybe get(const uint8_t x, const uint8_t z) const {
+            return segments[unpackedIndex(x, z)];
+        }
 
-        void set(uint8_t x, uint8_t z, const SegmentMaybe& segment);
+        void set(const uint8_t x, const uint8_t z, const SegmentMaybe& segment) {
+            segments[unpackedIndex(x, z)] = segment;
+        }
 
         [[nodiscard]]
-        static size_t unpackedIndex(uint8_t x, uint8_t z);
+        static size_t unpackedIndex(const uint8_t x, const uint8_t z) {
+            assert(x < REGION_SIDELENGTH_SEGMENTS);
+            assert(z < REGION_SIDELENGTH_SEGMENTS);
+            return static_cast<size_t>(x) * REGION_SIDELENGTH_SEGMENTS + static_cast<size_t>(z);
+        }
 
     };
 
