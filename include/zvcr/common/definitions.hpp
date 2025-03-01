@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 
 // epoch.major.minor.patch.Pprotocol
 // we only officially support 1.20.4-1.20.6!!!
