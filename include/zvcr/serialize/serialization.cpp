@@ -144,7 +144,7 @@ namespace zvcr::serialize::serialization {
 
         const auto& palette = paletteTable[paletteIndex];
         return PackedSnapshot {
-            std::move(PackedData(palette, packedData, snapshotLength)),
+                PackedData(palette, packedData, snapshotLength),
                 timestamp
             };
     }
@@ -189,7 +189,7 @@ namespace zvcr::serialize::serialization {
             palette.resize(paletteLengthSize);
             std::memcpy(palette.data(), data.data() + offset, paletteLengthSize * sizeof(uint16_t));
             offset += paletteLengthSize * sizeof(uint16_t);
-            paletteTable.emplace_back(std::move(palette));
+            paletteTable.emplace_back(palette);
         }
         return paletteTable;
     }
@@ -246,7 +246,7 @@ namespace zvcr::serialize::serialization {
                 Propagate(skipBlockStatesSnapshot(data, offset));
                 continue;
             }
-            reverseDeltas.push_back(std::move(Try(deserializeBlockStatesSnapshot(data, offset, paletteTable, snapshotLength))));
+            reverseDeltas.push_back(Try(deserializeBlockStatesSnapshot(data, offset, paletteTable, snapshotLength)));
         }
         return PackedDeltaData(reverseDeltas, snapshotLength);
     }
@@ -339,27 +339,29 @@ namespace zvcr::serialize::serialization {
         tileEntityCounts.reserve(tileEntitiesLength);
 
         for (size_t tileEntityIndex = 0; tileEntityIndex < tileEntitiesLength; ++tileEntityIndex)
-            tileEntityCounts.push_back(std::move(Try(deserializeTileEntityCountInfo(data, offset))));
+            tileEntityCounts.push_back(Try(deserializeTileEntityCountInfo(data, offset)));
 
         return SegmentInfo(states, tileEntityCounts);
     }
 
     void serializeSegment3d(const Segment3d& segment3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
-        for (const PackedDeltaData<BlockStateId>& section : segment3d.sections)
+        for (const PackedDeltaData<BlockStateId>& section : segment3d.blockSections.getSections())
             serializeBlockStates(section, data, paletteTable);
 
         serializeSegmentInfo(segment3d.info, data);
     }
 
-    ZVCRResult<Segment3d> deserializeSegment3d(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas, const uint32_t sectionAmount) {
-        Sections3d sections;
-        sections.reserve(sectionAmount);
+    ZVCRResult<Segment3d> deserializeSegment3d(const std::vector<uint8_t>& data, size_t& offset,
+                                               const std::vector<Palette>& paletteTable,
+                                               const size_t maxDeltas, const uint32_t sectionCount) {
+        Segment3d segment{sectionCount};
 
-        for (size_t sectionIndex = 0; sectionIndex < sectionAmount; ++sectionIndex)
-            sections.push_back(std::move(Try(deserializeBlockStates(data, offset, paletteTable, maxDeltas, SECTION_3D_SIZE_BLOCKS))));
+        for (size_t sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex)
+            segment.blockSections.getSection(sectionIndex) = Try(deserializeBlockStates(data, offset, paletteTable,
+                                                                        maxDeltas, SECTION_3D_SIZE_BLOCKS));
 
-        const auto segmentInfo = Try(deserializeSegmentInfo(data, offset));
-        return Segment3d(sections, segmentInfo);
+        segment.info = Try(deserializeSegmentInfo(data, offset));
+        return segment;
     }
 
     void serializeOptSegment3d(const Option<Segment3d>& segment3dOpt, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
@@ -371,14 +373,17 @@ namespace zvcr::serialize::serialization {
         serializeSegment3d(segment3dOpt.unwrap(), data, paletteTable);
     }
 
-    ZVCRResult<Option<Segment3d>> deserializeOptSegment3d(const std::vector<uint8_t>& data, size_t& offset, const std::vector<Palette>& paletteTable, const size_t maxDeltas, const uint32_t sectionAmount) {
+    ZVCRResult<Option<Segment3d>> deserializeOptSegment3d(const std::vector<uint8_t>& data, size_t& offset,
+                                                          const std::vector<Palette>& paletteTable,
+                                                          const size_t maxDeltas, const uint32_t sectionCount) {
         if (offset >= data.size())
             return Error(EXPECTED_SEGMENT_INDICATOR);
 
         if (data[offset++] == 0)
             return Option<Segment3d>();
 
-        return static_cast<ZVCRResult<Option<Segment3d>>>(Try(deserializeSegment3d(data, offset, paletteTable, maxDeltas, sectionAmount)));
+        return static_cast<ZVCRResult<Option<Segment3d>>>(Try(deserializeSegment3d(data, offset, paletteTable,
+                                                                        maxDeltas, sectionCount)));
     }
 
     void serializeRegion3d(const Region3d& region, std::vector<uint8_t>& data) {
@@ -392,11 +397,12 @@ namespace zvcr::serialize::serialization {
         data.insert(data.end(), regionData.begin(), regionData.end());
     }
 
-    ZVCRResult<Region3d> deserializeRegion3d(const std::vector<uint8_t>& data, size_t& offset, const size_t maxDeltas, const uint32_t sectionAmount) {
+    ZVCRResult<Region3d> deserializeRegion3d(const std::vector<uint8_t>& data, size_t& offset,
+                                             const size_t maxDeltas, const uint32_t sectionCount) {
         const auto paletteTable = Try(deserializePaletteTable(data, offset));
         Segments3d segment3ds(SEGMENTS_PER_REGION);
         for (size_t segment3dIndex = 0; segment3dIndex < SEGMENTS_PER_REGION; ++segment3dIndex)
-            segment3ds[segment3dIndex] = std::move(Try(deserializeOptSegment3d(data, offset, paletteTable, maxDeltas, sectionAmount)));
+            segment3ds[segment3dIndex] = Try(deserializeOptSegment3d(data, offset, paletteTable, maxDeltas, sectionCount));
 
         return Region3d(segment3ds);
     }
@@ -414,8 +420,8 @@ namespace zvcr::serialize::serialization {
         const auto version = Try(deserializeVersion(data, offset, ZVCR3_VER_LATEST));
         const auto dimensionType = Try(deserializeDimensionType(data, offset));
 
-        const auto sectionAmount = DimensionTypePropertyRegistry.at(dimensionType).height / SEGMENT_SIDELENGTH_BLOCKS;
-        const auto region = Try(deserializeRegion3d(data, offset, maxDeltas, sectionAmount));
+        const auto sectionCount = DimensionTypePropertyRegistry.at(dimensionType).height / SEGMENT_SIDELENGTH_BLOCKS;
+        const auto region = Try(deserializeRegion3d(data, offset, maxDeltas, sectionCount));
 
         return ZVCR3File {version, dimensionType, region};
     }

@@ -2,12 +2,12 @@
 
 namespace zvcr::region::dim2::segment2 {
 
-    OptionRef<const Layer2d> Segment2d::getLayer(const LayerTypeId type) const {
+    OptionCRef<Layer2d> Segment2d::getLayer(const LayerTypeId type) const {
         if (!layers.contains(type)) return {};
         return {layers.at(type)};
     }
 
-    OptionRef<const Layer2d> Segment2d::getLayer(LayerType layerType) const {
+    OptionCRef<Layer2d> Segment2d::getLayer(LayerType layerType) const {
         if (layerType == LayerType::CUSTOM) return {};
 
         return getLayer(static_cast<LayerTypeId>(layerType));

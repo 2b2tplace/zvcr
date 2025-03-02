@@ -50,7 +50,7 @@ namespace zvcr::serialize::conversion {
         for (const auto& [layerType, deltas] : viewDeltas) {
             std::vector<PackedSnapshot<Segment2dAtom>> reverseDeltas;
             reverseDeltas.reserve(deltas.size());
-            PackedDeltaData<Segment2dAtom> deltaBlockStates(reverseDeltas, SECTION_2D_SIZE_BLOCKS);
+            PackedDeltaData deltaBlockStates(reverseDeltas, SECTION_2D_SIZE_BLOCKS);
 
             std::vector<time_t> timestamps;
             for (const auto timestamp : deltas | std::views::keys)
@@ -89,7 +89,7 @@ namespace zvcr::serialize::conversion {
         const auto sectionCount = static_cast<int8_t>(properties.height / 16);
         TileViewDeltas tileViewDeltas;
         std::vector<time_t> timestamps;
-        for (const auto& section : segment3dOpt.sections) {
+        for (const auto& section : segment3dOpt.blockSections.getSections()) {
             for (const auto& [data, timestamp] : section.reverseDeltas) {
                 if (std::ranges::find(timestamps, timestamp) == timestamps.end())
                     timestamps.push_back(timestamp);
@@ -99,7 +99,7 @@ namespace zvcr::serialize::conversion {
 
         for (const auto ts : timestamps) {
             for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0; --sy) {
-                const auto& section = segment3dOpt.sections[sy];
+                const auto& section = segment3dOpt.blockSections.readSection(sy);
                 const auto latest = section.latestSnapshot();
                 if (!latest.hasSome()) continue;
 

@@ -24,6 +24,21 @@ namespace zvcr::region::dim2::layer {
     struct Layer2d {
         PackedDeltaData<Segment2dAtom> deltas;
         LayerTypeId type{};
+
+        explicit Layer2d(const PackedDeltaData<Segment2dAtom>& deltas, const LayerTypeId type):
+            deltas(deltas), type(type) {}
+
+        explicit Layer2d(const size_t snapshotSize, const LayerTypeId type):
+            deltas(snapshotSize), type(type) {}
+
+        explicit Layer2d(const size_t snapshotSize, const LayerType type):
+            deltas(snapshotSize), type(static_cast<LayerTypeId>(type)) {}
+
+        explicit Layer2d(const LayerTypeId type):
+            deltas(SECTION_2D_SIZE_BLOCKS), type(type) {}
+
+        explicit Layer2d(const LayerType type):
+            deltas(SECTION_2D_SIZE_BLOCKS), type(static_cast<LayerTypeId>(type)) {}
     };
 
     class LayerContainer2d : public std::unordered_map<LayerTypeId, Layer2d> {

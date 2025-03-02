@@ -22,10 +22,10 @@ namespace zvcr::region::dim2::segment2 {
         Segment2d(): layers(LayerContainer2d {}), info(SegmentInfo {}) {}
 
         [[nodiscard]]
-        OptionRef<const Layer2d> getLayer(LayerTypeId type) const;
+        OptionCRef<Layer2d> getLayer(LayerTypeId type) const;
 
         [[nodiscard]]
-        OptionRef<const Layer2d> getLayer(LayerType layerType) const;
+        OptionCRef<Layer2d> getLayer(LayerType layerType) const;
 
         [[nodiscard]]
         bool setLayer(LayerTypeId type, const Layer2d& layer);

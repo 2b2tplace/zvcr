@@ -18,6 +18,7 @@ namespace zvcr::common::generic_region {
 
         Segments segments;
 
+        explicit GenericRegion(Segments&& segments) noexcept: segments(std::move(segments)) {}
         explicit GenericRegion(const Segments& segments): segments(segments) {}
         GenericRegion() = default;
 
