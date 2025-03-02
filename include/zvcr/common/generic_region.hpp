@@ -14,6 +14,7 @@ namespace zvcr::common::generic_region {
     class GenericRegion {
     public:
         using SegmentMaybe = result::Option<S>;
+        using SegmentMaybeRef = result::OptionRef<S>;
         using Segments = std::vector<SegmentMaybe>;
 
         Segments segments;
@@ -23,7 +24,7 @@ namespace zvcr::common::generic_region {
         GenericRegion() = default;
 
         [[nodiscard]]
-        SegmentMaybe get(const uint8_t x, const uint8_t z) const {
+        SegmentMaybeRef get(const uint8_t x, const uint8_t z) const {
             return segments[unpackedIndex(x, z)];
         }
 
