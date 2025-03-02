@@ -295,7 +295,7 @@ namespace zvcr::serialize::serialization {
         std::memcpy(&timestamp, data.data() + offset, sizeof(time_t));
         offset += sizeof(time_t);
 
-        return TileEntityCountInfo {std::move(counts), timestamp};
+        return TileEntityCountInfo {counts, timestamp};
     }
 
     void serializeSegmentInfo(const SegmentInfo& segmentInfo, std::vector<uint8_t>& data) {
