@@ -88,13 +88,13 @@ namespace zvcr::common::result {
         std::optional<T> valueOrEmpty;
     public:
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        Option(T&& value) : valueOrEmpty(std::optional<T>{value}) {} // NOLINT(*-explicit-constructor)
+        Option(T&& value): valueOrEmpty(std::optional<T>{value}) {} // NOLINT(*-explicit-constructor)
 
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        Option(const T& value) : valueOrEmpty(std::optional<T>{value}) {} // NOLINT(*-explicit-constructor)
+        Option(const T& value): valueOrEmpty(std::optional<T>{value}) {} // NOLINT(*-explicit-constructor)
 
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        Option() : valueOrEmpty(std::nullopt) {} // NOLINT(*-explicit-constructor)
+        Option(): valueOrEmpty(std::nullopt) {} // NOLINT(*-explicit-constructor)
 
         [[nodiscard]]
         bool hasSome() const {
@@ -137,13 +137,13 @@ namespace zvcr::common::result {
         Option<std::reference_wrapper<T>> option;
     public:
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        OptionRef(T&& value) : option(value) {} // NOLINT(*-explicit-constructor)
+        OptionRef(T&& value): option(value) {} // NOLINT(*-explicit-constructor)
 
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        OptionRef(const T& value) : option(value) {} // NOLINT(*-explicit-constructor)
+        OptionRef(const T& value): option(value) {} // NOLINT(*-explicit-constructor)
 
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        OptionRef() : option() {} // NOLINT(*-explicit-constructor)
+        OptionRef(): option() {} // NOLINT(*-explicit-constructor)
 
         [[nodiscard]]
         bool hasSome() const {
@@ -151,12 +151,12 @@ namespace zvcr::common::result {
         }
 
         [[nodiscard]]
-        const T& unwrap() const {
+        T& unwrap() const {
             return option.unwrap().get();
         }
 
         [[nodiscard]]
-        const T* operator->() const {
+        T* operator->() const {
             return &unwrap();
         }
 
