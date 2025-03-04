@@ -81,7 +81,7 @@ namespace zvcr::serialize::serialization {
     void serializePackedSnapshot(const PackedSnapshot<SegmentAtom>& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
     ZVCRResult<PackedSnapshot<SegmentAtom>> deserializePackedSnapshot(const std::vector<uint8_t>& data, size_t& offset,
-                                                                            const std::vector<Palette>& paletteTable, size_t snapshotLength);
+                                                                      const std::vector<Palette>& paletteTable, size_t snapshotLength);
 
     void serializePaletteTable(const std::vector<Palette>& paletteTable, std::vector<uint8_t>& data);
 
@@ -92,7 +92,7 @@ namespace zvcr::serialize::serialization {
     void serializePackedDeltaData(const PackedDeltaData<SegmentAtom>& section3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
     ZVCRResult<PackedDeltaData<SegmentAtom>> deserializePackedDeltaData(const std::vector<uint8_t>& data, size_t& offset,
-                                                                     const std::vector<Palette>& paletteTable, size_t maxDeltas, size_t snapshotLength);
+                                                                        const std::vector<Palette>& paletteTable, size_t maxDeltas, size_t snapshotLength);
 
     void serializeSegmentState(const SegmentState& segmentState, std::vector<uint8_t>& data);
 

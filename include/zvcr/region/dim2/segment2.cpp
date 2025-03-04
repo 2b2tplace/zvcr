@@ -28,12 +28,12 @@ namespace zvcr::region::dim2::segment2 {
     }
 
     void LayerContainer2d::setLayer(const LayerTypeId type, const std::vector<PackedSnapshot<SegmentAtom>>& reverseDeltas,
-                             const size_t snapshotLength) {
+                                    const size_t snapshotLength) {
         setLayer(type, Layer2d(PackedDeltaData { reverseDeltas, snapshotLength }, type));
     }
 
     void LayerContainer2d::setLayer(const LayerType layerType, const std::vector<PackedSnapshot<SegmentAtom>>& reverseDeltas,
-                             const size_t snapshotLength) {
+                                    const size_t snapshotLength) {
         setLayer(static_cast<LayerTypeId>(layerType), reverseDeltas, snapshotLength);
     }
 

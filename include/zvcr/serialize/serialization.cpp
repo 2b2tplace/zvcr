@@ -46,7 +46,7 @@ namespace zvcr::serialize::serialization {
 
     template<typename R>
     size_t writeZVCRFile(const R& file, const std::string& filename, const ZVCRFileSerialize<R>& serialize,
-                      const int zstdCompressionLevel, const int zstdCompressionThreads) {
+                         const int zstdCompressionLevel, const int zstdCompressionThreads) {
         std::vector<uint8_t> bytesUncompressed;
         serialize(file, bytesUncompressed);
         const auto bytesCompressed = compression::compressData(bytesUncompressed, zstdCompressionLevel, zstdCompressionThreads);
@@ -113,7 +113,7 @@ namespace zvcr::serialize::serialization {
     }
 
     ZVCRResult<PackedSnapshot<SegmentAtom>> deserializePackedSnapshot(const std::vector<uint8_t>& data, size_t& offset,
-                                                                            const std::vector<Palette>& paletteTable, const size_t snapshotLength) {
+                                                                      const std::vector<Palette>& paletteTable, const size_t snapshotLength) {
         if (offset + sizeof(time_t) > data.size())
             return Error(EXPECTED_TIMESTAMP);
 
@@ -144,9 +144,9 @@ namespace zvcr::serialize::serialization {
 
         const auto& palette = paletteTable[paletteIndex];
         return PackedSnapshot {
-                PackedData(palette, packedData, snapshotLength),
-                timestamp
-            };
+            PackedData(palette, packedData, snapshotLength),
+            timestamp
+        };
     }
 
     void serializePaletteTable(const std::vector<Palette>& paletteTable, std::vector<uint8_t>& data) {
@@ -231,8 +231,8 @@ namespace zvcr::serialize::serialization {
     }
 
     ZVCRResult<PackedDeltaData<SegmentAtom>> deserializePackedDeltaData(const std::vector<uint8_t>& data, size_t& offset,
-                                                                         const std::vector<Palette>& paletteTable,
-                                                                         const size_t maxDeltas, const size_t snapshotLength) {
+                                                                        const std::vector<Palette>& paletteTable,
+                                                                        const size_t maxDeltas, const size_t snapshotLength) {
         if (offset + sizeof(uint64_t) > data.size())
             return Error(EXPECTED_DELTA_LENGTH);
 
