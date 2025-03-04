@@ -91,6 +91,12 @@ namespace zvcr::region::dim3::segment3 {
         BiomeSections3d biomeSections;
         SegmentInfo info;
 
+        explicit Segment3d(const dimension::DimensionType dimension):
+            Segment3d(getProperties(dimension)) {}
+
+        explicit Segment3d(const dimension::DimensionProperties& dimensionProperties):
+            Segment3d(dimensionProperties.height / SEGMENT_SIDELENGTH_BLOCKS) {}
+
         explicit Segment3d(const size_t sectionCount):
             sectionCount(sectionCount),
             blockSections(BlockSections3d {sectionCount, SECTION_3D_SIZE_BLOCKS}),
