@@ -26,8 +26,10 @@ Dimension Type Number
             ├── Block States Snapshots (first in full, subsequent snapshots are reverse deltas)
                 ├── Snapshot Unix Timestamp 
                 ├── Packed Data Length
-                ├── Packed Block State Data
+                ├── Packed Data
                 ├── Palette Index (used for unpacking the data)
+            ├── Biome Snapshots (instead of 16x16x16 blockstates, only 4x4x4 biomes)
+                ├── [same as Block States Snapshots, see above]
         ├── Segment Info
             ├── Segment States Length
             ├── Segment States
@@ -56,11 +58,13 @@ Dimension Type Number
     ├── Layers Length
     ├── Layers
         ├── Layer Type
-        ├── Layers Snapshots
+        ├── Layers Snapshots (16x16 blockstates)
             ├── Snapshot Unix Timestamp 
             ├── Packed Layer Data Length
             ├── Packed Layer Data
             ├── Palette Index
+        ├── Biome Layers Snapshots (4x4 biomes)
+            ├── [same as Layers Snapshots, see above]
     ├── Segment Info
         ├── [same as in zvcr3, see above]
 Palette Table
