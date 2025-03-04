@@ -288,16 +288,11 @@ namespace zvcr::common::reverse_delta {
 
     using DeltaInsertionResult = Result<size_t, DeltaInsertionStatus>;
 
-    template<typename T>
+    template<typename T, T Unchanged = STATE_UNCHANGED>
     class PackedDeltaData {
     public:
         size_t snapshotLength;
         std::vector<PackedSnapshot<T>> reverseDeltas;
-
-        explicit PackedDeltaData(size_t snapshotLength) {
-            this->snapshotLength = snapshotLength;
-            this->reverseDeltas = {};
-        }
 
         explicit PackedDeltaData(const PackedSnapshot<T>& initialState) {
             this->snapshotLength = initialState.data.snapshotLength;
@@ -308,6 +303,9 @@ namespace zvcr::common::reverse_delta {
             this->snapshotLength = snapshotLength;
             this->reverseDeltas = reverseDeltas;
         }
+
+        explicit PackedDeltaData(size_t snapshotLength):
+            PackedDeltaData({}, snapshotLength) {}
 
         [[nodiscard]]
         OptionCRef<PackedSnapshot<T>> latestSnapshot() const {
@@ -335,7 +333,7 @@ namespace zvcr::common::reverse_delta {
 
                 const auto unpacked = sectionData.unpack();
                 for (size_t j = 0; j < snapshotLength; ++j) {
-                    if (const auto state = unpacked[j]; state != STATE_UNCHANGED)
+                    if (const auto state = unpacked[j]; state != Unchanged)
                         latestSnapshot[j] = state;
                 }
             }
@@ -366,7 +364,7 @@ namespace zvcr::common::reverse_delta {
             for (size_t i = 0; i < snapshotLength; ++i) {
                 const auto previous = previousUnpacked[i];
                 const bool changed = newUnpacked[i] != previous;
-                deltaSnapshotBuilder[i] = changed ? previous : STATE_UNCHANGED;
+                deltaSnapshotBuilder[i] = changed ? previous : Unchanged;
 
                 if (changed) changes++;
             }
