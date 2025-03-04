@@ -16,7 +16,7 @@ namespace zvcr::region::dim2::layer {
         HEIGHTMAP_ROOFLESS = 3,
         DRAINED_TOP_DOWN = 4,
         DRAINED_TOP_DOWN_HEIGHTMAP = 5,
-        CUSTOM
+        CUSTOM = 255
     };
 
     using LayerTypeId = uint8_t;
@@ -26,23 +26,25 @@ namespace zvcr::region::dim2::layer {
         LayerTypeId type{};
 
         explicit Layer2d(const PackedDeltaData<Segment2dAtom>& deltas, const LayerTypeId type):
-            deltas(deltas), type(type) {}
+            deltas(deltas),
+            type(type) {}
 
         explicit Layer2d(const size_t snapshotSize, const LayerTypeId type):
-            deltas(snapshotSize), type(type) {}
+            deltas(snapshotSize),
+            type(type) {}
 
         explicit Layer2d(const size_t snapshotSize, const LayerType type):
-            deltas(snapshotSize), type(static_cast<LayerTypeId>(type)) {}
-
-        explicit Layer2d(const LayerTypeId type):
-            deltas(SECTION_2D_SIZE_BLOCKS), type(type) {}
-
-        explicit Layer2d(const LayerType type):
-            deltas(SECTION_2D_SIZE_BLOCKS), type(static_cast<LayerTypeId>(type)) {}
+            deltas(snapshotSize),
+            type(static_cast<LayerTypeId>(type)) {}
     };
 
-    class LayerContainer2d : public std::unordered_map<LayerTypeId, Layer2d> {
+    class LayerTable2d : public std::unordered_map<LayerTypeId, Layer2d> {
     public:
+        size_t snapshotSize;
+
+        explicit LayerTable2d(const size_t snapshotSize):
+            snapshotSize(snapshotSize) {}
+
         [[nodiscard]]
         Layer2d& operator[](LayerType layerType);
 

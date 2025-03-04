@@ -49,7 +49,7 @@ namespace zvcr::serialize::conversion {
         UnpackedView<Segment2dAtom>& drainedTopDownHeightmap(time_t timestamp);
 
         [[nodiscard]]
-        LayerContainer2d createLayers() const;
+        LayerTable2d createBlockLayers() const;
     private:
         std::unordered_map<uint8_t, std::unordered_map<time_t, UnpackedView<Segment2dAtom>>> viewDeltas;
     };

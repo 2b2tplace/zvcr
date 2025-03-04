@@ -45,12 +45,12 @@ namespace zvcr::serialize::conversion {
         return deltaView(LayerType::DRAINED_TOP_DOWN_HEIGHTMAP, timestamp);
     }
 
-    LayerContainer2d TileViewDeltas::createLayers() const {
-        LayerContainer2d layers;
+    LayerTable2d TileViewDeltas::createBlockLayers() const {
+        LayerTable2d layers{SECTION_2D_SIZE_BLOCKS};
         for (const auto& [layerType, deltas] : viewDeltas) {
             std::vector<PackedSnapshot<Segment2dAtom>> reverseDeltas;
             reverseDeltas.reserve(deltas.size());
-            PackedDeltaData deltaBlockStates(reverseDeltas, SECTION_2D_SIZE_BLOCKS);
+            PackedDeltaData deltaBlockStates(reverseDeltas, layers.snapshotSize);
 
             std::vector<time_t> timestamps;
             for (const auto timestamp : deltas | std::views::keys)
@@ -69,7 +69,7 @@ namespace zvcr::serialize::conversion {
 
     ZVCR2File convertZVCR3FileToZVCR2File(const ZVCR3File& zvcr3File) {
         const auto& [version, dimensionType, region] = zvcr3File;
-        const auto& properties = region::dimension::DimensionTypePropertyRegistry.at(dimensionType);
+        const auto& properties = getProperties(dimensionType);
         return ZVCR2File{ZVCR2_VER_LATEST, dimensionType, convertRegion3dToRegion2d(region, properties)};
     }
 
@@ -96,9 +96,12 @@ namespace zvcr::serialize::conversion {
             }
         }
         std::unordered_map<time_t, std::unordered_map<int8_t, UnpackedView<BlockStateId>>> cachedSnapshots;
+        cachedSnapshots.reserve(timestamps.size());
+
+        const auto topSectionY = static_cast<int8_t>(sectionCount - 1);
 
         for (const auto ts : timestamps) {
-            for (auto sy = static_cast<int8_t>(sectionCount - 1); sy >= 0; --sy) {
+            for (auto sy = topSectionY; sy >= 0; --sy) {
                 const auto& section = segment3dOpt.blockSections.readSection(sy);
                 const auto latest = section.latestSnapshot();
                 if (!latest.hasSome()) continue;
@@ -130,7 +133,30 @@ namespace zvcr::serialize::conversion {
                     break;
             }
         }
-        return Segment2d(tileViewDeltas.createLayers(), segment3dOpt.info);
+        LayerContainer2d biomeContainer {SECTION_2D_SIZE_BIOMES};
+        Layer2d topDownBiomeLayer {biomeContainer.snapshotSize, LayerType::TOP_DOWN};
+
+        const auto& section = segment3dOpt.biomeSections.readSection(topSectionY);
+        constexpr auto biomeSegmentTopY = SEGMENT_SIDELENGTH_BIOMES;
+
+        for (const auto& [sectionData, deltaTimestamp] : section.reverseDeltas) {
+            const auto sectionView = sectionData.view();
+            auto biomeSectionView = UnpackedView<BiomeId>::create2DView();
+
+            for (uint8_t cx = 0; cx < SEGMENT_SIDELENGTH_BIOMES; cx++) {
+                for (uint8_t cz = 0; cz < SEGMENT_SIDELENGTH_BIOMES; cz++) {
+                    biomeSectionView.setPixel(cx, cz, sectionView.getVoxel(cx, biomeSegmentTopY, cz));
+                }
+            }
+            const auto _ = topDownBiomeLayer.deltas.insertSnapshot(biomeSectionView.packSnapshot(deltaTimestamp));
+        }
+        biomeContainer.setLayer(topDownBiomeLayer.type, topDownBiomeLayer);
+
+        return Segment2d(
+            LayerContainer2d {tileViewDeltas.createBlockLayers()},
+            biomeContainer,
+            segment3dOpt.info
+        );
     }
 
     bool invisibleBlockState(const uint16_t state) {

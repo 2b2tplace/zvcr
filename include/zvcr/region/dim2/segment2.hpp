@@ -13,13 +13,20 @@ namespace zvcr::region::dim2::segment2 {
     using common::generic_region::GenericRegion;
     using common::result::OptionRef;
 
-    class Segment2d {
+    class LayerContainer2d {
     public:
-        LayerContainer2d layers;
-        SegmentInfo info;
+        LayerTable2d layers;
+        size_t snapshotSize;
 
-        explicit Segment2d(LayerContainer2d layers, SegmentInfo segmentInfo): layers(std::move(layers)), info(std::move(segmentInfo)) {}
-        Segment2d(): layers(LayerContainer2d {}), info(SegmentInfo {}) {}
+        explicit LayerContainer2d(LayerTable2d layers):
+            layers(std::move(layers)), snapshotSize(layers.snapshotSize) {
+            for (const Layer2d& layer : layers | std::views::values)
+                assert(layer.deltas.snapshotLength == layers.snapshotSize
+                    && "Layer Table contains Layers with differing snapshot size");
+        }
+
+        explicit LayerContainer2d(const size_t snapshotSize):
+            layers(LayerTable2d {snapshotSize}), snapshotSize(snapshotSize) {}
 
         [[nodiscard]]
         OptionCRef<Layer2d> getLayer(LayerTypeId type) const;
@@ -27,23 +34,23 @@ namespace zvcr::region::dim2::segment2 {
         [[nodiscard]]
         OptionCRef<Layer2d> getLayer(LayerType layerType) const;
 
-        [[nodiscard]]
-        bool setLayer(LayerTypeId type, const Layer2d& layer);
+        void setLayer(LayerTypeId type, const Layer2d& layer);
 
-        [[nodiscard]]
-        bool setLayer(LayerType layerType, const Layer2d& layer);
+        void setLayer(LayerType layerType, const Layer2d& layer);
 
-        [[nodiscard]]
-        bool setLayer(LayerTypeId type, const PackedSnapshot<Segment2dAtom>& initialState);
+        void setLayer(LayerTypeId type, const PackedSnapshot<Segment2dAtom>& initialState);
 
-        [[nodiscard]]
-        bool setLayer(LayerType layerType, const PackedSnapshot<Segment2dAtom>& initialState);
+        void setLayer(LayerType layerType, const PackedSnapshot<Segment2dAtom>& initialState);
 
-        [[nodiscard]]
-        bool setLayer(LayerTypeId type, const std::vector<PackedSnapshot<Segment2dAtom>>& reverseDeltas, size_t snapshotLength);
+        void setLayer(LayerTypeId type, const std::vector<PackedSnapshot<Segment2dAtom>>& reverseDeltas, size_t snapshotLength);
 
-        [[nodiscard]]
-        bool setLayer(LayerType layerType, const std::vector<PackedSnapshot<Segment2dAtom>>& reverseDeltas, size_t snapshotLength);
+        void setLayer(LayerType layerType, const std::vector<PackedSnapshot<Segment2dAtom>>& reverseDeltas, size_t snapshotLength);
+    };
+
+    struct Segment2d {
+        LayerContainer2d layers {SECTION_2D_SIZE_BLOCKS};
+        LayerContainer2d biomeLayers {SECTION_2D_SIZE_BIOMES};
+        SegmentInfo info;
     };
 
     using Region2d = GenericRegion<Segment2d>;
