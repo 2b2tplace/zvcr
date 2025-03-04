@@ -22,10 +22,10 @@ namespace zvcr::region::dim2::layer {
     using LayerTypeId = uint8_t;
 
     struct Layer2d {
-        PackedDeltaData<Segment2dAtom> deltas;
+        PackedDeltaData<SegmentAtom> deltas;
         LayerTypeId type{};
 
-        explicit Layer2d(const PackedDeltaData<Segment2dAtom>& deltas, const LayerTypeId type):
+        explicit Layer2d(const PackedDeltaData<SegmentAtom>& deltas, const LayerTypeId type):
             deltas(deltas),
             type(type) {}
 

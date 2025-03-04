@@ -38,13 +38,13 @@ namespace zvcr::region::dim2::segment2 {
 
         void setLayer(LayerType layerType, const Layer2d& layer);
 
-        void setLayer(LayerTypeId type, const PackedSnapshot<Segment2dAtom>& initialState);
+        void setLayer(LayerTypeId type, const PackedSnapshot<SegmentAtom>& initialState);
 
-        void setLayer(LayerType layerType, const PackedSnapshot<Segment2dAtom>& initialState);
+        void setLayer(LayerType layerType, const PackedSnapshot<SegmentAtom>& initialState);
 
-        void setLayer(LayerTypeId type, const std::vector<PackedSnapshot<Segment2dAtom>>& reverseDeltas, size_t snapshotLength);
+        void setLayer(LayerTypeId type, const std::vector<PackedSnapshot<SegmentAtom>>& reverseDeltas, size_t snapshotLength);
 
-        void setLayer(LayerType layerType, const std::vector<PackedSnapshot<Segment2dAtom>>& reverseDeltas, size_t snapshotLength);
+        void setLayer(LayerType layerType, const std::vector<PackedSnapshot<SegmentAtom>>& reverseDeltas, size_t snapshotLength);
     };
 
     struct Segment2d {

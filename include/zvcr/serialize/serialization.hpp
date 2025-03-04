@@ -26,7 +26,7 @@ namespace zvcr::serialize::serialization {
     using namespace zvcr::common::definitions;
     using namespace region::dimension;
 
-    using Palette = std::vector<BlockStateId>;
+    using Palette = std::vector<SegmentAtom>;
 
     enum ZVCRError {
         FILE_NOT_FOUND,
@@ -78,9 +78,9 @@ namespace zvcr::serialize::serialization {
     template<typename R>
     ZVCRResult<R> readZVCRFile(const std::string& filename, size_t maxDeltas, const ZVCRFileDeserialize<R>& deserialize);
 
-    void serializePackedSnapshot(const PackedSnapshot<BlockStateId>& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
+    void serializePackedSnapshot(const PackedSnapshot<SegmentAtom>& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-    ZVCRResult<PackedSnapshot<BlockStateId>> deserializePackedSnapshot(const std::vector<uint8_t>& data, size_t& offset,
+    ZVCRResult<PackedSnapshot<SegmentAtom>> deserializePackedSnapshot(const std::vector<uint8_t>& data, size_t& offset,
                                                                             const std::vector<Palette>& paletteTable, size_t snapshotLength);
 
     void serializePaletteTable(const std::vector<Palette>& paletteTable, std::vector<uint8_t>& data);
@@ -89,9 +89,9 @@ namespace zvcr::serialize::serialization {
 
     Option<ZVCRError> skipPackedSnapshot(const std::vector<uint8_t>& data, size_t& offset);
 
-    void serializePackedDeltaData(const PackedDeltaData<BlockStateId>& section3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
+    void serializePackedDeltaData(const PackedDeltaData<SegmentAtom>& section3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
-    ZVCRResult<PackedDeltaData<BlockStateId>> deserializePackedDeltaData(const std::vector<uint8_t>& data, size_t& offset,
+    ZVCRResult<PackedDeltaData<SegmentAtom>> deserializePackedDeltaData(const std::vector<uint8_t>& data, size_t& offset,
                                                                      const std::vector<Palette>& paletteTable, size_t maxDeltas, size_t snapshotLength);
 
     void serializeSegmentState(const SegmentState& segmentState, std::vector<uint8_t>& data);

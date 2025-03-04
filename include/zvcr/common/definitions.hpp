@@ -18,9 +18,6 @@ namespace zvcr::common::definitions {
     constexpr size_t SECTION_2D_SIZE_BIOMES = SEGMENT_SIDELENGTH_BIOMES * SEGMENT_SIDELENGTH_BIOMES;
     constexpr size_t SECTION_3D_SIZE_BIOMES = SEGMENT_SIDELENGTH_BIOMES * SEGMENT_SIDELENGTH_BIOMES * SEGMENT_SIDELENGTH_BIOMES;
 
-    using BiomeId = uint16_t;
-
-    using BlockStateId = uint16_t;
-    using Segment2dAtom = uint16_t;
+    using SegmentAtom = uint16_t;
 
 }

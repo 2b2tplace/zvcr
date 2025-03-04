@@ -10,7 +10,7 @@ namespace zvcr::region::dim2::layer {
     Layer2d& LayerTable2d::operator[](const LayerTypeId layerType) {
         if (contains(layerType)) return at(layerType);
 
-        const auto deltas = PackedDeltaData(std::vector<PackedSnapshot<Segment2dAtom>>{}, snapshotSize);
+        const auto deltas = PackedDeltaData(std::vector<PackedSnapshot<SegmentAtom>>{}, snapshotSize);
         const auto emptyLayer = Layer2d{deltas, layerType};
         emplace(layerType, emptyLayer);
 

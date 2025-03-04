@@ -82,13 +82,12 @@ namespace zvcr::region::dim3::segment3 {
         }
     };
 
-    using BlockSections3d = DeltaSections3d<BlockStateId>;
-    using BiomeSections3d = DeltaSections3d<BiomeId>;
+    using SegmentSections3d = DeltaSections3d<SegmentAtom>;
 
     struct Segment3d {
         size_t sectionCount;
-        BlockSections3d blockSections;
-        BiomeSections3d biomeSections;
+        SegmentSections3d blockSections;
+        SegmentSections3d biomeSections;
         SegmentInfo info;
 
         explicit Segment3d(const dimension::DimensionType dimension):
@@ -99,8 +98,8 @@ namespace zvcr::region::dim3::segment3 {
 
         explicit Segment3d(const size_t sectionCount):
             sectionCount(sectionCount),
-            blockSections(BlockSections3d {sectionCount, SECTION_3D_SIZE_BLOCKS}),
-            biomeSections(BiomeSections3d {sectionCount, SECTION_3D_SIZE_BIOMES}),
+            blockSections(SegmentSections3d {sectionCount, SECTION_3D_SIZE_BLOCKS}),
+            biomeSections(SegmentSections3d {sectionCount, SECTION_3D_SIZE_BIOMES}),
             info({}) {}
     };
 

@@ -25,33 +25,33 @@ namespace zvcr::serialize::conversion {
         void emplaceMissingView(uint8_t layerType, time_t timestamp);
 
         [[nodiscard]]
-        UnpackedView<Segment2dAtom>& deltaView(LayerType layerType, time_t timestamp);
+        UnpackedView<SegmentAtom>& deltaView(LayerType layerType, time_t timestamp);
 
         [[nodiscard]]
-        UnpackedView<Segment2dAtom>& deltaView(uint8_t layerType, time_t timestamp);
+        UnpackedView<SegmentAtom>& deltaView(uint8_t layerType, time_t timestamp);
 
         [[nodiscard]]
-        UnpackedView<Segment2dAtom>& topDown(time_t timestamp);
+        UnpackedView<SegmentAtom>& topDown(time_t timestamp);
 
         [[nodiscard]]
-        UnpackedView<Segment2dAtom>& roofless(time_t timestamp);
+        UnpackedView<SegmentAtom>& roofless(time_t timestamp);
 
         [[nodiscard]]
-        UnpackedView<Segment2dAtom>& heightmap(time_t timestamp);
+        UnpackedView<SegmentAtom>& heightmap(time_t timestamp);
 
         [[nodiscard]]
-        UnpackedView<Segment2dAtom>& heightmapRoofless(time_t timestamp);
+        UnpackedView<SegmentAtom>& heightmapRoofless(time_t timestamp);
 
         [[nodiscard]]
-        UnpackedView<Segment2dAtom>& drainedTopDown(time_t timestamp);
+        UnpackedView<SegmentAtom>& drainedTopDown(time_t timestamp);
 
         [[nodiscard]]
-        UnpackedView<Segment2dAtom>& drainedTopDownHeightmap(time_t timestamp);
+        UnpackedView<SegmentAtom>& drainedTopDownHeightmap(time_t timestamp);
 
         [[nodiscard]]
         LayerTable2d createBlockLayers() const;
     private:
-        std::unordered_map<uint8_t, std::unordered_map<time_t, UnpackedView<Segment2dAtom>>> viewDeltas;
+        std::unordered_map<uint8_t, std::unordered_map<time_t, UnpackedView<SegmentAtom>>> viewDeltas;
     };
 
     [[nodiscard]]
@@ -67,5 +67,5 @@ namespace zvcr::serialize::conversion {
     Segment2d convertSegment3dToSegment2d(const Segment3d& segment3dOpt, const DimensionProperties& properties);
 
     [[nodiscard]]
-    bool renderSegment2dForSectionSnapshot(time_t timestamp, uint8_t sy, const UnpackedView<BlockStateId>& sectionView, TileViewDeltas& tileViewDeltas);
+    bool renderSegment2dForSectionSnapshot(time_t timestamp, uint8_t sy, const UnpackedView<SegmentAtom>& sectionView, TileViewDeltas& tileViewDeltas);
 }

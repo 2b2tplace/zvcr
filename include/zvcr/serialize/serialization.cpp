@@ -85,7 +85,7 @@ namespace zvcr::serialize::serialization {
         }
     }
 
-    void serializePackedSnapshot(const PackedSnapshot<BlockStateId>& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
+    void serializePackedSnapshot(const PackedSnapshot<SegmentAtom>& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
         data.resize(data.size() + sizeof(time_t));
         std::memcpy(data.data() + data.size() - sizeof(time_t), &snapshot.timestamp, sizeof(time_t));
 
@@ -112,7 +112,7 @@ namespace zvcr::serialize::serialization {
         std::memcpy(data.data() + data.size() - sizeof(uint32_t), &paletteIndex, sizeof(uint32_t));
     }
 
-    ZVCRResult<PackedSnapshot<BlockStateId>> deserializePackedSnapshot(const std::vector<uint8_t>& data, size_t& offset,
+    ZVCRResult<PackedSnapshot<SegmentAtom>> deserializePackedSnapshot(const std::vector<uint8_t>& data, size_t& offset,
                                                                             const std::vector<Palette>& paletteTable, const size_t snapshotLength) {
         if (offset + sizeof(time_t) > data.size())
             return Error(EXPECTED_TIMESTAMP);
@@ -221,16 +221,16 @@ namespace zvcr::serialize::serialization {
         return {};
     }
 
-    void serializePackedDeltaData(const PackedDeltaData<BlockStateId>& section3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
+    void serializePackedDeltaData(const PackedDeltaData<SegmentAtom>& section3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
         const uint64_t deltaLength = section3d.reverseDeltas.size();
         data.resize(data.size() + sizeof(uint64_t));
         std::memcpy(data.data() + data.size() - sizeof(uint64_t), &deltaLength, sizeof(uint64_t));
 
-        for (const PackedSnapshot<BlockStateId>& snapshot : section3d.reverseDeltas)
+        for (const PackedSnapshot<SegmentAtom>& snapshot : section3d.reverseDeltas)
             serializePackedSnapshot(snapshot, data, paletteTable);
     }
 
-    ZVCRResult<PackedDeltaData<BlockStateId>> deserializePackedDeltaData(const std::vector<uint8_t>& data, size_t& offset,
+    ZVCRResult<PackedDeltaData<SegmentAtom>> deserializePackedDeltaData(const std::vector<uint8_t>& data, size_t& offset,
                                                                          const std::vector<Palette>& paletteTable,
                                                                          const size_t maxDeltas, const size_t snapshotLength) {
         if (offset + sizeof(uint64_t) > data.size())
@@ -239,7 +239,7 @@ namespace zvcr::serialize::serialization {
         size_t deltaLength;
         std::memcpy(&deltaLength, data.data() + offset, sizeof(uint64_t));
         offset += sizeof(uint64_t);
-        std::vector<PackedSnapshot<BlockStateId>> reverseDeltas;
+        std::vector<PackedSnapshot<SegmentAtom>> reverseDeltas;
         reverseDeltas.reserve(deltaLength);
 
         for (size_t deltaIndex = 0; deltaIndex < deltaLength; ++deltaIndex) {
@@ -347,11 +347,11 @@ namespace zvcr::serialize::serialization {
 
     void serializeSegment3d(const Segment3d& segment3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable,
                             const ZVCR3Version version) {
-        for (const PackedDeltaData<BlockStateId>& section : segment3d.blockSections.getSections())
+        for (const PackedDeltaData<SegmentAtom>& section : segment3d.blockSections.getSections())
             serializePackedDeltaData(section, data, paletteTable);
 
         if (version >= ZVCR3Version::ZVCR3_0_1_0_0) {
-            for (const PackedDeltaData<BlockStateId>& section : segment3d.biomeSections.getSections())
+            for (const PackedDeltaData<SegmentAtom>& section : segment3d.biomeSections.getSections())
                 serializePackedDeltaData(section, data, paletteTable);
         }
         serializeSegmentInfo(segment3d.info, data);
