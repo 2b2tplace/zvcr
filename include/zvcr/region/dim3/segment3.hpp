@@ -3,6 +3,7 @@
 #include <zvcr/common/data_storage.hpp>
 #include <zvcr/region/segment/segment_info.hpp>
 #include <zvcr/common/generic_region.hpp>
+#include <zvcr/region/dimension.hpp>
 
 namespace zvcr::region::dim3::segment3 {
 
