@@ -54,7 +54,7 @@ namespace zvcr::common::result {
         }
 
         [[nodiscard]]
-        T* operator->() const {
+        const T* operator->() const {
             return &unwrap();
         }
 
