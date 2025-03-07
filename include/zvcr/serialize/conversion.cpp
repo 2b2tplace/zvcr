@@ -9,7 +9,7 @@ namespace zvcr::serialize::conversion {
     
     void TileViewDeltas::emplaceMissingView(const uint8_t layerType, const time_t timestamp) {
         if (auto& topDownViews = viewDeltas[layerType]; !topDownViews.contains(timestamp))
-            topDownViews.emplace(timestamp, SECTION_2D_SIZE_BLOCKS);
+            topDownViews.emplace(timestamp, UnpackedView<SegmentAtom>{SEGMENT_SIDELENGTH_BLOCKS, SECTION_2D_SIZE_BLOCKS});
     }
 
     UnpackedView<SegmentAtom>& TileViewDeltas::deltaView(const LayerType layerType, const time_t timestamp) {
@@ -109,7 +109,7 @@ namespace zvcr::serialize::conversion {
                 const auto& [data, timestamp] = latest.unwrap();
 
                 auto snapshotBuilder = data.unpack();
-                cachedSnapshots[timestamp].emplace(sy, snapshotBuilder);
+                cachedSnapshots[timestamp].emplace(sy, UnpackedView {SEGMENT_SIDELENGTH_BLOCKS, snapshotBuilder});
 
                 bool first = true;
                 for (const auto& [sectionData, deltaTimestamp] : section.reverseDeltas) {
@@ -122,11 +122,11 @@ namespace zvcr::serialize::conversion {
                         if (const auto state = unpacked[j]; state != STATE_UNCHANGED)
                             snapshotBuilder[j] = state;
                     }
-                    cachedSnapshots[deltaTimestamp].emplace(sy, snapshotBuilder);
+                    cachedSnapshots[deltaTimestamp].emplace(sy, UnpackedView {SEGMENT_SIDELENGTH_BLOCKS, snapshotBuilder});
                 }
                 if (!cachedSnapshots[ts].contains(sy)) {
                     if (const auto snapshot = section.snapshotFrom(ts); snapshot.hasSome())
-                        cachedSnapshots[ts].emplace(sy, snapshot->data.unpack());
+                        cachedSnapshots[ts].emplace(sy, UnpackedView {SEGMENT_SIDELENGTH_BLOCKS, snapshot->data.unpack()});
                 }
 
                 if (renderSegment2dForSectionSnapshot(ts, sy, cachedSnapshots[ts].at(sy), tileViewDeltas))
@@ -137,14 +137,14 @@ namespace zvcr::serialize::conversion {
         Layer2d topDownBiomeLayer {biomeContainer.snapshotSize, LayerType::TOP_DOWN};
 
         const auto& section = segment3dOpt.biomeSections.readSection(topSectionY);
-        constexpr auto biomeSegmentTopY = SEGMENT_SIDELENGTH_BIOMES;
+        constexpr auto biomeSegmentTopY = SEGMENT_SIDELENGTH_BIOMES - 1;
 
         for (const auto& [sectionData, deltaTimestamp] : section.reverseDeltas) {
-            const auto sectionView = sectionData.view();
-            auto biomeSectionView = UnpackedView<SegmentAtom>::create2DView();
+            const auto sectionView = sectionData.view(SEGMENT_SIDELENGTH_BIOMES);
+            auto biomeSectionView = UnpackedView<SegmentAtom>::create2DBiomeView();
 
-            for (uint8_t cx = 0; cx < SEGMENT_SIDELENGTH_BIOMES; cx++) {
-                for (uint8_t cz = 0; cz < SEGMENT_SIDELENGTH_BIOMES; cz++) {
+            for (uint8_t cx = 0; cx < biomeSectionView.getSidelength(); cx++) {
+                for (uint8_t cz = 0; cz < biomeSectionView.getSidelength(); cz++) {
                     biomeSectionView.setPixel(cx, cz, sectionView.getVoxel(cx, biomeSegmentTopY, cz));
                 }
             }

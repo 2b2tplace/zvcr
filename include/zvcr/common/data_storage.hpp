@@ -40,7 +40,7 @@ namespace zvcr::common::paletted_storage {
     public:
         using UnpackedData = std::vector<T>;
 
-        explicit PackedData(const UnpackedData& palette, LongArray packedData, size_t snapshotLength): packedData(std::move(packedData)) {
+        explicit PackedData(const UnpackedData& palette, LongArray packedData, const size_t snapshotLength): packedData(std::move(packedData)) {
             this->snapshotLength = snapshotLength;
             this->palette = palette;
             this->bitsPerIndex = getBitsPerIndex(palette);
@@ -94,8 +94,8 @@ namespace zvcr::common::paletted_storage {
         }
 
         [[nodiscard]]
-        UnpackedView<T> view() const {
-            return UnpackedView(unpack());
+        UnpackedView<T> view(const uint8_t sidelength) const {
+            return UnpackedView(sidelength, unpack());
         }
 
         size_t snapshotLength;
@@ -125,15 +125,15 @@ namespace zvcr::common::paletted_storage {
 
         UnpackedData unpacked;
 
-        explicit UnpackedView(size_t snapshotLength) {
+        explicit UnpackedView(const uint8_t sidelength, size_t snapshotLength): sidelength(sidelength) {
             this->unpacked = std::vector<T>(snapshotLength);
         }
 
-        explicit UnpackedView(size_t snapshotLength, T fill) {
+        explicit UnpackedView(const uint8_t sidelength, size_t snapshotLength, T fill): sidelength(sidelength) {
             this->unpacked = std::vector<T>(snapshotLength, fill);
         }
 
-        explicit UnpackedView(const UnpackedData& unpacked) {
+        explicit UnpackedView(const uint8_t sidelength, const UnpackedData& unpacked): sidelength(sidelength) {
             this->unpacked = unpacked;
         }
 
@@ -166,40 +166,67 @@ namespace zvcr::common::paletted_storage {
         }
 
         [[nodiscard]]
-        static size_t unpackedIndex(const uint8_t x, const uint8_t y, const uint8_t z) {
-            assert(x < SEGMENT_SIDELENGTH_BLOCKS);
-            assert(y < SEGMENT_SIDELENGTH_BLOCKS);
-            assert(z < SEGMENT_SIDELENGTH_BLOCKS);
+        size_t unpackedIndex(const uint8_t x, const uint8_t y, const uint8_t z) const {
+            assert(x < sidelength && "X coordinate out of bounds");
+            assert(y < sidelength && "Y coordinate out of bounds");
+            assert(z < sidelength && "Z coordinate out of bounds");
 
-            return static_cast<size_t>(y) * SEGMENT_SIDELENGTH_BLOCKS * SEGMENT_SIDELENGTH_BLOCKS
-                 + static_cast<size_t>(z) * SEGMENT_SIDELENGTH_BLOCKS
+            return static_cast<size_t>(y) * sidelength * sidelength
+                 + static_cast<size_t>(z) * sidelength
                  + static_cast<size_t>(x);
         }
 
         [[nodiscard]]
-        static size_t unpackedIndex(const uint8_t x, const uint8_t z) {
+        uint8_t getSidelength() const {
+            return sidelength;
+        }
+
+        [[nodiscard]]
+        size_t unpackedIndex(const uint8_t x, const uint8_t z) const {
             return unpackedIndex(x, 0, z);
         }
 
         [[nodiscard]]
-        static UnpackedView create2DView(T fill) {
-            return {SECTION_2D_SIZE_BLOCKS, fill};
+        static UnpackedView create2DBlockView(T fill) {
+            return UnpackedView {SEGMENT_SIDELENGTH_BLOCKS, SECTION_2D_SIZE_BLOCKS, fill};
         }
 
         [[nodiscard]]
-        static UnpackedView create3DView(T fill) {
-            return UnpackedView {SECTION_3D_SIZE_BLOCKS, fill};
+        static UnpackedView create3DBlockView(T fill) {
+            return UnpackedView {SEGMENT_SIDELENGTH_BLOCKS, SECTION_3D_SIZE_BLOCKS, fill};
         }
 
         [[nodiscard]]
-        static UnpackedView create2DView() {
-            return UnpackedView {SECTION_2D_SIZE_BLOCKS};
+        static UnpackedView create2DBiomeView(T fill) {
+            return UnpackedView {SEGMENT_SIDELENGTH_BIOMES, SECTION_2D_SIZE_BIOMES, fill};
         }
 
         [[nodiscard]]
-        static UnpackedView create3DView() {
-            return UnpackedView {SECTION_3D_SIZE_BLOCKS};
+        static UnpackedView create3DBiomeView(T fill) {
+            return UnpackedView {SEGMENT_SIDELENGTH_BIOMES, SECTION_3D_SIZE_BIOMES, fill};
         }
+
+        [[nodiscard]]
+        static UnpackedView create2DBlockView() {
+            return create2DBlockView(0);
+        }
+
+        [[nodiscard]]
+        static UnpackedView create3DBlockView() {
+            return create3DBlockView(0);
+        }
+
+        [[nodiscard]]
+        static UnpackedView create2DBiomeView() {
+            return create2DBiomeView(0);
+        }
+
+        [[nodiscard]]
+        static UnpackedView create3DBiomeView() {
+            return create3DBiomeView(0);
+        }
+    private:
+        uint8_t sidelength;
     };
 
     using magic_tuple = std::tuple<int64_t, int64_t, int32_t>;
