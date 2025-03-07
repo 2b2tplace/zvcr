@@ -3,8 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#define PROTOCOL_VERSION 765
-
 namespace zvcr::common::definitions {
 
     constexpr uint8_t REGION_SIDELENGTH_SEGMENTS = 32;
