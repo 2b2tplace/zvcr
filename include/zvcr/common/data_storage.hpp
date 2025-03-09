@@ -346,10 +346,9 @@ namespace zvcr::common::reverse_delta {
 
         [[nodiscard]]
         Option<PackedSnapshot<T>> snapshotFrom(time_t timestamp) const {
-            const auto latest = this->latestSnapshot();
-            if (!latest.hasSome()) return {};
+            const auto latest = Require(this->latestSnapshot());
 
-            auto latestSnapshot = latest->data.unpack();
+            auto latestSnapshot = latest.data.unpack();
             bool first = true;
             for (const auto& [sectionData, deltaTimestamp] : reverseDeltas) {
                 if (first) {
@@ -370,7 +369,7 @@ namespace zvcr::common::reverse_delta {
         [[nodiscard]]
         DeltaInsertionResult insertSnapshot(const PackedSnapshot<T>& newSnapshot) {
             const auto latest = latestSnapshot();
-            if (!latest.hasSome()) {
+            if (latest.none()) {
                 reverseDeltas.push_back(newSnapshot);
                 return newSnapshot.data.snapshotLength;
             }

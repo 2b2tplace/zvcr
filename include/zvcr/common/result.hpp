@@ -6,8 +6,9 @@
 #include <utility>
 #include <variant>
 
-#define Try(expr) ({ auto __tmp_expect = (expr); if (!__tmp_expect.ok()) return Error(__tmp_expect.unwrap_error()); __tmp_expect.unwrap(); })
-#define Propagate(expr) ({ if (const auto __tmp_err = (expr); __tmp_err.hasSome()) return Error(__tmp_err.unwrap()); })
+#define Try(expr) ({ auto __tmp_expect = (expr); if (__tmp_expect.error()) return Error(__tmp_expect.unwrap_error()); __tmp_expect.unwrap(); })
+#define Propagate(expr) ({ if (const auto __tmp_err = (expr); __tmp_err.some()) return Error(__tmp_err.unwrap()); })
+#define Require(expr) ({ auto __tmp_expect_some = (expr); if (__tmp_expect_some.none()) return {}; __tmp_expect_some.unwrap(); })
 
 namespace zvcr::common::result {
 
@@ -15,9 +16,9 @@ namespace zvcr::common::result {
     struct Error {
         E error;
 
-        explicit Error(E&& error) : error(std::forward<E>(error)) {}
+        explicit Error(E&& error) : error(std::move(error)) {}
 
-        explicit Error(const E& error) : error(std::forward<E>(error)) {}
+        explicit Error(const E& error) : error(error) {}
 
         Error(const Error&) = default;
 
@@ -45,6 +46,11 @@ namespace zvcr::common::result {
         [[nodiscard]]
         bool ok() const {
             return std::holds_alternative<T>(valueOrError);
+        }
+
+        [[nodiscard]]
+        bool error() const {
+            return !ok();
         }
 
         [[nodiscard]]
@@ -107,8 +113,13 @@ namespace zvcr::common::result {
         Option(): valueOrEmpty(std::nullopt) {} // NOLINT(*-explicit-constructor)
 
         [[nodiscard]]
-        bool hasSome() const {
+        bool some() const {
             return valueOrEmpty.has_value();
+        }
+
+        [[nodiscard]]
+        bool none() const {
+            return !some();
         }
 
         [[nodiscard]]
@@ -118,7 +129,7 @@ namespace zvcr::common::result {
 
         [[nodiscard]]
         const T& expect(const std::string& orError) const {
-            if (!hasSome()) throw std::runtime_error(orError);
+            if (!some()) throw std::runtime_error(orError);
             return valueOrEmpty.value();
         }
 
@@ -129,13 +140,13 @@ namespace zvcr::common::result {
 
         [[nodiscard]]
         const T& orElse(const T& defaultValue) const {
-            if (!hasSome()) return defaultValue;
+            if (!some()) return defaultValue;
             return unwrap();
         }
 
         template<class U>
         Option<U> andThen(std::function<U(const T&)> func) {
-            if (!hasSome()) return Option<U>();
+            if (!some()) return Option<U>();
             return Option<U>(func(unwrap()));
         }
 
@@ -161,8 +172,13 @@ namespace zvcr::common::result {
         OptionRef(): option() {} // NOLINT(*-explicit-constructor)
 
         [[nodiscard]]
-        bool hasSome() const {
-            return option.hasSome();
+        bool some() const {
+            return option.some();
+        }
+
+        [[nodiscard]]
+        bool none() const {
+            return !some();
         }
 
         [[nodiscard]]
@@ -182,7 +198,7 @@ namespace zvcr::common::result {
 
         [[nodiscard]]
         const T& orElse(const T& defaultValue) const {
-            if (!hasSome()) return defaultValue;
+            if (!some()) return defaultValue;
             return unwrap();
         }
 

@@ -378,7 +378,7 @@ namespace zvcr::serialize::serialization {
 
     void serializeOptSegment3d(const Option<Segment3d>& segment3dOpt, std::vector<uint8_t>& data,
                                std::vector<Palette>& paletteTable, const ZVCR3Version version) {
-        if (!segment3dOpt.hasSome()) {
+        if (segment3dOpt.none()) {
             data.push_back(0);
             return;
         }
@@ -526,7 +526,7 @@ namespace zvcr::serialize::serialization {
 
     void serializeOptSegment2d(const Option<Segment2d>& segment, std::vector<uint8_t>& data,
                                std::vector<Palette>& paletteTable, const ZVCR2Version version) {
-        if (!segment.hasSome()) {
+        if (segment.none()) {
             data.push_back(0);
             return;
         }

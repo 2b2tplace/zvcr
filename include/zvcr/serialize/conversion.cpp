@@ -104,7 +104,7 @@ namespace zvcr::serialize::conversion {
             for (auto sy = topSectionY; sy >= 0; --sy) {
                 const auto& section = segment3dOpt.blockSections.readSection(sy);
                 const auto latest = section.latestSnapshot();
-                if (!latest.hasSome()) continue;
+                if (!latest.some()) continue;
 
                 const auto& [data, timestamp] = latest.unwrap();
 
@@ -125,7 +125,7 @@ namespace zvcr::serialize::conversion {
                     cachedSnapshots[deltaTimestamp].emplace(sy, UnpackedView {SEGMENT_SIDELENGTH_BLOCKS, snapshotBuilder});
                 }
                 if (!cachedSnapshots[ts].contains(sy)) {
-                    if (const auto snapshot = section.snapshotFrom(ts); snapshot.hasSome())
+                    if (const auto snapshot = section.snapshotFrom(ts); snapshot.some())
                         cachedSnapshots[ts].emplace(sy, UnpackedView {SEGMENT_SIDELENGTH_BLOCKS, snapshot->data.unpack()});
                 }
 

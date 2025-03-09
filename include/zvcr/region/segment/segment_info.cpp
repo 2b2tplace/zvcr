@@ -22,7 +22,7 @@ namespace zvcr::region::segment::segment_info {
 
     Option<SegmentState> SegmentInfo::stateFrom(const time_t timestamp) const {
         const auto& latest = this->latestState();
-        if (!latest.hasSome()) return {};
+        if (!latest.some()) return {};
 
         auto latestStateType = latest->type;
         for (const auto& [type, deltaTimestamp] : segmentStates) {
@@ -34,7 +34,7 @@ namespace zvcr::region::segment::segment_info {
 
     Option<TileEntityCountInfo> SegmentInfo::tileEntityCountsFrom(const time_t timestamp) const {
         const auto latest = this->latestTileEntityCounts();
-        if (!latest.hasSome()) return {};
+        if (!latest.some()) return {};
 
         auto latestCounts = latest->counts;
         for (const auto&[counts, deltaTimestamp] : tileEntityCounts) {
@@ -46,7 +46,7 @@ namespace zvcr::region::segment::segment_info {
 
     bool SegmentInfo::updateState(const SegmentState& newState) {
         if (const auto latest = this->latestState();
-            latest.hasSome() && (newState.timestamp <= latest->timestamp || latest->type == newState.type)) return false;
+            latest.some() && (newState.timestamp <= latest->timestamp || latest->type == newState.type)) return false;
 
         segmentStates.insert(segmentStates.begin(), newState);
         return true;
@@ -54,7 +54,7 @@ namespace zvcr::region::segment::segment_info {
 
     bool SegmentInfo::updateTileEntityCounts(const TileEntityCountInfo& newTileEntityCounts) {
         if (const auto latest = this->latestTileEntityCounts();
-            latest.hasSome() && (newTileEntityCounts.timestamp <= latest->timestamp
+            latest.some() && (newTileEntityCounts.timestamp <= latest->timestamp
             || latest->counts == newTileEntityCounts.counts)) return false;
 
         tileEntityCounts.insert(tileEntityCounts.begin(), newTileEntityCounts);
