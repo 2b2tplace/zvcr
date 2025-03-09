@@ -35,7 +35,7 @@ namespace zvcr::common::result {
         std::variant<T, Error<E>> valueOrError;
     public:
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        Result(T&& value) : valueOrError(std::variant<T, Error<E>>{value}) {} // NOLINT(*-explicit-constructor)
+        Result(T&& value) : valueOrError(std::variant<T, Error<E>>{std::move(value)}) {} // NOLINT(*-explicit-constructor)
 
         // ReSharper disable once CppNonExplicitConvertingConstructor
         Result(const T& value) : valueOrError(std::variant<T, Error<E>>{value}) {} // NOLINT(*-explicit-constructor)
