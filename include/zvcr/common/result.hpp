@@ -6,7 +6,7 @@
 #include <utility>
 #include <variant>
 
-#define Try(expr) ({ auto __tmp_expect = (expr); if (!__tmp_expect.ok()) return Error(__tmp_expect.error()); __tmp_expect.unwrap(); })
+#define Try(expr) ({ auto __tmp_expect = (expr); if (!__tmp_expect.ok()) return Error(__tmp_expect.unwrap_error()); __tmp_expect.unwrap(); })
 #define Propagate(expr) ({ if (const auto __tmp_err = (expr); __tmp_err.hasSome()) return Error(__tmp_err.unwrap()); })
 
 namespace zvcr::common::result {
@@ -17,7 +17,7 @@ namespace zvcr::common::result {
 
         explicit Error(E&& error) : error(std::forward<E>(error)) {}
 
-        explicit Error(const E&) : error(std::forward<E>(error)) {}
+        explicit Error(const E& error) : error(std::forward<E>(error)) {}
 
         Error(const Error&) = default;
 
@@ -49,7 +49,12 @@ namespace zvcr::common::result {
 
         [[nodiscard]]
         const T& unwrap() const {
-            if (!ok()) throw std::runtime_error("Trying to access non-existent value in Result<T, E>");
+            return expect("Trying to access non-existent value in Result<T, E>");
+        }
+
+        [[nodiscard]]
+        const T& expect(const std::string& orError) const {
+            if (!ok()) throw std::runtime_error(orError);
             return std::get<T>(valueOrError);
         }
 
@@ -59,8 +64,13 @@ namespace zvcr::common::result {
         }
 
         [[nodiscard]]
-        const E& error() const {
-            if (ok()) throw std::runtime_error("Trying to access non-existent error in Result<T, E>");
+        const E& unwrap_error() const {
+            return expect_error("Trying to access non-existent error in Result<T, E>");
+        }
+
+        [[nodiscard]]
+        const E& expect_error(const std::string& orError) const {
+            if (ok()) throw std::runtime_error(orError);
             return std::get<Error<E>>(valueOrError).get();
         }
 
@@ -72,7 +82,7 @@ namespace zvcr::common::result {
 
         template<class U>
         Result<U, E> andThen(std::function<U(const T&)> func) {
-            if (!ok()) return Error(error());
+            if (!ok()) return Error(unwrap_error());
             return Result<U, E>(func(unwrap()));
         }
 
@@ -103,7 +113,12 @@ namespace zvcr::common::result {
 
         [[nodiscard]]
         const T& unwrap() const {
-            if (!hasSome()) throw std::runtime_error("Trying to access non-existent value in Option<T>");
+            return expect("Trying to access non-existent value in Option<T>");
+        }
+
+        [[nodiscard]]
+        const T& expect(const std::string& orError) const {
+            if (!hasSome()) throw std::runtime_error(orError);
             return valueOrEmpty.value();
         }
 
@@ -153,6 +168,11 @@ namespace zvcr::common::result {
         [[nodiscard]]
         T& unwrap() const {
             return option.unwrap().get();
+        }
+
+        [[nodiscard]]
+        T& expect(const std::string& orError) const {
+            return option.expect(orError).get();
         }
 
         [[nodiscard]]
