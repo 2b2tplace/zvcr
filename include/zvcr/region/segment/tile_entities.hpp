@@ -3,7 +3,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <zvcr/common/definitions.hpp>
 #include <cstdint>
 
 namespace zvcr::region::segment::tile_entities {
