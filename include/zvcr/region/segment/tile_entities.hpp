@@ -10,7 +10,7 @@ namespace zvcr::region::segment::tile_entities {
 
 #if PROTOCOL_VERSION == 765
     constexpr auto TOTAL_TILE_ENTITIES = 41;
-#elif PROTOCOL_VERSION == 766
+#elif PROTOCOL_VERSION > 766
     constexpr auto TOTAL_TILE_ENTITIES = 44;
 #endif
 
