@@ -89,7 +89,7 @@ Layers are used to achieve special rendering features such as semi-transparent w
 # What are zvr and zpr files?
 The older name of this file format and library was previously `libzr` with `zvr` (Zstd-compressed Voxel Region) being the old `zvcr3` and `zpr`
 (Zstd-compressed Pixel Region) being the old `zvcr2`. The older file formats should remain compatible with the new library. New names for these things were
-chosen mostly for consistency both in the code and the general naming of everything
+chosen mostly for consistency both in the code and the general naming of everything.
 
 ## Include it in your project
 Simply add the following to your CMakeLists.txt:
