@@ -9,6 +9,7 @@
 namespace zvcr::common::generic_region {
 
     using definitions::REGION_SIDELENGTH_SEGMENTS;
+    using definitions::SEGMENTS_PER_REGION;
 
     template<typename S>
     class GenericRegion {
@@ -20,7 +21,7 @@ namespace zvcr::common::generic_region {
 
         explicit GenericRegion(Segments&& segments) noexcept: segments(std::move(segments)) {}
         explicit GenericRegion(const Segments& segments): segments(segments) {}
-        GenericRegion() = default;
+        GenericRegion(): segments(SEGMENTS_PER_REGION) {}
 
         [[nodiscard]]
         SegmentMaybe get(const uint8_t x, const uint8_t z) const {
