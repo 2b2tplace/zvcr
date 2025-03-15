@@ -19,30 +19,31 @@ namespace zvcr::thread_pool {
         ThreadPool();
 
         template<class F, class... Args>
-        auto enqueue(F&& f, Args&&... args)
-            -> std::future<std::result_of_t<F(Args...)>>;
+        std::future<std::result_of_t<F(Args...)>> enqueue(F&& f, Args&&... args);
 
         [[nodiscard]]
         size_t queueSize() const;
 
         ~ThreadPool();
+
+        void shutdown();
     private:
         void init(size_t threads);
 
-        std::vector< std::thread > workers;
-        std::queue< std::function<void()> > tasks;
-        std::mutex queue_mutex;
+        std::vector<std::thread> workers;
+        std::queue<std::function<void()>> tasks;
+        std::mutex queueMutex;
         std::condition_variable condition;
         bool stop;
     };
 
     inline void ThreadPool::init(const size_t threads) {
-        for (size_t i = 0; i<threads; i++) {
+        for (size_t i = 0; i < threads; i++) {
             workers.emplace_back([this] {
-                for(;;) {
+                for (;;) {
                     std::function<void()> task;
                     {
-                        std::unique_lock lock(this->queue_mutex);
+                        std::unique_lock lock(this->queueMutex);
                         this->condition.wait(lock, [this]{ return this->stop || !this->tasks.empty(); });
 
                         if (this->stop && this->tasks.empty()) return;
@@ -56,6 +57,17 @@ namespace zvcr::thread_pool {
         }
     }
 
+    inline void ThreadPool::shutdown() {
+        if (stop) return;
+        {
+            std::unique_lock lock(queueMutex);
+            stop = true;
+        }
+        condition.notify_all();
+        for (std::thread& worker : workers)
+            worker.join();
+    }
+
     inline ThreadPool::ThreadPool(): stop(false) {
         init(std::thread::hardware_concurrency());
     }
@@ -65,14 +77,14 @@ namespace zvcr::thread_pool {
     }
 
     template<class F, class... Args>
-    auto ThreadPool::enqueue(F&& f, Args&&... args) -> std::future<std::result_of_t<F(Args...)>> {
+    std::future<std::result_of_t<F(Args...)>> ThreadPool::enqueue(F&& f, Args&&... args) {
         using return_type = std::result_of_t<F(Args...)>;
 
-        auto task = std::make_shared< std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+        auto task = std::make_shared<std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
 
         std::future<return_type> res = task->get_future();
         {
-            std::unique_lock lock(queue_mutex);
+            std::unique_lock lock(queueMutex);
             if (stop) throw std::runtime_error("enqueue on stopped ThreadPool");
 
             tasks.emplace([task]{ (*task)(); });
@@ -86,13 +98,7 @@ namespace zvcr::thread_pool {
     }
 
     inline ThreadPool::~ThreadPool() {
-        {
-            std::unique_lock lock(queue_mutex);
-            stop = true;
-        }
-        condition.notify_all();
-        for (std::thread& worker : workers)
-            worker.join();
+        shutdown();
     }
 
 }
