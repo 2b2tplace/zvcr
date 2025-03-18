@@ -86,17 +86,6 @@ namespace zvcr::common::result {
             return unwrap();
         }
 
-        template<class U>
-        Result<U, E> andThen(std::function<U(const T&)> func) {
-            if (!ok()) return Error(unwrap_error());
-            return Result<U, E>(func(unwrap()));
-        }
-
-        template<class F, typename U = decltype(std::declval<F>()(std::declval<T>()))>
-        Result<U, E> andThen(F func) const {
-            std::function f = std::forward<F>(func);
-            return andThen(f);
-        }
     };
 
     template <typename T>
@@ -140,20 +129,8 @@ namespace zvcr::common::result {
 
         [[nodiscard]]
         const T& orElse(const T& defaultValue) const {
-            if (!some()) return defaultValue;
+            if (none()) return defaultValue;
             return unwrap();
-        }
-
-        template<class U>
-        Option<U> andThen(std::function<U(const T&)> func) {
-            if (!some()) return Option<U>();
-            return Option<U>(func(unwrap()));
-        }
-
-        template<class F, typename U = decltype(std::declval<F>()(std::declval<T>()))>
-        Option<U> andThen(F func) const {
-            std::function f = std::forward<F>(func);
-            return andThen(f);
         }
 
     };
@@ -198,7 +175,7 @@ namespace zvcr::common::result {
 
         [[nodiscard]]
         const T& orElse(const T& defaultValue) const {
-            if (!some()) return defaultValue;
+            if (none()) return defaultValue;
             return unwrap();
         }
 
