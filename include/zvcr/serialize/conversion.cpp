@@ -73,19 +73,20 @@ namespace zvcr::serialize::conversion {
         return ZVCR2File{ZVCR2_VER_LATEST, dimensionType, convertRegion3dToRegion2d(region, properties)};
     }
 
-    Region2d convertRegion3dToRegion2d(const Region3d& region3d, const DimensionProperties &properties) {
+    Region2d convertRegion3dToRegion2d(const Region3d& region3d, const DimensionProperties& properties) {
         Region2d region2d;
         for (size_t i = 0; i < SEGMENTS_PER_REGION; ++i)
-            region2d.segments.push_back(convertOptSegment3dToOptSegment2d(region3d.segments[i], properties));
+            region2d.segments[i] = convertOptSegment3dToOptSegment2d(region3d.segments[i], properties);
 
         return region2d;
     }
 
-    Option<Segment2d> convertOptSegment3dToOptSegment2d(const Option<Segment3d>& segment3dOpt, const DimensionProperties &properties) {
-        return segment3dOpt.andThen([&](const Segment3d& segment) {return convertSegment3dToSegment2d(segment, properties);});
+    Option<Segment2d> convertOptSegment3dToOptSegment2d(const Option<Segment3d>& segment3dOpt, const DimensionProperties& properties) {
+        if (segment3dOpt.none()) return {};
+        return convertSegment3dToSegment2d(segment3dOpt.unwrap(), properties);
     }
 
-    Segment2d convertSegment3dToSegment2d(const Segment3d& segment3dOpt, const DimensionProperties &properties) {
+    Segment2d convertSegment3dToSegment2d(const Segment3d& segment3dOpt, const DimensionProperties& properties) {
         const auto sectionCount = static_cast<int8_t>(properties.height / 16);
         TileViewDeltas tileViewDeltas;
         std::vector<time_t> timestamps;
