@@ -24,7 +24,7 @@ namespace zvcr::common::generic_region {
         GenericRegion(): segments(SEGMENTS_PER_REGION) {}
 
         [[nodiscard]]
-        SegmentMaybe get(const uint8_t x, const uint8_t z) const {
+        const SegmentMaybe& get(const uint8_t x, const uint8_t z) const {
             return segments[unpackedIndex(x, z)];
         }
 
