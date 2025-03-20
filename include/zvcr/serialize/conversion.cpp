@@ -82,8 +82,7 @@ namespace zvcr::serialize::conversion {
     }
 
     Option<Segment2d> convertOptSegment3dToOptSegment2d(const Option<Segment3d>& segment3dOpt, const DimensionProperties& properties) {
-        if (segment3dOpt.none()) return {};
-        return convertSegment3dToSegment2d(segment3dOpt.unwrap(), properties);
+        return convertSegment3dToSegment2d(Require(segment3dOpt), properties);
     }
 
     Segment2d convertSegment3dToSegment2d(const Segment3d& segment3dOpt, const DimensionProperties& properties) {
@@ -134,8 +133,8 @@ namespace zvcr::serialize::conversion {
                     break;
             }
         }
-        LayerContainer2d biomeContainer {SECTION_2D_SIZE_BIOMES};
-        Layer2d topDownBiomeLayer {biomeContainer.snapshotSize, LayerType::TOP_DOWN};
+        LayerContainer2d biomeContainer{SECTION_2D_SIZE_BIOMES};
+        Layer2d topDownBiomeLayer{biomeContainer.snapshotSize, LayerType::TOP_DOWN};
 
         const auto& section = segment3dOpt.biomeSections.readSection(topSectionY);
         constexpr auto biomeSegmentTopY = SEGMENT_SIDELENGTH_BIOMES - 1;
@@ -161,9 +160,14 @@ namespace zvcr::serialize::conversion {
     }
 
     bool invisibleBlockState(const uint16_t state) {
-#if PROTOCOL_VERSION >= 765 && PROTOCOL_VERSION <= 766
+#if PROTOCOL_VERSION >= 765
+    #if PROTOCOL_VERSION >= 765 && PROTOCOL_VERSION <= 766
         constexpr uint16_t voidAirId = 12958, caveAirId = 12959,
                            barrierId = 10366, airId = 0;
+    #else
+        constexpr uint16_t voidAirId = 13971, caveAirId = 13972,
+                           barrierId = 11245, airId = 0;
+    #endif
         return state == airId || state == caveAirId || state == voidAirId || state == barrierId;
 #else
         return state == 0;
@@ -171,9 +175,14 @@ namespace zvcr::serialize::conversion {
     }
 
     bool liquidBlockStateOrLilypad(const uint16_t state) {
-#if PROTOCOL_VERSION >= 765 && PROTOCOL_VERSION <= 766
-        constexpr uint16_t lowerboundLiquidId = 80, upperboundLiquidId = 111;
-        constexpr uint16_t lilypadId = 7271;
+#if PROTOCOL_VERSION >= 765
+    #if PROTOCOL_VERSION >= 765 && PROTOCOL_VERSION <= 766
+        constexpr uint16_t lowerboundLiquidId = 80, upperboundLiquidId = 111,
+                           lilypadId = 7271;
+    #else
+        constexpr uint16_t lowerboundLiquidId = 86, upperboundLiquidId = 117,
+                           lilypadId = 7632;
+    #endif
         return (state >= lowerboundLiquidId && state <= upperboundLiquidId) || state == lilypadId;
 #else
         return false;
@@ -181,9 +190,14 @@ namespace zvcr::serialize::conversion {
     }
 
     bool roofBlockType(const uint16_t state) {
-#if PROTOCOL_VERSION >= 765 && PROTOCOL_VERSION <= 766
-        constexpr uint16_t bedrockId = 79, obsidianId = 2354, cryingObsidianId = 19449;
-        constexpr uint16_t lowerboundSnowId = 5772, upperboundSnowId = 5779;
+#if PROTOCOL_VERSION >= 765
+    #if PROTOCOL_VERSION >= 765 && PROTOCOL_VERSION <= 766
+        constexpr uint16_t bedrockId = 79, obsidianId = 2354, cryingObsidianId = 19449,
+                           lowerboundSnowId = 5772, upperboundSnowId = 5779;
+    #else
+        constexpr uint16_t bedrockId = 85, obsidianId = 2397, cryingObsidianId = 20462,
+                           lowerboundSnowId = 5941, upperboundSnowId = 5948;
+    #endif
         return state == bedrockId
                  || state == obsidianId
                  || state == cryingObsidianId
