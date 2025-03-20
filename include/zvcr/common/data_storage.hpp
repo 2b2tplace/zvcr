@@ -162,7 +162,7 @@ namespace zvcr::common::paletted_storage {
 
         [[nodiscard]]
         reverse_delta::PackedSnapshot<T> packSnapshot(time_t timestamp) const {
-            return reverse_delta::PackedSnapshot {pack(), timestamp};
+            return reverse_delta::PackedSnapshot{pack(), timestamp};
         }
 
         [[nodiscard]]
@@ -188,22 +188,22 @@ namespace zvcr::common::paletted_storage {
 
         [[nodiscard]]
         static UnpackedView create2DBlockView(T fill) {
-            return UnpackedView {SEGMENT_SIDELENGTH_BLOCKS, SECTION_2D_SIZE_BLOCKS, fill};
+            return UnpackedView{SEGMENT_SIDELENGTH_BLOCKS, SECTION_2D_SIZE_BLOCKS, fill};
         }
 
         [[nodiscard]]
         static UnpackedView create3DBlockView(T fill) {
-            return UnpackedView {SEGMENT_SIDELENGTH_BLOCKS, SECTION_3D_SIZE_BLOCKS, fill};
+            return UnpackedView{SEGMENT_SIDELENGTH_BLOCKS, SECTION_3D_SIZE_BLOCKS, fill};
         }
 
         [[nodiscard]]
         static UnpackedView create2DBiomeView(T fill) {
-            return UnpackedView {SEGMENT_SIDELENGTH_BIOMES, SECTION_2D_SIZE_BIOMES, fill};
+            return UnpackedView{SEGMENT_SIDELENGTH_BIOMES, SECTION_2D_SIZE_BIOMES, fill};
         }
 
         [[nodiscard]]
         static UnpackedView create3DBiomeView(T fill) {
-            return UnpackedView {SEGMENT_SIDELENGTH_BIOMES, SECTION_3D_SIZE_BIOMES, fill};
+            return UnpackedView{SEGMENT_SIDELENGTH_BIOMES, SECTION_3D_SIZE_BIOMES, fill};
         }
 
         [[nodiscard]]
@@ -363,7 +363,7 @@ namespace zvcr::common::reverse_delta {
                         latestSnapshot[j] = state;
                 }
             }
-            return PackedSnapshot {PackedData<T>::pack(latestSnapshot), timestamp};
+            return PackedSnapshot{PackedData<T>::pack(latestSnapshot), timestamp};
         }
 
         [[nodiscard]]
@@ -374,12 +374,12 @@ namespace zvcr::common::reverse_delta {
                 return newSnapshot.data.snapshotLength;
             }
             if (newSnapshot.data.snapshotLength != this->snapshotLength)
-                return Error(DeltaInsertionStatus::INVALID_SNAPSHOT_LENGTH);
+                return Err(DeltaInsertionStatus::INVALID_SNAPSHOT_LENGTH);
 
             const auto& [sectionData, timestamp] = latest.unwrap();
 
             if (newSnapshot.timestamp <= timestamp)
-                return Error(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
+                return Err(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
 
             std::vector<T> deltaSnapshotBuilder(snapshotLength);
 
@@ -395,7 +395,7 @@ namespace zvcr::common::reverse_delta {
                 if (changed) changes++;
             }
             if (changes == 0)
-                return Error(DeltaInsertionStatus::NO_CHANGES_MADE);
+                return Err(DeltaInsertionStatus::NO_CHANGES_MADE);
 
             const auto deltaSnapshot = PackedSnapshot {
                 PackedData<T>::pack(deltaSnapshotBuilder),

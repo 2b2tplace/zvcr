@@ -48,8 +48,8 @@ namespace zvcr::region::dim2::segment2 {
     };
 
     struct Segment2d {
-        LayerContainer2d layers {SECTION_2D_SIZE_BLOCKS};
-        LayerContainer2d biomeLayers {SECTION_2D_SIZE_BIOMES};
+        LayerContainer2d layers{SECTION_2D_SIZE_BLOCKS};
+        LayerContainer2d biomeLayers{SECTION_2D_SIZE_BIOMES};
         SegmentInfo info;
     };
 

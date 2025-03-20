@@ -15,7 +15,7 @@ namespace zvcr::region::dim2::zvcr2 {
     constexpr static auto ZVCR2_FILE_PREFIX = "ZPRegion";
 
     struct ZVCR2File {
-        ZVCR2Version version {ZVCR2_VER_LATEST};
+        ZVCR2Version version{ZVCR2_VER_LATEST};
         dimension::DimensionType dimensionType;
         segment2::Region2d region;
 

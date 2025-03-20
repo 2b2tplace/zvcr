@@ -4,7 +4,7 @@ namespace zvcr::region::dim2::segment2 {
 
     OptionCRef<Layer2d> LayerContainer2d::getLayer(const LayerTypeId type) const {
         if (!layers.contains(type)) return {};
-        return {layers.at(type)};
+        return layers.at(type);
     }
 
     OptionCRef<Layer2d> LayerContainer2d::getLayer(LayerType layerType) const {

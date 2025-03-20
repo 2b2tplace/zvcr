@@ -14,7 +14,7 @@ namespace zvcr::region::dim3::zvcr3 {
     constexpr static auto ZVCR3_FILE_PREFIX = "ZVRegion";
 
     struct ZVCR3File {
-        ZVCR3Version version {ZVCR3_VER_LATEST};
+        ZVCR3Version version{ZVCR3_VER_LATEST};
         dimension::DimensionType dimensionType;
         segment3::Region3d region;
 

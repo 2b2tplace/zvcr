@@ -6,9 +6,28 @@
 #include <utility>
 #include <variant>
 
-#define Try(expr) ({ auto __tmp_expect = (expr); if (__tmp_expect.error()) return Error(__tmp_expect.unwrap_error()); __tmp_expect.unwrap(); })
-#define Propagate(expr) ({ if (const auto __tmp_err = (expr); __tmp_err.some()) return Error(__tmp_err.unwrap()); })
-#define Require(expr) ({ auto __tmp_expect_some = (expr); if (__tmp_expect_some.none()) return {}; __tmp_expect_some.unwrap(); })
+#define Err(error) zvcr::common::result::Error(error)
+
+#define Try(expr) ({                                \
+    const auto& __tmp_expect = (expr);              \
+    if (__tmp_expect.error())                       \
+        return Err(__tmp_expect.unwrapError());     \
+                                                    \
+    __tmp_expect.unwrap();                          \
+})
+
+#define Propagate(expr) ({                                  \
+    if (const auto& __tmp_err = (expr); __tmp_err.some())   \
+        return Err(__tmp_err.unwrap());                     \
+})
+
+#define Require(expr) ({                      \
+    const auto& __tmp_expect_some = (expr);   \
+    if (__tmp_expect_some.none())             \
+        return {};                            \
+                                              \
+    __tmp_expect_some.unwrap();               \
+})
 
 namespace zvcr::common::result {
 
@@ -30,18 +49,18 @@ namespace zvcr::common::result {
         }
     };
 
-    template <typename T, typename E>
+    template<typename T, typename E>
     class Result {
         std::variant<T, Error<E>> valueOrError;
     public:
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        Result(T&& value) : valueOrError(std::variant<T, Error<E>>{std::move(value)}) {} // NOLINT(*-explicit-constructor)
+        Result(T&& value): valueOrError(std::variant<T, Error<E>>{std::move(value)}) {} // NOLINT(*-explicit-constructor)
 
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        Result(const T& value) : valueOrError(std::variant<T, Error<E>>{value}) {} // NOLINT(*-explicit-constructor)
+        Result(const T& value): valueOrError(std::variant<T, Error<E>>{value}) {} // NOLINT(*-explicit-constructor)
 
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        Result(const Error<E>& error) : valueOrError(std::variant<T, Error<E>>{error}) {} // NOLINT(*-explicit-constructor)
+        Result(const Error<E>& error): valueOrError(std::variant<T, Error<E>>{error}) {} // NOLINT(*-explicit-constructor)
 
         [[nodiscard]]
         bool ok() const {
@@ -51,6 +70,11 @@ namespace zvcr::common::result {
         [[nodiscard]]
         bool error() const {
             return !ok();
+        }
+
+        [[nodiscard]]
+        bool none() const {
+            return error();
         }
 
         [[nodiscard]]
@@ -70,12 +94,12 @@ namespace zvcr::common::result {
         }
 
         [[nodiscard]]
-        const E& unwrap_error() const {
-            return expect_error("Trying to access non-existent error in Result<T, E>");
+        const E& unwrapError() const {
+            return expectError("Trying to access non-existent error in Result<T, E>");
         }
 
         [[nodiscard]]
-        const E& expect_error(const std::string& orError) const {
+        const E& expectError(const std::string& orError) const {
             if (ok()) throw std::runtime_error(orError);
             return std::get<Error<E>>(valueOrError).get();
         }
@@ -88,9 +112,9 @@ namespace zvcr::common::result {
 
     };
 
-    template <typename T>
+    template<typename T, typename T_inner = T, typename T_ptr = const T*, typename T_ref = const T&>
     class Option {
-        std::optional<T> valueOrEmpty;
+        std::optional<T_inner> valueOrEmpty;
     public:
         // ReSharper disable once CppNonExplicitConvertingConstructor
         Option(T&& value): valueOrEmpty(std::optional<T>{value}) {} // NOLINT(*-explicit-constructor)
@@ -112,18 +136,18 @@ namespace zvcr::common::result {
         }
 
         [[nodiscard]]
-        const T& unwrap() const {
+        T_ref unwrap() const {
             return expect("Trying to access non-existent value in Option<T>");
         }
 
         [[nodiscard]]
-        const T& expect(const std::string& orError) const {
+        T_ref expect(const std::string& orError) const {
             if (!some()) throw std::runtime_error(orError);
             return valueOrEmpty.value();
         }
 
         [[nodiscard]]
-        const T* operator->() const {
+        T_ptr operator->() const {
             return &unwrap();
         }
 
@@ -133,55 +157,47 @@ namespace zvcr::common::result {
             return unwrap();
         }
 
-    };
-
-    template <typename T>
-    class OptionRef {
-        Option<std::reference_wrapper<T>> option;
-    public:
-        // ReSharper disable once CppNonExplicitConvertingConstructor
-        OptionRef(T&& value): option(value) {} // NOLINT(*-explicit-constructor)
-
-        // ReSharper disable once CppNonExplicitConvertingConstructor
-        OptionRef(const T& value): option(value) {} // NOLINT(*-explicit-constructor)
-
-        // ReSharper disable once CppNonExplicitConvertingConstructor
-        OptionRef(): option() {} // NOLINT(*-explicit-constructor)
-
         [[nodiscard]]
-        bool some() const {
-            return option.some();
+        const Option& orElse(const Option& otherOption) const {
+            if (none()) return otherOption;
+            return *this;
         }
 
+        template<typename E>
         [[nodiscard]]
-        bool none() const {
-            return !some();
-        }
-
-        [[nodiscard]]
-        T& unwrap() const {
-            return option.unwrap().get();
-        }
-
-        [[nodiscard]]
-        T& expect(const std::string& orError) const {
-            return option.expect(orError).get();
-        }
-
-        [[nodiscard]]
-        T* operator->() const {
-            return &unwrap();
-        }
-
-        [[nodiscard]]
-        const T& orElse(const T& defaultValue) const {
-            if (none()) return defaultValue;
+        Result<T_inner, E> okOr(const E& error) const {
+            if (none()) return Err(error);
             return unwrap();
         }
 
     };
 
-    template <typename T>
-    using OptionCRef = OptionRef<const T>;
+    template<typename T>
+    using OptionRef = Option<T, std::reference_wrapper<T>, T*, T&>;
+
+    template<typename T>
+    using OptionCRef = Option<T, std::reference_wrapper<const T>>;
+
+    template<typename T, typename E>
+    std::ostream& operator<<(std::ostream& os, const Result<T, E>& result) {
+        static constexpr std::string_view OK_PREFIX = "Ok(";
+        static constexpr std::string_view ERR_PREFIX = "Err(";
+
+        if (result.ok())
+            return os << OK_PREFIX << result.unwrap() << ')';
+
+        return os << ERR_PREFIX << result.unwrapError() << ')';
+    }
+
+    template<typename T>
+    std::ostream& operator<<(std::ostream& os, const Option<T>& option) {
+        static constexpr std::string_view SOME_PREFIX = "Some(";
+        static constexpr std::string_view NONE_STR = "None";
+
+        if (option.some())
+            return os << SOME_PREFIX << option.unwrap() << ')';
+
+        return os << NONE_STR;
+    }
 
 }

@@ -21,27 +21,25 @@ namespace zvcr::region::segment::segment_info {
     }
 
     Option<SegmentState> SegmentInfo::stateFrom(const time_t timestamp) const {
-        const auto& latest = this->latestState();
-        if (!latest.some()) return {};
+        const auto& latest = Require(this->latestState());
 
-        auto latestStateType = latest->type;
+        auto latestStateType = latest.type;
         for (const auto& [type, deltaTimestamp] : segmentStates) {
             latestStateType = type;
             if (timestamp >= deltaTimestamp) break;
         }
-        return SegmentState {latestStateType, timestamp};
+        return SegmentState{latestStateType, timestamp};
     }
 
     Option<TileEntityCountInfo> SegmentInfo::tileEntityCountsFrom(const time_t timestamp) const {
-        const auto latest = this->latestTileEntityCounts();
-        if (!latest.some()) return {};
+        const auto latest = Require(this->latestTileEntityCounts());
 
-        auto latestCounts = latest->counts;
+        auto latestCounts = latest.counts;
         for (const auto&[counts, deltaTimestamp] : tileEntityCounts) {
             latestCounts = counts;
             if (timestamp >= deltaTimestamp) break;
         }
-        return TileEntityCountInfo {latestCounts, timestamp};
+        return TileEntityCountInfo{latestCounts, timestamp};
     }
 
     bool SegmentInfo::updateState(const SegmentState& newState) {
