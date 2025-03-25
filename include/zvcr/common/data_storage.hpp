@@ -53,24 +53,25 @@ namespace zvcr::common::paletted_storage {
 
         [[nodiscard]]
         static PackedData pack(const UnpackedData& sectionData) {
+            const auto snapshotLength = sectionData.size();
+
             std::vector<T> palette;
-            palette.reserve(sectionData.size());
+            palette.reserve(snapshotLength);
 
             absl::flat_hash_map<T, size_t> stateToIndex;
-            stateToIndex.reserve(palette.size());
+            stateToIndex.reserve(snapshotLength);
 
             for (const auto& item : sectionData) {
-                if (!stateToIndex.contains(item)) {
-                    palette.emplace_back(item);
-                    stateToIndex[item] = 0;
-                }
+                if (stateToIndex.contains(item)) continue;
+
+                palette.emplace_back(item);
+                stateToIndex[item] = 0;
             }
             std::ranges::sort(palette);
 
             for (size_t i = 0; i < palette.size(); ++i)
                 stateToIndex[palette.at(i)] = i;
 
-            const auto snapshotLength = sectionData.size();
             auto bitStorage = BitStorage(getBitsPerIndex(palette), snapshotLength);
 
             for (size_t i = 0; i < snapshotLength; ++i)
