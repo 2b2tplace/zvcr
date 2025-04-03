@@ -21,6 +21,11 @@
         return Err(__tmp_err.unwrap());                     \
 })
 
+#define PropagateVal(expr) ({                                   \
+    if (const auto& __tmp_err = (expr); __tmp_err.some())       \
+        return __tmp_err;                                       \
+})
+
 #define Require(expr) ({                      \
     const auto& __tmp_expect_some = (expr);   \
     if (__tmp_expect_some.none())             \
