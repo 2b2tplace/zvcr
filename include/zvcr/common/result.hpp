@@ -177,11 +177,55 @@ namespace zvcr::common::result {
 
     };
 
-    template<typename T>
-    using OptionRef = Option<T, std::reference_wrapper<T>, T*, T&>;
+    template <typename T>
+    class OptionRef {
+        Option<std::reference_wrapper<T>> option;
 
-    template<typename T>
-    using OptionCRef = Option<T, std::reference_wrapper<const T>>;
+    public:
+        // ReSharper disable once CppNonExplicitConvertingConstructor
+        OptionRef(T&& value): option(value) {} // NOLINT(*-explicit-constructor)
+
+        // ReSharper disable once CppNonExplicitConvertingConstructor
+        OptionRef(const T& value): option(value) {} // NOLINT(*-explicit-constructor)
+
+        // ReSharper disable once CppNonExplicitConvertingConstructor
+        OptionRef(): option() {} // NOLINT(*-explicit-constructor)
+
+        [[nodiscard]]
+        bool some() const {
+            return option.some();
+        }
+
+        [[nodiscard]]
+        bool none() const {
+            return !some();
+        }
+
+        [[nodiscard]]
+        T& unwrap() const {
+            return option.unwrap().get();
+        }
+
+        [[nodiscard]]
+        T& expect(const std::string& orError) const {
+            return option.expect(orError).get();
+        }
+
+        [[nodiscard]]
+        T* operator->() const {
+            return &unwrap();
+        }
+
+        [[nodiscard]]
+        const T& orElse(const T& defaultValue) const {
+            if (none()) return defaultValue;
+            return unwrap();
+        }
+
+    };
+
+    template <typename T>
+    using OptionCRef = OptionRef<const T>;
 
     template<typename T, typename E>
     std::ostream& operator<<(std::ostream& os, const Result<T, E>& result) {
