@@ -117,8 +117,12 @@ namespace zvcr::common::result {
 
     };
 
-    template<typename T, typename T_inner = T, typename T_ptr = const T*, typename T_ref = const T&>
+    template<typename T>
     class Option {
+        using T_inner = T;
+        using T_ptr = const T*;
+        using T_ref = const T&;
+
         std::optional<T_inner> valueOrEmpty;
     public:
         // ReSharper disable once CppNonExplicitConvertingConstructor
