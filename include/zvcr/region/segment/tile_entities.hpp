@@ -7,10 +7,12 @@
 
 namespace zvcr::region::segment::tile_entities {
 
-#if PROTOCOL_VERSION == 765
-    constexpr auto TOTAL_TILE_ENTITIES = 41;
-#elif PROTOCOL_VERSION > 766
+#if PROTOCOL_VERSION >= 768
+    constexpr auto TOTAL_TILE_ENTITIES = 45;
+#elif PROTOCOL_VERSION >= 766
     constexpr auto TOTAL_TILE_ENTITIES = 44;
+#elif PROTOCOL_VERSION == 765
+    constexpr auto TOTAL_TILE_ENTITIES = 41;
 #endif
 
     struct TileEntityCountInfo {
@@ -22,50 +24,53 @@ namespace zvcr::region::segment::tile_entities {
 
     enum class TileEntityType {
         FURNACE = 0,
-        CHEST = 1,
-        TRAPPED_CHEST = 2,
-        ENDER_CHEST = 3,
-        JUKEBOX = 4,
-        DISPENSER = 5,
-        DROPPER = 6,
-        SIGN = 7,
-        HANGING_SIGN = 8,
-        MOB_SPAWNER = 9,
-        PISTON = 10,
-        BREWING_STAND = 11,
-        ENCHANTING_TABLE = 12,
-        END_PORTAL = 13,
-        BEACON = 14,
-        SKULL = 15,
-        DAYLIGHT_DETECTOR = 16,
-        HOPPER = 17,
-        COMPARATOR = 18,
-        BANNER = 19,
-        STRUCTURE_BLOCK = 20,
-        END_GATEWAY = 21,
-        COMMAND_BLOCK = 22,
-        SHULKER_BOX = 23,
-        BED = 24,
-        CONDUIT = 25,
-        BARREL = 26,
-        SMOKER = 27,
-        BLAST_FURNACE = 28,
-        LECTERN = 29,
-        BELL = 30,
-        JIGSAW = 31,
-        CAMPFIRE = 32,
-        BEEHIVE = 33,
-        SCULK_SENSOR = 34,
-        CALIBRATED_SCULK_SENSOR = 35,
-        SCULK_CATALYST = 36,
-        SCULK_SHRIEKER = 37,
-        CHISELED_BOOKSHELF = 38,
-        BRUSHABLE_BLOCK = 39,
-        DECORATED_POT = 40,
-#if PROTOCOL_VERSION > 766 // 1.20.5+
-        CRAFTER = 41,
-        TRIAL_SPAWNER = 42,
-        VAULT = 43
+        CHEST,
+        TRAPPED_CHEST,
+        ENDER_CHEST,
+        JUKEBOX,
+        DISPENSER,
+        DROPPER,
+        SIGN,
+        HANGING_SIGN,
+        MOB_SPAWNER,
+#if PROTOCOL_VERSION >= 768 // 1.21.2+
+        CREAKING_HEART,
+#endif
+        PISTON,
+        BREWING_STAND,
+        ENCHANTING_TABLE,
+        END_PORTAL,
+        BEACON,
+        SKULL,
+        DAYLIGHT_DETECTOR,
+        HOPPER,
+        COMPARATOR,
+        BANNER,
+        STRUCTURE_BLOCK,
+        END_GATEWAY,
+        COMMAND_BLOCK,
+        SHULKER_BOX,
+        BED,
+        CONDUIT,
+        BARREL,
+        SMOKER,
+        BLAST_FURNACE,
+        LECTERN,
+        BELL,
+        JIGSAW,
+        CAMPFIRE,
+        BEEHIVE,
+        SCULK_SENSOR,
+        CALIBRATED_SCULK_SENSOR,
+        SCULK_CATALYST,
+        SCULK_SHRIEKER,
+        CHISELED_BOOKSHELF,
+        BRUSHABLE_BLOCK,
+        DECORATED_POT,
+#if PROTOCOL_VERSION >= 766 // 1.20.5+
+        CRAFTER,
+        TRIAL_SPAWNER,
+        VAULT
 #endif
     };
 
@@ -80,6 +85,9 @@ namespace zvcr::region::segment::tile_entities {
         {TileEntityType::SIGN, "sign"},
         {TileEntityType::HANGING_SIGN, "hanging_sign"},
         {TileEntityType::MOB_SPAWNER, "mob_spawner"},
+#if PROTOCOL_VERSION >= 768 // 1.21.2+
+        {TileEntityType::CREAKING_HEART, "creaking_heart"},
+#endif
         {TileEntityType::PISTON, "piston"},
         {TileEntityType::BREWING_STAND, "brewing_stand"},
         {TileEntityType::ENCHANTING_TABLE, "enchanting_table"},
@@ -111,7 +119,7 @@ namespace zvcr::region::segment::tile_entities {
         {TileEntityType::CHISELED_BOOKSHELF, "chiseled_bookshelf"},
         {TileEntityType::BRUSHABLE_BLOCK, "brushable_block"},
         {TileEntityType::DECORATED_POT, "decorated_pot"},
-#if PROTOCOL_VERSION > 766 // 1.20.5+
+#if PROTOCOL_VERSION >= 766 // 1.20.5+
         {TileEntityType::CRAFTER, "crafter"},
         {TileEntityType::TRIAL_SPAWNER, "trial_spawner"},
         {TileEntityType::VAULT, "vault"},
@@ -129,6 +137,9 @@ namespace zvcr::region::segment::tile_entities {
         {"sign", TileEntityType::SIGN},
         {"hanging_sign", TileEntityType::HANGING_SIGN},
         {"mob_spawner", TileEntityType::MOB_SPAWNER},
+#if PROTOCOL_VERSION >= 768 // 1.21.2+
+        {"creaking_heart", TileEntityType::CREAKING_HEART},
+#endif
         {"piston", TileEntityType::PISTON},
         {"brewing_stand", TileEntityType::BREWING_STAND},
         {"enchanting_table", TileEntityType::ENCHANTING_TABLE},
@@ -160,7 +171,7 @@ namespace zvcr::region::segment::tile_entities {
         {"chiseled_bookshelf", TileEntityType::CHISELED_BOOKSHELF},
         {"brushable_block", TileEntityType::BRUSHABLE_BLOCK},
         {"decorated_pot", TileEntityType::DECORATED_POT},
-#if PROTOCOL_VERSION > 766 // 1.20.5+
+#if PROTOCOL_VERSION >= 766 // 1.20.5+
         {"crafter", TileEntityType::CRAFTER},
         {"trial_spawner", TileEntityType::TRIAL_SPAWNER},
         {"vault", TileEntityType::VAULT},
