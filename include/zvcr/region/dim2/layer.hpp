@@ -10,12 +10,12 @@ namespace zvcr::region::dim2::layer {
     using namespace common::definitions;
 
     enum class LayerType {
-        TOP_DOWN = 0,
-        TOP_DOWN_ROOFLESS = 1,
+        NORMAL = 0,
+        TERRAIN = 1,
         HEIGHTMAP = 2,
-        HEIGHTMAP_ROOFLESS = 3,
-        DRAINED_TOP_DOWN = 4,
-        DRAINED_TOP_DOWN_HEIGHTMAP = 5,
+        TERRAIN_HEIGHTMAP = 3,
+        DRAINED = 4,
+        DRAINED_HEIGHTMAP = 5,
         CUSTOM = 255
     };
 
