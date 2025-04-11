@@ -95,36 +95,34 @@ namespace zvcr::serialize::serialization {
 
     template<>
     struct DefaultSerialization<ZVCR2File> {
-        static constexpr auto& serialize = serializeZVCR2File;
-        static constexpr auto& deserialize = deserializeZVCR2File;
+        static constexpr auto serialize = serializeZVCR2File;
+        static constexpr auto deserialize = deserializeZVCR2File;
         static constexpr auto format = RegionFormat::ZVCR2;
     };
 
     template<>
     struct DefaultSerialization<ZVCR3File> {
-        static constexpr auto& serialize = serializeZVCR3File;
-        static constexpr auto& deserialize = deserializeZVCR3File;
+        static constexpr auto serialize = serializeZVCR3File;
+        static constexpr auto deserialize = deserializeZVCR3File;
         static constexpr auto format = RegionFormat::ZVCR3;
     };
 
     template<typename R,
-        RegionFormat format = DefaultSerialization<R>::format,
-        ZVCRFileSerialize<R> serialize = DefaultSerialization<R>::serialize>
+        RegionFormat format = DefaultSerialization<R>::format>
     size_t writeZVCRFileAt(const R& file, const fs::path& parentDirectory, const RegionLocation& location,
                            int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
                            int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT);
 
     template<typename R,
-        RegionFormat format = DefaultSerialization<R>::format,
-        ZVCRFileSerialize<R> deserialize = DefaultSerialization<R>::deserialize>
+        RegionFormat format = DefaultSerialization<R>::format>
     ZVCRResult<R> readZVCRFileAt(const fs::path& parentDirectory, const RegionLocation& location, size_t maxDeltas = 0);
 
-    template<typename R, ZVCRFileSerialize<R> serialize = DefaultSerialization<R>::serialize>
+    template<typename R>
     size_t writeZVCRFile(const R& file, const fs::path& filepath,
                          int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
                          int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT);
 
-    template<typename R, ZVCRFileSerialize<R> deserialize = DefaultSerialization<R>::deserialize>
+    template<typename R>
     ZVCRResult<R> readZVCRFile(const fs::path& filepath, size_t maxDeltas = 0);
 
     void serializePackedSnapshot(const PackedSnapshot<SegmentAtom>& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);

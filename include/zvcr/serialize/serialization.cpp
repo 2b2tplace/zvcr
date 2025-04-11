@@ -44,22 +44,23 @@ namespace zvcr::serialize::serialization {
         return {};
     }
 
-    template<typename R, RegionFormat format, ZVCRFileSerialize<R> serialize>
+    template<typename R, RegionFormat format>
     size_t writeZVCRFileAt(const R& file, const fs::path& parentDirectory, const RegionLocation& location,
                            const int zstdCompressionLevel, const int zstdCompressionThreads) {
-        return writeZVCRFile<R, serialize>(file, location.getFilePath(parentDirectory, format), zstdCompressionLevel, zstdCompressionThreads);
+        create_directories(location.getDirectory(parentDirectory));
+        return writeZVCRFile<R>(file, location.getFilePath(parentDirectory, format), zstdCompressionLevel, zstdCompressionThreads);
     }
 
-    template<typename R, RegionFormat format, ZVCRFileSerialize<R> deserialize>
+    template<typename R, RegionFormat format>
     ZVCRResult<R> readZVCRFileAt(const fs::path& parentDirectory, const RegionLocation& location, const size_t maxDeltas) {
-        return readZVCRFile<R, deserialize>(location.getFilePath(parentDirectory, format), maxDeltas);
+        return readZVCRFile<R>(location.getFilePath(parentDirectory, format), maxDeltas);
     }
 
-    template<typename R, ZVCRFileSerialize<R> serialize>
+    template<typename R>
     size_t writeZVCRFile(const R& file, const fs::path& filepath,
                          const int zstdCompressionLevel, const int zstdCompressionThreads) {
         std::vector<uint8_t> bytesUncompressed;
-        serialize(file, bytesUncompressed);
+        DefaultSerialization<R>::serialize(file, bytesUncompressed);
         const auto bytesCompressed = compression::compressData(bytesUncompressed, zstdCompressionLevel, zstdCompressionThreads);
 
         std::ofstream fileStream(filepath, std::ios::out | std::ios::binary);
@@ -69,7 +70,7 @@ namespace zvcr::serialize::serialization {
         return bytesCompressed.size();
     }
 
-    template<typename R, ZVCRFileSerialize<R> deserialize>
+    template<typename R>
     ZVCRResult<R> readZVCRFile(const fs::path& filepath, const size_t maxDeltas) {
         if (!exists(filepath)) return Err(FILE_NOT_FOUND);
 
@@ -89,7 +90,7 @@ namespace zvcr::serialize::serialization {
             size_t offset{};
 
             delete[] bytesCompressed;
-            return deserialize(bytesUncompressed, offset, maxDeltas);
+            return DefaultSerialization<R>::deserialize(bytesUncompressed, offset, maxDeltas);
         } catch (const std::length_error&) {
             return Err(GENERIC_READ_ERROR);
         }
