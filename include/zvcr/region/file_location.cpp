@@ -19,9 +19,7 @@ namespace zvcr::region::file_location {
         const auto recoveredZ = uz >= 0x100000 ? uz - 0x200000 : uz;
         const auto recoveredDim = static_cast<dimension::DimensionType>(ud);
 
-        return RegionLocation {
-            recoveredX, recoveredZ, recoveredDim
-        };
+        return RegionLocation{recoveredX, recoveredZ, recoveredDim};
     }
 
     fs::path RegionLocation::getDirectory(const std::string& parentDirectory) const {

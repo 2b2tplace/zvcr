@@ -13,11 +13,11 @@ namespace zvcr::region::segment::segment_info {
     }
 
     OptionCRef<SegmentState> SegmentInfo::latestState() const {
-        return segmentStates.empty() ? OptionCRef<SegmentState>() : OptionCRef(segmentStates[0]);
+        return segmentStates.empty() ? OptionCRef<SegmentState>{} : OptionCRef{segmentStates[0]};
     }
 
     OptionCRef<TileEntityCountInfo> SegmentInfo::latestTileEntityCounts() const {
-        return tileEntityCounts.empty() ? OptionCRef<TileEntityCountInfo>() : OptionCRef(tileEntityCounts[0]);
+        return tileEntityCounts.empty() ? OptionCRef<TileEntityCountInfo>{} : OptionCRef{tileEntityCounts[0]};
     }
 
     Option<SegmentState> SegmentInfo::stateFrom(const time_t timestamp) const {

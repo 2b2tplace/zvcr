@@ -77,7 +77,7 @@ namespace zvcr::common::paletted_storage {
             for (size_t i = 0; i < snapshotLength; ++i)
                 bitStorage.set(i, stateToIndex.at(sectionData.at(i)));
 
-            return PackedData(palette, bitStorage.data, snapshotLength);
+            return PackedData{palette, bitStorage.data, snapshotLength};
         }
 
         [[nodiscard]]
@@ -96,7 +96,7 @@ namespace zvcr::common::paletted_storage {
 
         [[nodiscard]]
         UnpackedView<T> view(const uint8_t sidelength) const {
-            return UnpackedView(sidelength, unpack());
+            return UnpackedView{sidelength, unpack()};
         }
 
         size_t snapshotLength;
@@ -342,7 +342,7 @@ namespace zvcr::common::reverse_delta {
 
         [[nodiscard]]
         OptionCRef<PackedSnapshot<T>> delta(size_t deltaIndex) const {
-            return reverseDeltas.empty() ? OptionCRef<PackedSnapshot<T>>() : OptionCRef(reverseDeltas[deltaIndex]);
+            return reverseDeltas.empty() ? OptionCRef<PackedSnapshot<T>>{} : OptionCRef{reverseDeltas[deltaIndex]};
         }
 
         [[nodiscard]]

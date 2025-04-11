@@ -1,10 +1,10 @@
+#include <zvcr/serialize/serialization.hpp>
 #include <fstream>
 #include <filesystem>
 #include <ranges>
 #include <cstring>
 #include <zvcr/common/definitions.hpp>
 #include <zvcr/serialize/compression.hpp>
-#include <zvcr/serialize/serialization.hpp>
 
 namespace zvcr::serialize::serialization {
 
@@ -104,7 +104,7 @@ namespace zvcr::serialize::serialization {
 
         const auto& palette = paletteTable[paletteIndex];
         return PackedSnapshot {
-            PackedData(palette, packedData, snapshotLength),
+            PackedData{palette, packedData, snapshotLength},
             timestamp
         };
     }
@@ -209,7 +209,7 @@ namespace zvcr::serialize::serialization {
             }
             reverseDeltas.push_back(Try(deserializePackedSnapshot(data, offset, paletteTable, snapshotLength)));
         }
-        return PackedDeltaData(reverseDeltas, snapshotLength);
+        return PackedDeltaData{reverseDeltas, snapshotLength};
     }
 
     void serializeSegmentState(const SegmentState& segmentState, std::vector<uint8_t>& data) {
@@ -302,7 +302,7 @@ namespace zvcr::serialize::serialization {
         for (size_t tileEntityIndex = 0; tileEntityIndex < tileEntitiesLength; ++tileEntityIndex)
             tileEntityCounts.push_back(Try(deserializeTileEntityCountInfo(data, offset)));
 
-        return SegmentInfo(states, tileEntityCounts);
+        return SegmentInfo{states, tileEntityCounts};
     }
 
     void serializeSegment3d(const Segment3d& segment3d, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable,
@@ -378,7 +378,7 @@ namespace zvcr::serialize::serialization {
         for (size_t segment3dIndex = 0; segment3dIndex < SEGMENTS_PER_REGION; ++segment3dIndex)
             segment3ds[segment3dIndex] = Try(deserializeOptSegment3d(data, offset, paletteTable, maxDeltas, sectionCount, version));
 
-        return Region3d(segment3ds);
+        return Region3d{segment3ds};
     }
 
     void serializeZVCR3File(const ZVCR3File& file, std::vector<uint8_t>& data) {
@@ -517,7 +517,7 @@ namespace zvcr::serialize::serialization {
         for (size_t segmentIndex = 0; segmentIndex < SEGMENTS_PER_REGION; ++segmentIndex)
             segment3ds[segmentIndex] = Try(deserializeOptSegment2d(data, offset, paletteTable, maxDeltas, version));
 
-        return Region2d(segment3ds);
+        return Region2d{segment3ds};
     }
 
     void serializeZVCR2File(const ZVCR2File& file, std::vector<uint8_t>& data) {

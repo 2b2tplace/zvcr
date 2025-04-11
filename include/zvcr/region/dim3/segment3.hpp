@@ -51,7 +51,7 @@ namespace zvcr::region::dim3::segment3 {
 
         [[nodiscard]]
         Segment3dSnapshot snapshotFrom(time_t timestamp) const {
-            Segment3dSnapshot snapshots{};
+            Segment3dSnapshot snapshots;
             snapshots.reserve(sectionCount);
 
             for (const auto& section : this->sections) {
@@ -63,7 +63,7 @@ namespace zvcr::region::dim3::segment3 {
 
         [[nodiscard]]
         Segment3dSnapshot latestSnapshot() const {
-            Segment3dSnapshot snapshots{};
+            Segment3dSnapshot snapshots;
             snapshots.reserve(sectionCount);
 
             for (const auto& section : this->sections) {
@@ -99,8 +99,8 @@ namespace zvcr::region::dim3::segment3 {
 
         explicit Segment3d(const size_t sectionCount):
             sectionCount(sectionCount),
-            blockSections(SegmentSections3d {sectionCount, SECTION_3D_SIZE_BLOCKS}),
-            biomeSections(SegmentSections3d {sectionCount, SECTION_3D_SIZE_BIOMES}),
+            blockSections(SegmentSections3d{sectionCount, SECTION_3D_SIZE_BLOCKS}),
+            biomeSections(SegmentSections3d{sectionCount, SECTION_3D_SIZE_BIOMES}),
             info({}) {}
     };
 
