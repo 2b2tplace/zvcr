@@ -2,8 +2,6 @@
 
 #include <filesystem>
 #include <zvcr/region/dimension.hpp>
-#include <zvcr/region/dim2/zvcr2.hpp>
-#include <zvcr/region/dim3/zvcr3.hpp>
 
 namespace zvcr::region::file_location {
 
