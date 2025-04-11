@@ -44,27 +44,37 @@ namespace zvcr::serialize::serialization {
         return {};
     }
 
-    template<typename R>
-    size_t writeZVCRFile(const R& file, const std::string& filename, const ZVCRFileSerialize<R>& serialize,
+    template<typename R, RegionFormat format, ZVCRFileSerialize<R> serialize>
+    size_t writeZVCRFileAt(const R& file, const fs::path& parentDirectory, const RegionLocation& location,
+                           const int zstdCompressionLevel, const int zstdCompressionThreads) {
+        return writeZVCRFile<R, serialize>(file, location.getFilePath(parentDirectory, format), zstdCompressionLevel, zstdCompressionThreads);
+    }
+
+    template<typename R, RegionFormat format, ZVCRFileSerialize<R> deserialize>
+    ZVCRResult<R> readZVCRFileAt(const fs::path& parentDirectory, const RegionLocation& location, const size_t maxDeltas) {
+        return readZVCRFile<R, deserialize>(location.getFilePath(parentDirectory, format), maxDeltas);
+    }
+
+    template<typename R, ZVCRFileSerialize<R> serialize>
+    size_t writeZVCRFile(const R& file, const fs::path& filepath,
                          const int zstdCompressionLevel, const int zstdCompressionThreads) {
         std::vector<uint8_t> bytesUncompressed;
         serialize(file, bytesUncompressed);
         const auto bytesCompressed = compression::compressData(bytesUncompressed, zstdCompressionLevel, zstdCompressionThreads);
 
-        std::ofstream fileStream(filename, std::ios::out | std::ios::binary);
+        std::ofstream fileStream(filepath, std::ios::out | std::ios::binary);
         fileStream.write(reinterpret_cast<const char*>(bytesCompressed.data()), static_cast<int64_t>(bytesCompressed.size()));
         fileStream.close();
 
         return bytesCompressed.size();
     }
 
-    template<typename R>
-    ZVCRResult<R> readZVCRFile(const std::string& filename, const size_t maxDeltas, const ZVCRFileDeserialize<R>& deserialize) {
-        if (!std::filesystem::exists(filename))
-            return Err(FILE_NOT_FOUND);
+    template<typename R, ZVCRFileSerialize<R> deserialize>
+    ZVCRResult<R> readZVCRFile(const fs::path& filepath, const size_t maxDeltas) {
+        if (!exists(filepath)) return Err(FILE_NOT_FOUND);
 
         try {
-            std::ifstream fileStream(filename, std::ios::in | std::ios::binary);
+            std::ifstream fileStream(filepath, std::ios::in | std::ios::binary);
 
             fileStream.seekg(0, std::ios::end);
             const int64_t fileSize = fileStream.tellg();
@@ -440,14 +450,6 @@ namespace zvcr::serialize::serialization {
         return ZVCR3File{version, dimensionType, region};
     }
 
-    size_t writeZVCR3File(const ZVCR3File& file, const std::string& filename, const int zstdCompressionLevel, const int zstdCompressionThreads) {
-        return writeZVCRFile(file, filename, ZVCRFileSerialize(serializeZVCR3File), zstdCompressionLevel, zstdCompressionThreads);
-    }
-
-    ZVCRResult<ZVCR3File> readZVCR3File(const std::string& filename, const size_t maxDeltas) {
-        return readZVCRFile(filename, maxDeltas, ZVCRFileDeserialize(deserializeZVCR3File));
-    }
-
     void serializeLayer(const Layer2d& layer, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
         data.push_back(layer.type);
         serializePackedDeltaData(layer.deltas, data, paletteTable);
@@ -585,11 +587,4 @@ namespace zvcr::serialize::serialization {
         return ZVCR2File{version, dimensionType, region};
     }
 
-    size_t writeZVCR2File(const ZVCR2File& file, const std::string& filename, const int zstdCompressionLevel, const int zstdCompressionThreads) {
-        return writeZVCRFile(file, filename, ZVCRFileSerialize(serializeZVCR2File), zstdCompressionLevel, zstdCompressionThreads);
-    }
-
-    ZVCRResult<ZVCR2File> readZVCR2File(const std::string& filename, const size_t maxDeltas) {
-        return readZVCRFile(filename, maxDeltas, ZVCRFileDeserialize(deserializeZVCR2File));
-    }
 }

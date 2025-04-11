@@ -10,6 +10,7 @@
 #include <zvcr/region/dim2/segment2.hpp>
 #include <zvcr/region/dim2/zvcr2.hpp>
 #include <zvcr/region/dim2/layer.hpp>
+#include <zvcr/region/file_location.hpp>
 #include <zvcr/common/definitions.hpp>
 
 namespace zvcr::serialize::serialization {
@@ -25,6 +26,7 @@ namespace zvcr::serialize::serialization {
     using namespace common::paletted_storage;
     using namespace zvcr::common::definitions;
     using namespace region::dimension;
+    using namespace region::file_location;
 
     using Palette = std::vector<SegmentAtom>;
 
@@ -56,6 +58,11 @@ namespace zvcr::serialize::serialization {
         INVALID_DIMENSION_TYPE
     };
 
+    static constexpr auto ZSTD_COMPRESSION_LEVEL_DEFAULT = 12;
+    static constexpr auto ZSTD_COMPRESSION_THREADS_DEFAULT = 4;
+
+    namespace fs = std::filesystem;
+
     template<typename R>
     using ZVCRResult = Result<R, ZVCRError>;
 
@@ -72,11 +79,53 @@ namespace zvcr::serialize::serialization {
 
     Option<ZVCRError> validateZVCRFilePrefix(const std::vector<uint8_t>& data, size_t& offset, const std::string& prefix);
 
-    template<typename R>
-    size_t writeZVCRFile(const R& file, const std::string& filename, const ZVCRFileSerialize<R>& serialize, int zstdCompressionLevel, int zstdCompressionThreads);
+    void serializeZVCR2File(const ZVCR2File& file, std::vector<uint8_t>& data);
+
+    ZVCRResult<ZVCR2File> deserializeZVCR2File(const std::vector<uint8_t>& data, size_t& offset, size_t maxDeltas);
+
+    void serializeZVCR3File(const ZVCR3File& file, std::vector<uint8_t>& data);
+
+    ZVCRResult<ZVCR3File> deserializeZVCR3File(const std::vector<uint8_t>& data, size_t& offset, size_t maxDeltas);
 
     template<typename R>
-    ZVCRResult<R> readZVCRFile(const std::string& filename, size_t maxDeltas, const ZVCRFileDeserialize<R>& deserialize);
+    struct DefaultSerialization {
+        static_assert(std::is_same_v<R, ZVCR2File> || std::is_same_v<R, ZVCR3File>,
+            "ZVCR serialization only supports dim2::zvcr2::ZVCR2File and dim3::zvcr3::ZVCR3File");
+    };
+
+    template<>
+    struct DefaultSerialization<ZVCR2File> {
+        static constexpr auto& serialize = serializeZVCR2File;
+        static constexpr auto& deserialize = deserializeZVCR2File;
+        static constexpr auto format = RegionFormat::ZVCR2;
+    };
+
+    template<>
+    struct DefaultSerialization<ZVCR3File> {
+        static constexpr auto& serialize = serializeZVCR3File;
+        static constexpr auto& deserialize = deserializeZVCR3File;
+        static constexpr auto format = RegionFormat::ZVCR3;
+    };
+
+    template<typename R,
+        RegionFormat format = DefaultSerialization<R>::format,
+        ZVCRFileSerialize<R> serialize = DefaultSerialization<R>::serialize>
+    size_t writeZVCRFileAt(const R& file, const fs::path& parentDirectory, const RegionLocation& location,
+                           int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
+                           int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT);
+
+    template<typename R,
+        RegionFormat format = DefaultSerialization<R>::format,
+        ZVCRFileSerialize<R> deserialize = DefaultSerialization<R>::deserialize>
+    ZVCRResult<R> readZVCRFileAt(const fs::path& parentDirectory, const RegionLocation& location, size_t maxDeltas = 0);
+
+    template<typename R, ZVCRFileSerialize<R> serialize = DefaultSerialization<R>::serialize>
+    size_t writeZVCRFile(const R& file, const fs::path& filepath,
+                         int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
+                         int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT);
+
+    template<typename R, ZVCRFileSerialize<R> deserialize = DefaultSerialization<R>::deserialize>
+    ZVCRResult<R> readZVCRFile(const fs::path& filepath, size_t maxDeltas = 0);
 
     void serializePackedSnapshot(const PackedSnapshot<SegmentAtom>& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
@@ -125,14 +174,6 @@ namespace zvcr::serialize::serialization {
     ZVCRResult<Region3d> deserializeRegion3d(const std::vector<uint8_t>& data, size_t& offset, size_t maxDeltas,
                                              uint32_t sectionCount, ZVCR3Version version);
 
-    void serializeZVCR3File(const ZVCR3File& file, std::vector<uint8_t>& data);
-
-    ZVCRResult<ZVCR3File> deserializeZVCR3File(const std::vector<uint8_t>& data, size_t& offset, size_t maxDeltas);
-
-    size_t writeZVCR3File(const ZVCR3File& file, const std::string& filename, int zstdCompressionLevel, int zstdCompressionThreads);
-
-    ZVCRResult<ZVCR3File> readZVCR3File(const std::string& filename, size_t maxDeltas);
-
     void serializeLayer(const Layer2d& layer, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable);
 
     ZVCRResult<Layer2d> deserializeLayer(const std::vector<uint8_t>& data, size_t& offset,
@@ -167,13 +208,5 @@ namespace zvcr::serialize::serialization {
     void serializeRegion2d(const Region2d& region, std::vector<uint8_t>& data, ZVCR2Version version);
 
     ZVCRResult<Region2d> deserializeRegion2d(const std::vector<uint8_t>& data, size_t& offset, size_t maxDeltas, ZVCR2Version version);
-
-    void serializeZVCR2File(const ZVCR2File& file, std::vector<uint8_t>& data);
-
-    ZVCRResult<ZVCR2File> deserializeZVCR2File(const std::vector<uint8_t>& data, size_t& offset, size_t maxDeltas);
-
-    size_t writeZVCR2File(const ZVCR2File& file, const std::string& filename, int zstdCompressionLevel, int zstdCompressionThreads);
-
-    ZVCRResult<ZVCR2File> readZVCR2File(const std::string& filename, size_t maxDeltas);
 
 }
