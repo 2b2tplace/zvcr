@@ -7,6 +7,7 @@
 #include <zvcr/serialize/serialization.hpp>
 
 namespace zvcr::serialize::serialization {
+
     ZVCRResult<DimensionType> deserializeDimensionType(const std::vector<uint8_t>& data, size_t& offset) {
         if (offset >= data.size())
             return Err(EXPECTED_DIMENSION_TYPE);
@@ -42,58 +43,6 @@ namespace zvcr::serialize::serialization {
         }
         offset += prefix.size();
         return {};
-    }
-
-    template<typename R, RegionFormat format>
-    size_t writeZVCRFileAt(const R& file, const fs::path& parentDirectory, const RegionLocation& location,
-                           const int zstdCompressionLevel, const int zstdCompressionThreads) {
-        create_directories(location.getDirectory(parentDirectory));
-        return writeZVCRFile<R>(file, location.getFilePath(parentDirectory, format), zstdCompressionLevel, zstdCompressionThreads);
-    }
-
-    template<typename R, RegionFormat format>
-    ZVCRResult<R> readZVCRFileAt(const fs::path& parentDirectory, const RegionLocation& location, const size_t maxDeltas) {
-        return readZVCRFile<R>(location.getFilePath(parentDirectory, format), maxDeltas);
-    }
-
-    template<typename R>
-    size_t writeZVCRFile(const R& file, const fs::path& filepath,
-                         const int zstdCompressionLevel, const int zstdCompressionThreads) {
-        std::vector<uint8_t> bytesUncompressed;
-        DefaultSerialization<R>::serialize(file, bytesUncompressed);
-        const auto bytesCompressed = compression::compressData(bytesUncompressed, zstdCompressionLevel, zstdCompressionThreads);
-
-        std::ofstream fileStream(filepath, std::ios::out | std::ios::binary);
-        fileStream.write(reinterpret_cast<const char*>(bytesCompressed.data()), static_cast<int64_t>(bytesCompressed.size()));
-        fileStream.close();
-
-        return bytesCompressed.size();
-    }
-
-    template<typename R>
-    ZVCRResult<R> readZVCRFile(const fs::path& filepath, const size_t maxDeltas) {
-        if (!exists(filepath)) return Err(FILE_NOT_FOUND);
-
-        try {
-            std::ifstream fileStream(filepath, std::ios::in | std::ios::binary);
-
-            fileStream.seekg(0, std::ios::end);
-            const int64_t fileSize = fileStream.tellg();
-            fileStream.seekg(0, std::ios::beg);
-
-            const auto bytesCompressed = new char[fileSize];
-            fileStream.read(bytesCompressed, fileSize);
-            fileStream.close();
-
-            const auto bytesCompressedVector = std::vector<uint8_t>(bytesCompressed, bytesCompressed + fileSize);
-            const auto bytesUncompressed = compression::decompressData(bytesCompressedVector);
-            size_t offset{};
-
-            delete[] bytesCompressed;
-            return DefaultSerialization<R>::deserialize(bytesUncompressed, offset, maxDeltas);
-        } catch (const std::length_error&) {
-            return Err(GENERIC_READ_ERROR);
-        }
     }
 
     void serializePackedSnapshot(const PackedSnapshot<SegmentAtom>& snapshot, std::vector<uint8_t>& data, std::vector<Palette>& paletteTable) {
