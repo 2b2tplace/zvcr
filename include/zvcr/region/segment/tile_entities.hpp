@@ -7,14 +7,6 @@
 
 namespace zvcr::region::segment::tile_entities {
 
-#if PROTOCOL_VERSION >= 768
-    constexpr auto TOTAL_TILE_ENTITIES = 45;
-#elif PROTOCOL_VERSION >= 766
-    constexpr auto TOTAL_TILE_ENTITIES = 44;
-#elif PROTOCOL_VERSION == 765
-    constexpr auto TOTAL_TILE_ENTITIES = 41;
-#endif
-
     struct TileEntityCountInfo {
         std::vector<uint16_t> counts{};
         time_t timestamp{};
@@ -70,9 +62,12 @@ namespace zvcr::region::segment::tile_entities {
 #if PROTOCOL_VERSION >= 766 // 1.20.5+
         CRAFTER,
         TRIAL_SPAWNER,
-        VAULT
+        VAULT,
 #endif
+        COUNT_
     };
+
+    static constexpr auto TOTAL_TILE_ENTITIES = static_cast<size_t>(TileEntityType::COUNT_);
 
     static const std::map<TileEntityType, std::string> TileEntityTypeToString = {
         {TileEntityType::FURNACE, "furnace"},
