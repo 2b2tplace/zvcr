@@ -10,8 +10,8 @@ namespace zvcr::region::dim3::zvcr3 {
         ZVCR3_0_1_0_0 = 2
     };
 
-    constexpr static auto ZVCR3_VER_LATEST = ZVCR3Version::ZVCR3_0_1_0_0;
-    constexpr static auto ZVCR3_FILE_PREFIX = "ZVRegion";
+    static constexpr auto ZVCR3_VER_LATEST = ZVCR3Version::ZVCR3_0_1_0_0;
+    static constexpr auto ZVCR3_FILE_PREFIX = "ZVRegion";
 
     struct ZVCR3File {
         ZVCR3Version version{ZVCR3_VER_LATEST};

@@ -11,8 +11,8 @@ namespace zvcr::region::dim2::zvcr2 {
         ZVCR2_0_1_0_0 = 1
     };
 
-    constexpr static auto ZVCR2_VER_LATEST = ZVCR2Version::ZVCR2_0_1_0_0;
-    constexpr static auto ZVCR2_FILE_PREFIX = "ZPRegion";
+    static constexpr auto ZVCR2_VER_LATEST = ZVCR2Version::ZVCR2_0_1_0_0;
+    static constexpr auto ZVCR2_FILE_PREFIX = "ZPRegion";
 
     struct ZVCR2File {
         ZVCR2Version version{ZVCR2_VER_LATEST};
