@@ -4,7 +4,7 @@
 #include <zvcr/common/definitions.hpp>
 #include <zvcr/common/result.hpp>
 
-namespace zvcr::common::paletted_storage {
+namespace zvcr::paletted_storage {
 
     using LongArray = std::vector<uint64_t>;
     using namespace definitions;
@@ -107,7 +107,7 @@ namespace zvcr::common::paletted_storage {
 
 }
 
-namespace zvcr::common::reverse_delta {
+namespace zvcr::reverse_delta {
 
     template<typename T>
     struct PackedSnapshot {
@@ -117,7 +117,7 @@ namespace zvcr::common::reverse_delta {
 
 }
 
-namespace zvcr::common::paletted_storage {
+namespace zvcr::paletted_storage {
 
     template<typename T>
     class UnpackedView {
@@ -301,7 +301,7 @@ namespace zvcr::common::paletted_storage {
 
 }
 
-namespace zvcr::common::reverse_delta {
+namespace zvcr::reverse_delta {
 
     using paletted_storage::PackedData;
     using namespace result;

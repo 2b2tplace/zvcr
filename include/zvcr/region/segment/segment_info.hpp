@@ -8,7 +8,7 @@
 #include <vector>
 #include <zvcr/common/result.hpp>
 
-namespace zvcr::region::segment::segment_info {
+namespace zvcr::region {
 
     enum class SegmentStateType {
         UNKNOWN = 0,
@@ -34,9 +34,7 @@ namespace zvcr::region::segment::segment_info {
 
     using SegmentStates = std::vector<SegmentState>;
 
-    using tile_entities::TileEntityCounts;
-    using tile_entities::TileEntityCountInfo;
-    using namespace common::result;
+    using namespace result;
 
     class SegmentInfo {
     public:

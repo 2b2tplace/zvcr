@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace zvcr::region::segment::tile_entities {
+namespace zvcr::region {
 
     struct TileEntityCountInfo {
         std::vector<uint16_t> counts{};

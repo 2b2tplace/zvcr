@@ -6,7 +6,7 @@
 #include <utility>
 #include <variant>
 
-#define Err(error) zvcr::common::result::Error(error)
+#define Err(error) zvcr::result::Error(error)
 
 #define Try(expr) ({                                \
     const auto& __tmp_expect = (expr);              \
@@ -34,7 +34,7 @@
     __tmp_expect_some.unwrap();               \
 })
 
-namespace zvcr::common::result {
+namespace zvcr::result {
 
     template<typename E>
     struct Error {

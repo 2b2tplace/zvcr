@@ -5,13 +5,11 @@
 #include <zvcr/region/dim2/layer.hpp>
 #include <zvcr/common/generic_region.hpp>
 
-namespace zvcr::region::dim2::segment2 {
+namespace zvcr::region {
 
-    using namespace segment::segment_info;
-    using namespace layer;
-    using namespace common::definitions;
-    using common::generic_region::GenericRegion;
-    using common::result::OptionRef;
+    using namespace definitions;
+    using generic_region::GenericRegion;
+    using result::OptionRef;
 
     class LayerContainer2d {
     public:

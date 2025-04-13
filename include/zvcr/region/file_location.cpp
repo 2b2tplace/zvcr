@@ -1,6 +1,6 @@
 #include <zvcr/region/file_location.hpp>
 
-namespace zvcr::region::file_location {
+namespace zvcr::region {
 
     RegionID RegionLocation::toRegionID() const {
         const auto ux = static_cast<uint64_t>(static_cast<uint32_t>(rx) & 0x1FFFFF);
@@ -17,7 +17,7 @@ namespace zvcr::region::file_location {
 
         const auto recoveredX = ux >= 0x100000 ? ux - 0x200000 : ux;
         const auto recoveredZ = uz >= 0x100000 ? uz - 0x200000 : uz;
-        const auto recoveredDim = static_cast<dimension::DimensionType>(ud);
+        const auto recoveredDim = static_cast<DimensionType>(ud);
 
         return RegionLocation{recoveredX, recoveredZ, recoveredDim};
     }

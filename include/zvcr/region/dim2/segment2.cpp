@@ -1,6 +1,6 @@
 #include <zvcr/region/dim2/segment2.hpp>
 
-namespace zvcr::region::dim2::segment2 {
+namespace zvcr::region {
 
     OptionCRef<Layer2d> LayerContainer2d::getLayer(const LayerTypeId type) const {
         if (!layers.contains(type)) return {};

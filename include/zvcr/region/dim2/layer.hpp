@@ -1,13 +1,12 @@
 #pragma once
 
-#include <cstdint>
 #include <unordered_map>
 #include <zvcr/common/data_storage.hpp>
 
-namespace zvcr::region::dim2::layer {
+namespace zvcr::region {
 
-    using namespace common::reverse_delta;
-    using namespace common::definitions;
+    using namespace reverse_delta;
+    using namespace definitions;
 
     enum class LayerType {
         NORMAL = 0,

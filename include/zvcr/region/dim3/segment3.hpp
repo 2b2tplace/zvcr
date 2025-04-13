@@ -5,13 +5,11 @@
 #include <zvcr/common/generic_region.hpp>
 #include <zvcr/region/dimension.hpp>
 
-namespace zvcr::region::dim3::segment3 {
+namespace zvcr::region {
 
-    using namespace segment::segment_info;
-    using namespace common::reverse_delta;
-    using namespace segment::tile_entities;
-    using namespace common::definitions;
-    using common::generic_region::GenericRegion;
+    using namespace reverse_delta;
+    using namespace definitions;
+    using generic_region::GenericRegion;
 
     template<typename T>
     class DeltaSections3d {
@@ -91,10 +89,10 @@ namespace zvcr::region::dim3::segment3 {
         SegmentSections3d biomeSections;
         SegmentInfo info;
 
-        explicit Segment3d(const dimension::DimensionType dimension):
+        explicit Segment3d(const DimensionType dimension):
             Segment3d(getProperties(dimension)) {}
 
-        explicit Segment3d(const dimension::DimensionProperties& dimensionProperties):
+        explicit Segment3d(const DimensionProperties& dimensionProperties):
             Segment3d(dimensionProperties.height / SEGMENT_SIDELENGTH_BLOCKS) {}
 
         explicit Segment3d(const size_t sectionCount):

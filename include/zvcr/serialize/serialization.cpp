@@ -6,7 +6,7 @@
 #include <zvcr/common/definitions.hpp>
 #include <zvcr/serialize/compression.hpp>
 
-namespace zvcr::serialize::serialization {
+namespace zvcr::serialize {
 
     ZVCRResult<DimensionType> deserializeDimensionType(const std::vector<uint8_t>& data, size_t& offset) {
         if (offset >= data.size())

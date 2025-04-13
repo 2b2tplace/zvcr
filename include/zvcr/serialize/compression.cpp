@@ -2,7 +2,7 @@
 #include <zvcr/serialize/compression.hpp>
 #include <zstd.h>
 
-namespace zvcr::serialize::compression {
+namespace zvcr::serialize {
 
     std::vector<uint8_t> compressData(const std::vector<uint8_t>& inputData, const int zstdCompressionLevel, const int zstdCompressionThreads) {
         thread_local ZSTD_CCtx* cctx = ZSTD_createCCtx();

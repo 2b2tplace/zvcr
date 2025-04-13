@@ -15,20 +15,13 @@
 #include <zvcr/region/file_location.hpp>
 #include <zvcr/common/definitions.hpp>
 
-namespace zvcr::serialize::serialization {
+namespace zvcr::serialize {
 
-    using namespace common::result;
-    using namespace common::reverse_delta;
-    using namespace region::segment::segment_info;
-    using namespace region::dim3::segment3;
-    using namespace region::dim3::zvcr3;
-    using namespace region::dim2::segment2;
-    using namespace region::dim2::zvcr2;
-    using namespace region::dim2::layer;
-    using namespace common::paletted_storage;
-    using namespace zvcr::common::definitions;
-    using namespace region::dimension;
-    using namespace region::file_location;
+    using namespace result;
+    using namespace reverse_delta;
+    using namespace region;
+    using namespace paletted_storage;
+    using namespace definitions;
 
     using Palette = std::vector<SegmentAtom>;
 
@@ -115,7 +108,7 @@ namespace zvcr::serialize::serialization {
                          const int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT) {
         std::vector<uint8_t> bytesUncompressed;
         DefaultSerialization<R>::serialize(file, bytesUncompressed);
-        const auto bytesCompressed = compression::compressData(bytesUncompressed, zstdCompressionLevel, zstdCompressionThreads);
+        const auto bytesCompressed = compressData(bytesUncompressed, zstdCompressionLevel, zstdCompressionThreads);
 
         std::ofstream fileStream(filepath, std::ios::out | std::ios::binary);
         fileStream.write(reinterpret_cast<const char*>(bytesCompressed.data()), static_cast<int64_t>(bytesCompressed.size()));
@@ -140,7 +133,7 @@ namespace zvcr::serialize::serialization {
             fileStream.close();
 
             const auto bytesCompressedVector = std::vector<uint8_t>(bytesCompressed, bytesCompressed + fileSize);
-            const auto bytesUncompressed = compression::decompressData(bytesCompressedVector);
+            const auto bytesUncompressed = decompressData(bytesCompressedVector);
             size_t offset{};
 
             delete[] bytesCompressed;

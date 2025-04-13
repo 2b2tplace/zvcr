@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <zvcr/region/dimension.hpp>
 
-namespace zvcr::region::file_location {
+namespace zvcr::region {
 
     namespace fs = std::filesystem;
 
@@ -22,7 +22,7 @@ namespace zvcr::region::file_location {
     struct RegionLocation {
         int32_t rx;
         int32_t rz;
-        dimension::DimensionType dimensionType;
+        DimensionType dimensionType;
 
         [[nodiscard]]
         RegionID toRegionID() const;

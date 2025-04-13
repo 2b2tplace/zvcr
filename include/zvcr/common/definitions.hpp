@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace zvcr::common::definitions {
+namespace zvcr::definitions {
 
     constexpr uint8_t REGION_SIDELENGTH_SEGMENTS = 32;
     constexpr size_t SEGMENTS_PER_REGION = static_cast<size_t>(REGION_SIDELENGTH_SEGMENTS) * static_cast<size_t>(REGION_SIDELENGTH_SEGMENTS);

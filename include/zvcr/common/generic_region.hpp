@@ -6,7 +6,7 @@
 #include <zvcr/common/result.hpp>
 #include <zvcr/common/definitions.hpp>
 
-namespace zvcr::common::generic_region {
+namespace zvcr::generic_region {
 
     using definitions::REGION_SIDELENGTH_SEGMENTS;
     using definitions::SEGMENTS_PER_REGION;

@@ -4,7 +4,7 @@
 #include <tuple>
 #include <absl/container/flat_hash_map.h>
 
-namespace zvcr::common::paletted_storage {
+namespace zvcr::paletted_storage {
 
     BitStorage::BitStorage(const size_t bits, const size_t size, const LongArray& data): data(data), bits(bits), // NOLINT(*-pro-type-member-init)
         size(size) {
