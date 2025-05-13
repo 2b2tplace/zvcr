@@ -8,10 +8,11 @@ namespace zvcr::region {
 
     enum class ZVCR2Version {
         ZVCR2_0_0_0_0 = 0,
-        ZVCR2_0_1_0_0 = 1
+        ZVCR2_0_1_0_0,
+        ZVCR2_0_1_1_0
     };
 
-    static constexpr auto ZVCR2_VER_LATEST = ZVCR2Version::ZVCR2_0_1_0_0;
+    static constexpr auto ZVCR2_VER_LATEST = ZVCR2Version::ZVCR2_0_1_1_0;
     static constexpr auto ZVCR2_FILE_PREFIX = "ZPRegion";
 
     struct ZVCR2File {

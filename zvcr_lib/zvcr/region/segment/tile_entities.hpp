@@ -69,6 +69,15 @@ namespace zvcr::region {
 
     static constexpr auto TOTAL_TILE_ENTITIES = static_cast<size_t>(TileEntityType::COUNT_);
 
+    [[nodiscard]]
+    inline size_t getTotalTileEntities(const uint16_t protocolVersion) {
+        if (protocolVersion >= 768) return 45;
+        if (protocolVersion >= 766) return 44;
+        if (protocolVersion >= 765) return 41;
+
+        return -1; // versions pre 1.20.4 are not supported
+    }
+
     static const std::map<TileEntityType, std::string> TileEntityTypeToString = {
         {TileEntityType::FURNACE, "furnace"},
         {TileEntityType::CHEST, "chest"},
