@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(SOURCE_FILES main.cpp)
 add_executable(zvcr_run ${SOURCE_FILES})
 
+add_subdirectory(abseil-cpp)
 include_directories(zvcr_lib)
 add_subdirectory(zvcr_lib)
 

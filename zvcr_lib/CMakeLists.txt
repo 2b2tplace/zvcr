@@ -2,7 +2,6 @@ link_libraries(zstd)
 file(GLOB_RECURSE LIBS "zvcr/*.hpp" "zvcr/*.h" "zvcr/*.cpp" "zvcr/*.c")
 include_directories(zvcr ${CMAKE_CURRENT_SOURCE_DIR}/zvcr)
 
-add_subdirectory(abseil-cpp)
 add_library(zvcr_lib STATIC zvcr.hpp ${LIBS})
 
 target_compile_definitions(zvcr_lib PUBLIC PROTOCOL_VERSION=769)
