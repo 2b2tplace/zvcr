@@ -1,12 +1,8 @@
 #pragma once
 
-#include <zvcr/region/segment/tile_entities.hpp>
-
-#include <ctime>
-#include <map>
-#include <string>
 #include <vector>
 #include <zvcr/common/result.hpp>
+#include <zvcr/region/segment/tile_entities.hpp>
 
 namespace zvcr::region {
 
@@ -16,20 +12,9 @@ namespace zvcr::region {
         OLD = 2
     };
 
-    static const std::map<SegmentStateType, std::string> SegmentStateTypeToString = {
-        {SegmentStateType::UNKNOWN, "unknown"},
-        {SegmentStateType::NEW, "new"},
-        {SegmentStateType::OLD, "old"},
-    };
-
-    [[nodiscard]]
-    inline std::string toString(const SegmentStateType state) {
-        return SegmentStateTypeToString.at(state);
-    }
-
     struct SegmentState {
-        SegmentStateType type{};
-        time_t timestamp{};
+        SegmentStateType type;
+        time_t timestamp;
     };
 
     using SegmentStates = std::vector<SegmentState>;

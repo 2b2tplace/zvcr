@@ -81,7 +81,7 @@ namespace zvcr::region {
         {TileEntityType::HANGING_SIGN, "hanging_sign"},
         {TileEntityType::MOB_SPAWNER, "mob_spawner"},
 #if PROTOCOL_VERSION >= 768 // 1.21.2+
-        {TileEntityType::CREAKING_HEART, "creaking_heart"},
+{TileEntityType::CREAKING_HEART, "creaking_heart"},
 #endif
         {TileEntityType::PISTON, "piston"},
         {TileEntityType::BREWING_STAND, "brewing_stand"},
@@ -115,9 +115,9 @@ namespace zvcr::region {
         {TileEntityType::BRUSHABLE_BLOCK, "brushable_block"},
         {TileEntityType::DECORATED_POT, "decorated_pot"},
 #if PROTOCOL_VERSION >= 766 // 1.20.5+
-        {TileEntityType::CRAFTER, "crafter"},
-        {TileEntityType::TRIAL_SPAWNER, "trial_spawner"},
-        {TileEntityType::VAULT, "vault"},
+{TileEntityType::CRAFTER, "crafter"},
+{TileEntityType::TRIAL_SPAWNER, "trial_spawner"},
+{TileEntityType::VAULT, "vault"},
 #endif
     };
 
@@ -133,7 +133,7 @@ namespace zvcr::region {
         {"hanging_sign", TileEntityType::HANGING_SIGN},
         {"mob_spawner", TileEntityType::MOB_SPAWNER},
 #if PROTOCOL_VERSION >= 768 // 1.21.2+
-        {"creaking_heart", TileEntityType::CREAKING_HEART},
+{"creaking_heart", TileEntityType::CREAKING_HEART},
 #endif
         {"piston", TileEntityType::PISTON},
         {"brewing_stand", TileEntityType::BREWING_STAND},
@@ -167,9 +167,9 @@ namespace zvcr::region {
         {"brushable_block", TileEntityType::BRUSHABLE_BLOCK},
         {"decorated_pot", TileEntityType::DECORATED_POT},
 #if PROTOCOL_VERSION >= 766 // 1.20.5+
-        {"crafter", TileEntityType::CRAFTER},
-        {"trial_spawner", TileEntityType::TRIAL_SPAWNER},
-        {"vault", TileEntityType::VAULT},
+{"crafter", TileEntityType::CRAFTER},
+{"trial_spawner", TileEntityType::TRIAL_SPAWNER},
+{"vault", TileEntityType::VAULT},
 #endif
     };
 

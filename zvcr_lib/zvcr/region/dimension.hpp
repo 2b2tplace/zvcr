@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include <unordered_map>
 
 namespace zvcr::region {
@@ -27,17 +26,6 @@ namespace zvcr::region {
         {DimensionType::NETHER, DimensionProperties {false, 0, 256}},
         {DimensionType::THE_END, DimensionProperties {false, 0, 256}}
     };
-
-    static const std::unordered_map<DimensionType, std::string> DimensionTypeToString = {
-        {DimensionType::OVERWORLD, "overworld"},
-        {DimensionType::NETHER, "nether"},
-        {DimensionType::THE_END, "the end"}
-    };
-
-    [[nodiscard]]
-    inline const std::string& toString(const DimensionType type) {
-        return DimensionTypeToString.at(type);
-    }
 
     [[nodiscard]]
     inline const DimensionProperties& getProperties(const DimensionType type) {

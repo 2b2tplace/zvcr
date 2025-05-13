@@ -6,7 +6,13 @@
   <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
   <component name="CidrRootsConfiguration">
     <sourceRoots>
-      <file path="$PROJECT_DIR$/include/zvcr" />
+      <file path="$PROJECT_DIR$/zvcr_lib/include/zvcr" />
+      <file path="$PROJECT_DIR$/zvcr_lib/zvcr" />
+      <file path="$PROJECT_DIR$/zvcr_tests/include/doctest" />
+      <file path="$PROJECT_DIR$/zvcr_tests/include/zvcr_tests" />
     </sourceRoots>
+    <libraryRoots>
+      <file path="$PROJECT_DIR$/zvcr_tests" />
+    </libraryRoots>
   </component>
 </project>

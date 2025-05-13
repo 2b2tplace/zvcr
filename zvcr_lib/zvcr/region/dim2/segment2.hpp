@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ranges>
 #include <utility>
 #include <zvcr/region/segment/segment_info.hpp>
 #include <zvcr/region/dim2/layer.hpp>
