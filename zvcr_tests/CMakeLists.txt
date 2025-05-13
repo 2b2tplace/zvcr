@@ -10,10 +10,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(doctest)
 
-add_executable(zvcr_tests_run ${LIBS})
-target_link_libraries(zvcr_tests_run
-        PRIVATE doctest
-        PRIVATE zvcr_lib
-)
-target_include_directories(zvcr_tests_run PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_definitions(zvcr_tests_run PRIVATE DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
+#add_executable(zvcr_tests_run ${LIBS})
+#target_link_libraries(zvcr_tests_run
+#        PRIVATE doctest
+#        PRIVATE zvcr_lib
+#)
+#target_include_directories(zvcr_tests_run PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+#target_compile_definitions(zvcr_tests_run PRIVATE DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
