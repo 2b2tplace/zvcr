@@ -205,7 +205,7 @@ namespace zvcr::serialize {
     }
 
     ReadResult<Segment3d> ReadHandle::deserializeSegment3d() {
-        Segment3d segment{sectionCount};
+        Segment3d segment{sectionCount, ctx.supportBiomes};
 
         for (size_t sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex)
             segment.blockSections.getSection(sectionIndex) = Try(deserializePackedDeltaData(SECTION_3D_SIZE_BLOCKS));

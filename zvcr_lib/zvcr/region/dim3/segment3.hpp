@@ -88,18 +88,20 @@ namespace zvcr::region {
         SegmentSections3d blockSections;
         SegmentSections3d biomeSections;
         SegmentInfo info;
+        bool supportBiomes;
 
-        explicit Segment3d(const DimensionType dimension):
-            Segment3d(getProperties(dimension)) {}
+        explicit Segment3d(const DimensionType dimension, const bool supportBiomes):
+            Segment3d(getProperties(dimension), supportBiomes) {}
 
-        explicit Segment3d(const DimensionProperties& dimensionProperties):
-            Segment3d(dimensionProperties.height / SEGMENT_SIDELENGTH_BLOCKS) {}
+        explicit Segment3d(const DimensionProperties& dimensionProperties, const bool supportBiomes):
+            Segment3d(dimensionProperties.height / SEGMENT_SIDELENGTH_BLOCKS, supportBiomes) {}
 
-        explicit Segment3d(const size_t sectionCount):
+        explicit Segment3d(const size_t sectionCount, const bool supportBiomes):
             sectionCount(sectionCount),
             blockSections(SegmentSections3d{sectionCount, SECTION_3D_SIZE_BLOCKS}),
             biomeSections(SegmentSections3d{sectionCount, SECTION_3D_SIZE_BIOMES}),
-            info({}) {}
+            info({}),
+            supportBiomes(supportBiomes) {}
     };
 
     using Region3d = GenericRegion<Segment3d>;
