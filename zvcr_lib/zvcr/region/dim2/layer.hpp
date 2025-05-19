@@ -15,6 +15,7 @@ namespace zvcr::region {
         TERRAIN_HEIGHTMAP = 3,
         DRAINED = 4,
         DRAINED_HEIGHTMAP = 5,
+        PREDICTED = 6,
         CUSTOM = 255
     };
 
