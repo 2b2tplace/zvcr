@@ -22,6 +22,29 @@ namespace zvcr::region {
         return RegionLocation{recoveredX, recoveredZ, recoveredDim};
     }
 
+    result::Option<RegionLocation> RegionLocation::fromFileName(const DimensionType dimension, const fs::path& file) {
+        const auto filename = file.filename().string();
+        if (!filename.starts_with("r.")) return {};
+
+        const auto extensionLength = filename.ends_with(".zvcr3") || filename.ends_with(".zvcr2") ? 6
+                             : filename.ends_with(".zvr") || filename.ends_with(".zpr") ? 4
+                             : 0;
+
+        if (extensionLength == 0) return {};
+
+        static constexpr auto startOffset = 2; // "r.", 2 chars
+        const auto endOffset = extensionLength + startOffset;
+
+        const auto regionIdentifier = filename.substr(startOffset, filename.length() - endOffset);
+        const auto delimiter = regionIdentifier.find_first_of('.');
+        if (delimiter == std::string::npos) return {};
+
+        const auto regionX = std::stoi(regionIdentifier.substr(0, delimiter));
+        const auto regionZ = std::stoi(regionIdentifier.substr(delimiter + 1));
+
+        return RegionLocation{regionX, regionZ, dimension};
+    }
+
     fs::path RegionLocation::getDirectory(const std::string& parentDirectory) const {
         const auto sectorX = std::to_string(rx / SECTOR_SIDELENGTH);
         const auto sectorZ = std::to_string(rz / SECTOR_SIDELENGTH);

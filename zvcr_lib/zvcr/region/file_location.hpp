@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <zvcr/region/dimension.hpp>
+#include <zvcr/common/result.hpp>
 
 namespace zvcr::region {
 
@@ -29,6 +30,9 @@ namespace zvcr::region {
 
         [[nodiscard]]
         static RegionLocation fromRegionID(RegionID regionID);
+
+        [[nodiscard]]
+        static result::Option<RegionLocation> fromFileName(DimensionType dimension, const fs::path& file);
 
         [[nodiscard]]
         fs::path getDirectory(const std::string& parentDirectory) const;
