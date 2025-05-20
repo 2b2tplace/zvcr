@@ -18,10 +18,17 @@ namespace zvcr::generic_region {
         using Segments = std::vector<SegmentMaybe>;
 
         Segments segments;
+        uint16_t protocolVersion;
 
-        explicit GenericRegion(Segments&& segments) noexcept: segments(std::move(segments)) {}
-        explicit GenericRegion(const Segments& segments): segments(segments) {}
-        GenericRegion(): segments(SEGMENTS_PER_REGION) {}
+        explicit GenericRegion(Segments&& segments, const uint16_t protocolVersion) noexcept:
+            segments(std::move(segments)), protocolVersion(protocolVersion) {}
+
+        explicit GenericRegion(const Segments& segments, const uint16_t protocolVersion):
+            segments(segments), protocolVersion(protocolVersion) {}
+
+        explicit GenericRegion(const uint16_t protocolVersion):
+            segments(SEGMENTS_PER_REGION),
+            protocolVersion(protocolVersion) {}
 
         [[nodiscard]]
         const SegmentMaybe& get(const uint8_t x, const uint8_t z) const {

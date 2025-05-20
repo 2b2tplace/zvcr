@@ -262,7 +262,7 @@ namespace zvcr::serialize {
         for (size_t segment3dIndex = 0; segment3dIndex < SEGMENTS_PER_REGION; ++segment3dIndex)
             segment3ds[segment3dIndex] = Try(deserializeOptSegment3d());
 
-        return Region3d{segment3ds};
+        return Region3d{segment3ds, ctx.protocolVersion};
     }
 
     void serializeZVCR3File(const ZVCR3File& file, WriteHandle& handle) {
@@ -365,6 +365,9 @@ namespace zvcr::serialize {
         for (const auto& segment : region.segments)
             regionDataHandle.serializeOptSegment2d(segment);
 
+        if (ctx.supportDynamicVersioning)
+            write<uint16_t>(ctx.protocolVersion);
+
         serializePaletteTable(regionDataHandle.paletteTable);
         writeBytes(regionDataHandle.data);
     }
@@ -372,12 +375,15 @@ namespace zvcr::serialize {
     ReadResult<Region2d> ReadHandle::deserializeRegion2d(const ZVCR2Version version) {
         ctx.initialize(version);
 
+        if (ctx.supportDynamicVersioning)
+            ctx.protocolVersion = Try(read<uint16_t>(EXPECTED_PROTOCOL_VERSION));
+
         Propagate(deserializePaletteTable());
         Segments2d segment3ds(SEGMENTS_PER_REGION);
         for (size_t segmentIndex = 0; segmentIndex < SEGMENTS_PER_REGION; ++segmentIndex)
             segment3ds[segmentIndex] = Try(deserializeOptSegment2d());
 
-        return Region2d{segment3ds};
+        return Region2d{segment3ds, ctx.protocolVersion};
     }
 
     void serializeZVCR2File(const ZVCR2File& file, WriteHandle& handle) {
