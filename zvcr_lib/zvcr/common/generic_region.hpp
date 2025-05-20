@@ -27,8 +27,9 @@ namespace zvcr::generic_region {
             segments(segments), protocolVersion(protocolVersion) {}
 
         explicit GenericRegion(const uint16_t protocolVersion):
-            segments(SEGMENTS_PER_REGION),
-            protocolVersion(protocolVersion) {}
+            segments(SEGMENTS_PER_REGION), protocolVersion(protocolVersion) {}
+
+        GenericRegion(): GenericRegion(0) {}
 
         [[nodiscard]]
         const SegmentMaybe& get(const uint8_t x, const uint8_t z) const {
