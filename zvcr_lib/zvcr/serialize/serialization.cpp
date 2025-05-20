@@ -338,7 +338,8 @@ namespace zvcr::serialize {
         return Segment2d {
             Try(deserializeBlockLayers()),
             Try(deserializeBiomeLayers()),
-            Try(deserializeSegmentInfo())
+            Try(deserializeSegmentInfo()),
+            ctx.supportBiomes
         };
     }
 

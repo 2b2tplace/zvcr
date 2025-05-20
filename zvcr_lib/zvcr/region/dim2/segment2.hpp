@@ -50,6 +50,7 @@ namespace zvcr::region {
         LayerContainer2d layers{SECTION_2D_SIZE_BLOCKS};
         LayerContainer2d biomeLayers{SECTION_2D_SIZE_BIOMES};
         SegmentInfo info;
+        bool supportBiomes;
     };
 
     using Region2d = GenericRegion<Segment2d>;
