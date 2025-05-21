@@ -93,7 +93,7 @@ namespace zvcr::serialize {
         if (paletteIndex == paletteTableLength)
             paletteTable.push_back(palette);
 
-        write(paletteIndex);
+        write<uint32_t>(paletteIndex);
     }
 
     ReadResult<PackedSnapshot<SegmentAtom>> ReadHandle::deserializePackedSnapshot(const size_t snapshotLength) {
