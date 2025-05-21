@@ -85,11 +85,10 @@ namespace zvcr::paletted_storage {
             UnpackedData unpacked(snapshotLength);
             const BitStorage bitStorage(bitsPerIndex, snapshotLength, packedData);
 
-            size_t index = 0;
             for (size_t i = 0; i < snapshotLength; ++i) {
                 const auto slice = bitStorage.get(i);
-                unpacked[index] = palette[slice];
-                ++index;
+                assert(slice < palette.size() && "Palette slice out of bounds");
+                unpacked[i] = palette[slice];
             }
             return unpacked;
         }
