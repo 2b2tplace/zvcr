@@ -145,7 +145,7 @@ namespace zvcr::serialize {
 
             Palette palette(paletteLength);
             PropagateVal(readArray(palette, EXPECTED_PALETTE_DATA));
-            paletteTable.emplace_back(palette);
+            paletteTable.push_back(palette);
         }
         return {};
     }
