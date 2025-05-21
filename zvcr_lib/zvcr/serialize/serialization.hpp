@@ -146,8 +146,9 @@ namespace zvcr::serialize {
 
         template<typename T>
         void writeArray(const T* array, const size_t length) {
-            data.resize(data.size() + length * sizeof(T));
-            std::memcpy(data.data() + data.size() - length, array, length);
+            const auto size = length * sizeof(T);
+            data.resize(data.size() + size);
+            std::memcpy(data.data() + data.size() - size, array, size);
         }
 
         template<typename Source>
