@@ -8,12 +8,52 @@
 
 namespace zvcr::serialize {
 
+    std::string ReadError::what() const {
+        std::stringstream ss;
+        ss << "Read error code " << std::hex << type << std::dec << ": " << message;
+
+        if (offset > 0)
+            ss << " at read offset = " << offset;
+
+        if (!dumpSlice.empty()) {
+            ss << " :: Debug: [ ";
+            if (sliceStart > 0) ss << "... ";
+
+            for (size_t i = 0; i < dumpSlice.size(); i++) {
+                const auto byte = dumpSlice[i];
+                if (i == dumpPoint) ss << "| ";
+
+                ss << std::uppercase << std::setfill('0') << std::setw(2) << std::hex;
+                ss << static_cast<int>(byte);
+
+                ss << ' ';
+            }
+            if (sliceEnd < dataLength) ss << "... ";
+            ss << ']';
+        }
+        return ss.str();
+    }
+
+    void ReadError::attach(const ReadHandle& handle) {
+        if (handle.data.empty()) return;
+
+        dataLength = handle.data.size();
+        sliceStart = offset >= DBG_SLICE_SIZE ? offset - DBG_SLICE_SIZE : 0;
+        sliceEnd = std::min(offset + DBG_SLICE_SIZE + 1, dataLength);
+        dumpPoint = offset - sliceStart;
+        dumpSlice = std::vector(handle.data.begin() + sliceStart, handle.data.begin() + sliceEnd);
+    }
+
     ReadResult<DimensionType> ReadHandle::deserializeDimensionType() {
         const auto dimensionTypeId = Try(readByte(EXPECTED_DIMENSION_TYPE));
+        static constexpr auto maxDimensionTypeId = static_cast<uint8_t>(DimensionType::THE_END);
 
-        if (dimensionTypeId > static_cast<uint8_t>(DimensionType::THE_END))
-            return Err(INVALID_DIMENSION_TYPE);
+        if (dimensionTypeId > maxDimensionTypeId) {
+            const auto err = ReadError{INVALID_DIMENSION_TYPE, offset, "Invalid dimension type: "
+                + std::to_string(dimensionTypeId) + " > " + std::to_string(maxDimensionTypeId)};
 
+            return Err(err);
+        }
         const auto dimensionType = static_cast<DimensionType>(dimensionTypeId);
         sectionCount = getProperties(dimensionType).height / SEGMENT_SIDELENGTH_BLOCKS;
 
@@ -21,11 +61,13 @@ namespace zvcr::serialize {
     }
 
     Option<ReadError> ReadHandle::validateZVCRFilePrefix(const std::string& prefix) {
-        skip<uint8_t>(prefix.size(), MISSING_HEADER);
+        PropagateVal(skip<uint8_t>(prefix.size(), MISSING_HEADER));
 
         for (size_t i = 0; i < prefix.size(); ++i) {
-            if (data[i] != static_cast<uint8_t>(prefix[i]))
-                return INVALID_HEADER_PREFIX;
+            const auto expected = static_cast<uint8_t>(prefix[i]);
+            if (data[i] != expected)
+                return ReadError{INVALID_HEADER_PREFIX, offset, "Invalid header prefix: "
+                    + std::to_string(data[i]) + " != " + std::to_string(expected)};
         }
         return {};
     }
@@ -57,16 +99,22 @@ namespace zvcr::serialize {
     ReadResult<PackedSnapshot<SegmentAtom>> ReadHandle::deserializePackedSnapshot(const size_t snapshotLength) {
         const auto timestamp = Try(read<time_t>(EXPECTED_TIMESTAMP));
         const auto packedLength = Try(read<uint64_t>(EXPECTED_PACKED_LENGTH));
-
+        if (packedLength > MAX_PACKED_LENGTH) {
+            const auto err = ReadError{INVALID_PACKED_LENGTH, offset, "Invalid packed length: "
+                + std::to_string(packedLength) + " > " + std::to_string(MAX_PACKED_LENGTH)};
+            return Err(err);
+        }
         LongArray packedData(packedLength);
         Propagate(readArray(packedData, EXPECTED_PACKED_DATA));
 
         const auto paletteIndex = Try(read<uint32_t>(EXPECTED_PALETTE_INDEX));
         const auto& palette = paletteTable[paletteIndex];
 
-        if (paletteIndex >= paletteTable.size())
-            return Err(INVALID_PALETTE_INDEX);
-
+        if (paletteIndex >= paletteTable.size()) {
+            const auto err = ReadError{INVALID_PALETTE_INDEX, offset, "Invalid palette index: "
+                + std::to_string(paletteIndex) + " >= " + std::to_string(paletteTable.size())};
+            return Err(err);
+        }
         return PackedSnapshot {
             PackedData{palette, packedData, snapshotLength},
             timestamp
@@ -86,24 +134,28 @@ namespace zvcr::serialize {
 
     Option<ReadError> ReadHandle::deserializePaletteTable() {
         const auto paletteTableLength = Require(read<uint32_t>(EXPECTED_PALETTE_TABLE_LENGTH));
+        if (paletteTableLength > MAX_PALETTE_TABLE_LENGTH)
+            return ReadError{INVALID_PALETTE_TABLE_LENGTH, offset, "Invalid palette table length: "
+                + std::to_string(paletteTableLength) + " > " + std::to_string(MAX_PALETTE_TABLE_LENGTH)};
+
         paletteTable.reserve(paletteTableLength);
 
         for (size_t i = 0; i < paletteTableLength; ++i) {
             const auto paletteLength = static_cast<size_t>(Require(read<uint16_t>(EXPECTED_PALETTE_LENGTH)));
 
             Palette palette(paletteLength);
-            readArray(palette, EXPECTED_PALETTE_DATA);
+            PropagateVal(readArray(palette, EXPECTED_PALETTE_DATA));
             paletteTable.emplace_back(palette);
         }
         return {};
     }
 
     Option<ReadError> ReadHandle::skipPackedSnapshot() {
-        skip<time_t>(EXPECTED_TIMESTAMP);
+        PropagateVal(skip<time_t>(EXPECTED_TIMESTAMP));
         const auto packedLength = Require(read<uint64_t>(EXPECTED_PACKED_LENGTH));
 
-        skip<uint64_t>(packedLength, EXPECTED_PACKED_DATA);
-        skip<uint32_t>(EXPECTED_PALETTE_INDEX);
+        PropagateVal(skip<uint64_t>(packedLength, EXPECTED_PACKED_DATA));
+        PropagateVal(skip<uint32_t>(EXPECTED_PALETTE_INDEX));
         return {};
     }
 
@@ -116,7 +168,11 @@ namespace zvcr::serialize {
 
     ReadResult<PackedDeltaData<SegmentAtom>> ReadHandle::deserializePackedDeltaData(const size_t snapshotLength) {
         const auto deltaLength = Try(read<uint64_t>(EXPECTED_DELTA_LENGTH));
-
+        if (deltaLength > MAX_DELTA_LENGTH) {
+            const auto err = ReadError{INVALID_DELTA_LENGTH, offset, "Invalid delta length: "
+                + std::to_string(deltaLength) + " > " + std::to_string(MAX_DELTA_LENGTH)};
+            return Err(err);
+        }
         std::vector<PackedSnapshot<SegmentAtom>> reverseDeltas;
         reverseDeltas.reserve(deltaLength);
 
@@ -155,7 +211,7 @@ namespace zvcr::serialize {
         const auto totalTileEntities = getTotalTileEntities(ctx.protocolVersion);
 
         std::vector<uint16_t> counts(totalTileEntities);
-        readArray(counts, EXPECTED_TILE_ENTITY_COUNTS);
+        Propagate(readArray(counts, EXPECTED_TILE_ENTITY_COUNTS));
         const auto timestamp = Try(read<time_t>(EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP));
 
         return TileEntityCountInfo{counts, timestamp};
@@ -175,6 +231,11 @@ namespace zvcr::serialize {
 
     ReadResult<SegmentInfo> ReadHandle::deserializeSegmentInfo() {
         const auto statesLength = Try(read<uint64_t>(EXPECTED_SEGMENT_STATES_LENGTH));
+        if (statesLength > MAX_SEGMENT_STATES_LENGTH) {
+            const auto err = ReadError{INVALID_SEGMENT_STATES_LENGTH, offset, "Invalid segment states length: "
+                + std::to_string(statesLength) + " > " + std::to_string(MAX_SEGMENT_STATES_LENGTH)};
+            return Err(err);
+        }
 
         SegmentStates states;
         states.reserve(statesLength);
@@ -183,6 +244,11 @@ namespace zvcr::serialize {
             states.push_back(Try(deserializeSegmentState()));
 
         const auto tileEntitiesLength = Try(read<uint64_t>(EXPECTED_TILE_ENTITIES_LENGTH));
+        if (tileEntitiesLength > MAX_TILE_ENTITIES_LENGTH) {
+            const auto err = ReadError{INVALID_TILE_ENTITIES_LENGTH, offset, "Invalid tile entities length: "
+                + std::to_string(tileEntitiesLength) + " > " + std::to_string(MAX_TILE_ENTITIES_LENGTH)};
+            return Err(err);
+        }
 
         TileEntityCounts tileEntityCounts;
         tileEntityCounts.reserve(tileEntitiesLength);
@@ -234,12 +300,9 @@ namespace zvcr::serialize {
         return static_cast<ReadResult<Option<Segment3d>>>(Try(deserializeSegment3d()));
     }
 
-    void WriteHandle::serializeRegion3d(const Region3d& region, const ZVCR3Version version) {
+    void WriteHandle::serializeRegion3d(const Region3d& region) {
         WriteHandle regionDataHandle{};
-        regionDataHandle.ctx.initialize(version);
-
-        if (ctx.supportDynamicVersioning)
-            regionDataHandle.ctx.protocolVersion = PROTOCOL_VERSION;
+        regionDataHandle.ctx = ctx;
 
         for (const auto& segment3d : region.segments)
             regionDataHandle.serializeOptSegment3d(segment3d);
@@ -271,11 +334,13 @@ namespace zvcr::serialize {
         handle.writeBytes(prefix);
         handle.writeByte(static_cast<uint8_t>(file.version));
         handle.writeByte(static_cast<uint8_t>(file.dimensionType));
-        handle.serializeRegion3d(file.region, file.version);
+
+        handle.ctx.initialize(file.version);
+        handle.serializeRegion3d(file.region);
     }
 
     ReadResult<ZVCR3File> deserializeZVCR3File(ReadHandle& handle) {
-        handle.validateZVCRFilePrefix(ZVCR3_FILE_PREFIX);
+        Propagate(handle.validateZVCRFilePrefix(ZVCR3_FILE_PREFIX));
 
         const auto version = Try(handle.deserializeVersion(ZVCR3_VER_LATEST));
         const auto dimensionType = Try(handle.deserializeDimensionType());
@@ -359,9 +424,9 @@ namespace zvcr::serialize {
         return static_cast<ReadResult<Option<Segment2d>>>(Try(deserializeSegment2d()));
     }
 
-    void WriteHandle::serializeRegion2d(const Region2d& region, const ZVCR2Version version) {
+    void WriteHandle::serializeRegion2d(const Region2d& region) {
         WriteHandle regionDataHandle{};
-        regionDataHandle.ctx.initialize(version);
+        regionDataHandle.ctx = ctx;
 
         for (const auto& segment : region.segments)
             regionDataHandle.serializeOptSegment2d(segment);
@@ -392,11 +457,13 @@ namespace zvcr::serialize {
         handle.writeBytes(prefix);
         handle.writeByte(static_cast<uint8_t>(file.version));
         handle.writeByte(static_cast<uint8_t>(file.dimensionType));
-        handle.serializeRegion2d(file.region, file.version);
+
+        handle.ctx.initialize(file.version);
+        handle.serializeRegion2d(file.region);
     }
 
     ReadResult<ZVCR2File> deserializeZVCR2File(ReadHandle& handle) {
-        handle.validateZVCRFilePrefix(ZVCR2_FILE_PREFIX);
+        Propagate(handle.validateZVCRFilePrefix(ZVCR2_FILE_PREFIX));
 
         const auto version = Try(handle.deserializeVersion(ZVCR2_VER_LATEST));
         const auto dimensionType = Try(handle.deserializeDimensionType());

@@ -25,7 +25,14 @@ namespace zvcr::serialize {
 
     using Palette = std::vector<SegmentAtom>;
 
-    enum ReadError {
+    static constexpr auto MAX_DELTA_LENGTH = 65536;
+    static constexpr auto MAX_SEGMENT_STATES_LENGTH = 65536;
+    static constexpr auto MAX_TILE_ENTITIES_LENGTH = 65536;
+
+    static constexpr auto MAX_PACKED_LENGTH = 1048560;
+    static constexpr auto MAX_PALETTE_TABLE_LENGTH = 32768;
+
+    enum ReadErrorType {
         FILE_NOT_FOUND,
         GENERIC_READ_ERROR,
         EXPECTED_DELTA_LENGTH,
@@ -52,7 +59,32 @@ namespace zvcr::serialize {
         INVALID_HEADER_PREFIX,
         INVALID_VERSION,
         INVALID_DIMENSION_TYPE,
-        INVALID_PALETTE_INDEX
+        INVALID_PALETTE_INDEX,
+        INVALID_DELTA_LENGTH,
+        INVALID_PACKED_LENGTH,
+        INVALID_PALETTE_TABLE_LENGTH,
+        INVALID_SEGMENT_STATES_LENGTH,
+        INVALID_TILE_ENTITIES_LENGTH,
+    };
+
+    class ReadHandle;
+
+    static constexpr auto DBG_SLICE_SIZE = 32;
+
+    struct ReadError {
+        ReadErrorType type;
+        size_t offset;
+        std::string message;
+        std::vector<uint8_t> dumpSlice;
+        size_t sliceStart;
+        size_t sliceEnd;
+        size_t dumpPoint;
+        size_t dataLength;
+
+        [[nodiscard]]
+        std::string what() const;
+
+        void attach(const ReadHandle& handle);
     };
 
     static constexpr auto ZSTD_COMPRESSION_LEVEL_DEFAULT = 12;
@@ -79,6 +111,9 @@ namespace zvcr::serialize {
         void initialize(const ZVCR3Version version) {
             supportBiomes = version >= ZVCR3Version::ZVCR3_0_1_0_0;
             supportDynamicVersioning = version >= ZVCR3Version::ZVCR3_0_1_1_0;
+
+            if (protocolVersion != 0) return;
+
             protocolVersion = version == ZVCR3Version::ZVCR3_0_0_0_1
                                 ? PROTOCOL_VERSION_ZVCR_0_0_0_X
                                 : PROTOCOL_VERSION;
@@ -87,6 +122,9 @@ namespace zvcr::serialize {
         void initialize(const ZVCR2Version version) {
             supportBiomes = version >= ZVCR2Version::ZVCR2_0_1_0_0;
             supportDynamicVersioning = version >= ZVCR2Version::ZVCR2_0_1_1_0;
+
+            if (protocolVersion != 0) return;
+
             protocolVersion = version == ZVCR2Version::ZVCR2_0_0_0_0
                                 ? PROTOCOL_VERSION_ZVCR_0_0_0_X
                                 : PROTOCOL_VERSION;
@@ -94,10 +132,10 @@ namespace zvcr::serialize {
     };
 
     class WriteHandle {
-        Context ctx;
         std::vector<Palette> paletteTable;
 
     public:
+        Context ctx;
         std::vector<uint8_t> data;
 
         template<typename T>
@@ -137,7 +175,7 @@ namespace zvcr::serialize {
 
         void serializeOptSegment3d(const Option<Segment3d>& segment3dOpt);
 
-        void serializeRegion3d(const Region3d& region, ZVCR3Version version);
+        void serializeRegion3d(const Region3d& region);
 
         void serializeLayer(const Layer2d& layer);
 
@@ -147,11 +185,10 @@ namespace zvcr::serialize {
 
         void serializeOptSegment2d(const Option<Segment2d>& segment);
 
-        void serializeRegion2d(const Region2d& region, ZVCR2Version version);
+        void serializeRegion2d(const Region2d& region);
     };
 
     class ReadHandle {
-        Context ctx{};
         size_t offset{};
         std::vector<Palette> paletteTable{};
         uint32_t sectionCount{};
@@ -159,23 +196,33 @@ namespace zvcr::serialize {
         size_t maxDeltas;
 
     public:
+        Context ctx{};
         const std::vector<uint8_t>& data;
 
         explicit ReadHandle(const std::vector<uint8_t>& data, const size_t maxDeltas):
             maxDeltas(maxDeltas), data(data) {}
 
-        ReadResult<uint8_t> readByte(const ReadError orElseErr) {
-            if (offset >= data.size())
-                return Err(orElseErr);
+        [[nodiscard]]
+        size_t getOffset() const {
+            return offset;
+        }
 
+        [[nodiscard]]
+        ReadResult<uint8_t> readByte(const ReadErrorType orElseErr) {
+            if (offset >= data.size()) {
+                const auto err = ReadError{orElseErr, offset, "Read out of bounds"};
+                return Err(err);
+            }
             return data[offset++];
         }
 
         template<typename T>
-        ReadResult<T> read(const ReadError orElseErr) {
-            if (offset + sizeof(T) > data.size())
-                return Err(orElseErr);
-
+        [[nodiscard]]
+        ReadResult<T> read(const ReadErrorType orElseErr) {
+            if (offset + sizeof(T) > data.size()) {
+                const auto err = ReadError{orElseErr, offset, "Read out of bounds"};
+                return Err(err);
+            }
             T value;
             std::memcpy(&value, data.data() + offset, sizeof(T));
             offset += sizeof(T);
@@ -183,10 +230,11 @@ namespace zvcr::serialize {
         }
 
         template<typename T>
-        Option<ReadError> readArray(std::vector<T>& array, const ReadError orElseErr) {
+        [[nodiscard]]
+        Option<ReadError> readArray(std::vector<T>& array, const ReadErrorType orElseErr) {
             const auto length = array.size();
             if (offset + length * sizeof(T) > data.size())
-                return orElseErr;
+                return ReadError{orElseErr, offset, "Read out of bounds"};
 
             std::memcpy(array.data(), data.data() + offset, length * sizeof(T));
             offset += length * sizeof(T);
@@ -194,66 +242,89 @@ namespace zvcr::serialize {
         }
 
         template<typename T>
-        Option<ReadError> skip(const size_t n, const ReadError orElseErr) {
+        [[nodiscard]]
+        Option<ReadError> skip(const size_t n, const ReadErrorType orElseErr) {
             const auto length = n * sizeof(T);
             if (offset + length > data.size())
-                return orElseErr;
+                return ReadError{orElseErr, offset, "Read out of bounds"};
 
             offset += length;
             return {};
         }
 
         template<typename T>
-        Option<ReadError> skip(const ReadError orElseErr) {
+        [[nodiscard]]
+        Option<ReadError> skip(const ReadErrorType orElseErr) {
             return skip<T>(1, orElseErr);
         }
 
         template<typename Version>
+        [[nodiscard]]
         ReadResult<Version> deserializeVersion(const Version latest) {
             const auto versionNumber = Try(readByte(EXPECTED_VERSION));
 
-            if (versionNumber > static_cast<uint8_t>(latest))
-                return Err(INVALID_VERSION);
-
+            if (versionNumber > static_cast<uint8_t>(latest)) {
+                const auto err = ReadError{INVALID_VERSION, offset, "Read out of bounds"};
+                return Err(err);
+            }
             return static_cast<Version>(versionNumber);
         }
 
+        [[nodiscard]]
         Option<ReadError> validateZVCRFilePrefix(const std::string& prefix);
 
+        [[nodiscard]]
         ReadResult<DimensionType> deserializeDimensionType();
 
+        [[nodiscard]]
         ReadResult<PackedSnapshot<SegmentAtom>> deserializePackedSnapshot(size_t snapshotLength);
 
+        [[nodiscard]]
         Option<ReadError> deserializePaletteTable();
 
+        [[nodiscard]]
         Option<ReadError> skipPackedSnapshot();
 
+        [[nodiscard]]
         ReadResult<PackedDeltaData<SegmentAtom>> deserializePackedDeltaData(size_t snapshotLength);
 
+        [[nodiscard]]
         ReadResult<SegmentState> deserializeSegmentState();
 
+        [[nodiscard]]
         ReadResult<TileEntityCountInfo> deserializeTileEntityCountInfo();
 
+        [[nodiscard]]
         ReadResult<SegmentInfo> deserializeSegmentInfo();
 
+        [[nodiscard]]
         ReadResult<Segment3d> deserializeSegment3d();
 
+        [[nodiscard]]
         ReadResult<Option<Segment3d>> deserializeOptSegment3d();
 
+        [[nodiscard]]
         ReadResult<Region3d> deserializeRegion3d(ZVCR3Version version);
 
+        [[nodiscard]]
         ReadResult<Layer2d> deserializeLayer(size_t snapshotSize);
 
+        [[nodiscard]]
         ReadResult<LayerContainer2d> deserializeLayers(size_t snapshotSize);
 
+        [[nodiscard]]
         ReadResult<LayerContainer2d> deserializeBlockLayers();
 
+        [[nodiscard]]
         ReadResult<LayerContainer2d> deserializeBiomeLayers();
 
+        [[nodiscard]]
         ReadResult<Segment2d> deserializeSegment2d();
 
+        [[nodiscard]]
         ReadResult<Option<Segment2d>> deserializeOptSegment2d();
 
+        [[nodiscard]]
         ReadResult<Region2d> deserializeRegion2d(ZVCR2Version version);
     };
 
@@ -287,9 +358,12 @@ namespace zvcr::serialize {
 
     template<typename R>
     size_t writeZVCRFile(const R& file, const fs::path& filepath,
+                         const uint16_t protocolVersion = 0, // auto-detect given the ZVCR version by default
                          const int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
                          const int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT) {
         WriteHandle handle{};
+        handle.ctx.protocolVersion = protocolVersion;
+
         DefaultSerialization<R>::serialize(file, handle);
         const auto bytesCompressed = compressData(handle.data, zstdCompressionLevel, zstdCompressionThreads);
 
@@ -301,43 +375,58 @@ namespace zvcr::serialize {
     }
 
     template<typename R>
-    ReadResult<R> readZVCRFile(const fs::path& filepath, const size_t maxDeltas = 0) {
-        if (!exists(filepath)) return Err(FILE_NOT_FOUND);
+    ReadResult<R> readZVCRFile(const fs::path& filepath, uint16_t* protocolVersion = nullptr, const size_t maxDeltas = 0) {
+        if (!exists(filepath)) {
+            static const auto err = ReadError{FILE_NOT_FOUND, 0, "File not found"};
+            return Err(err);
+        }
+        std::ifstream fileStream(filepath, std::ios::in | std::ios::binary);
 
+        fileStream.seekg(0, std::ios::end);
+        const int64_t fileSize = fileStream.tellg();
+        fileStream.seekg(0, std::ios::beg);
+
+        const auto bytesCompressed = new char[fileSize];
+        fileStream.read(bytesCompressed, fileSize);
+        fileStream.close();
+
+        const auto bytesCompressedVector = std::vector<uint8_t>(bytesCompressed, bytesCompressed + fileSize);
+        const auto bytesUncompressed = decompressData(bytesCompressedVector);
+        ReadHandle handle{bytesUncompressed, maxDeltas};
+
+        delete[] bytesCompressed;
         try {
-            std::ifstream fileStream(filepath, std::ios::in | std::ios::binary);
+            const auto result = DefaultSerialization<R>::deserialize(handle);
+            if (result.error()) {
+                auto err = result.unwrapError();
+                err.attach(handle);
+                return Err(err);
+            }
+            if (protocolVersion != nullptr)
+                *protocolVersion = handle.ctx.protocolVersion;
 
-            fileStream.seekg(0, std::ios::end);
-            const int64_t fileSize = fileStream.tellg();
-            fileStream.seekg(0, std::ios::beg);
-
-            const auto bytesCompressed = new char[fileSize];
-            fileStream.read(bytesCompressed, fileSize);
-            fileStream.close();
-
-            const auto bytesCompressedVector = std::vector<uint8_t>(bytesCompressed, bytesCompressed + fileSize);
-            const auto bytesUncompressed = decompressData(bytesCompressedVector);
-            ReadHandle handle{bytesUncompressed, maxDeltas};
-
-            delete[] bytesCompressed;
-            return DefaultSerialization<R>::deserialize(handle);
-        } catch (const std::length_error&) {
-            return Err(GENERIC_READ_ERROR);
+            return result.unwrap();
+        } catch (const std::length_error& e) {
+            auto err = ReadError{GENERIC_READ_ERROR, handle.getOffset(), "Generic read error: " + std::string(e.what())};
+            err.attach(handle);
+            return Err(err);
         }
     }
 
     template<typename R>
     size_t writeZVCRFileAt(const R& file, const fs::path& parentDirectory, const RegionLocation& location,
+                           const uint16_t protocolVersion = 0, // auto-detect given the ZVCR version by default
                            const int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
                            const int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT) {
         create_directories(location.getDirectory(parentDirectory));
         return writeZVCRFile<R>(file, location.getFilePath(parentDirectory, DefaultSerialization<R>::format),
-                                zstdCompressionLevel, zstdCompressionThreads);
+                                protocolVersion, zstdCompressionLevel, zstdCompressionThreads);
     }
 
     template<typename R>
-    ReadResult<R> readZVCRFileAt(const fs::path& parentDirectory, const RegionLocation& location, const size_t maxDeltas = 0) {
-        return readZVCRFile<R>(location.getFilePath(parentDirectory, DefaultSerialization<R>::format), maxDeltas);
+    ReadResult<R> readZVCRFileAt(const fs::path& parentDirectory, const RegionLocation& location,
+                                 uint16_t* protocolVersion = nullptr, const size_t maxDeltas = 0) {
+        return readZVCRFile<R>(location.getFilePath(parentDirectory, DefaultSerialization<R>::format), protocolVersion, maxDeltas);
     }
 
 }
