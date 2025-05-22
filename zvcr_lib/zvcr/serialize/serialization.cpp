@@ -73,7 +73,7 @@ namespace zvcr::serialize {
     }
 
     void WriteHandle::serializePackedSnapshot(const PackedSnapshot<SegmentAtom>& snapshot) {
-        write(snapshot.timestamp);
+        write<uint64_t>(snapshot.timestamp);
 
         const auto& packedData = snapshot.data.packedData;
         const auto packedLength = packedData.size();
@@ -97,7 +97,7 @@ namespace zvcr::serialize {
     }
 
     ReadResult<PackedSnapshot<SegmentAtom>> ReadHandle::deserializePackedSnapshot(const size_t snapshotLength) {
-        const auto timestamp = Try(read<time_t>(EXPECTED_TIMESTAMP));
+        const auto timestamp = static_cast<time_t>(Try(read<uint64_t>(EXPECTED_TIMESTAMP)));
         const auto packedLength = Try(read<uint64_t>(EXPECTED_PACKED_LENGTH));
         if (packedLength > MAX_PACKED_LENGTH) {
             const auto err = ReadError{INVALID_PACKED_LENGTH, offset, "Invalid packed length: "
@@ -151,7 +151,7 @@ namespace zvcr::serialize {
     }
 
     Option<ReadError> ReadHandle::skipPackedSnapshot() {
-        PropagateVal(skip<time_t>(EXPECTED_TIMESTAMP));
+        PropagateVal(skip<uint64_t>(EXPECTED_TIMESTAMP));
         const auto packedLength = Require(read<uint64_t>(EXPECTED_PACKED_LENGTH));
 
         PropagateVal(skip<uint64_t>(packedLength, EXPECTED_PACKED_DATA));
@@ -188,13 +188,13 @@ namespace zvcr::serialize {
 
     void WriteHandle::serializeSegmentState(const SegmentState& segmentState) {
         writeByte(static_cast<uint8_t>(segmentState.type));
-        write<time_t>(segmentState.timestamp);
+        write<uint64_t>(segmentState.timestamp);
     }
 
     ReadResult<SegmentState> ReadHandle::deserializeSegmentState() {
         const auto stateTypeId = Try(readByte(EXPECTED_SEGMENT_STATE_TYPE));
         const auto stateType = static_cast<SegmentStateType>(stateTypeId);
-        const auto timestamp = Try(read<time_t>(EXPECTED_SEGMENT_STATE_TIMESTAMP));
+        const auto timestamp = static_cast<time_t>(Try(read<uint64_t>(EXPECTED_SEGMENT_STATE_TIMESTAMP)));
 
         return SegmentState{stateType, timestamp};
     }
@@ -204,7 +204,7 @@ namespace zvcr::serialize {
         assert(length == getTotalTileEntities(ctx.protocolVersion) && "Attempting to write unconverted tileEntityCounts");
 
         writeArray(tileEntityCounts.counts.data(), length);
-        write(tileEntityCounts.timestamp);
+        write<uint64_t>(tileEntityCounts.timestamp);
     }
 
     ReadResult<TileEntityCountInfo> ReadHandle::deserializeTileEntityCountInfo() {
@@ -212,7 +212,7 @@ namespace zvcr::serialize {
 
         std::vector<uint16_t> counts(totalTileEntities);
         Propagate(readArray(counts, EXPECTED_TILE_ENTITY_COUNTS));
-        const auto timestamp = Try(read<time_t>(EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP));
+        const auto timestamp = static_cast<time_t>(Try(read<uint64_t>(EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP)));
 
         return TileEntityCountInfo{counts, timestamp};
     }
