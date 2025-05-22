@@ -30,7 +30,7 @@ namespace zvcr::serialize {
     static constexpr auto MAX_TILE_ENTITIES_LENGTH = 65536;
 
     static constexpr auto MAX_PACKED_LENGTH = 1048560;
-    static constexpr auto MAX_PALETTE_TABLE_LENGTH = 32768;
+    static constexpr auto MAX_PALETTE_TABLE_LENGTH = 262144;
 
     enum ReadErrorType {
         FILE_NOT_FOUND,
