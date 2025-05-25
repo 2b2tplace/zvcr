@@ -9,29 +9,29 @@
 namespace zvcr::serialize {
 
     std::string ReadError::what() const {
-        std::stringstream ss;
-        ss << "Read error code " << std::hex << type << std::dec << ": " << message;
+        std::ostringstream oss;
+        oss << "Read error code " << std::hex << type << std::dec << ": " << message;
 
         if (offset > 0)
-            ss << " at read offset = " << offset;
+            oss << " at read offset = " << offset;
 
         if (!dumpSlice.empty()) {
-            ss << " :: Debug: [ ";
-            if (sliceStart > 0) ss << "... ";
+            oss << " :: Debug: [ ";
+            if (sliceStart > 0) oss << "... ";
 
             for (size_t i = 0; i < dumpSlice.size(); i++) {
                 const auto byte = dumpSlice[i];
-                if (i == dumpPoint) ss << "| ";
+                if (i == dumpPoint) oss << "| ";
 
-                ss << std::uppercase << std::setfill('0') << std::setw(2) << std::hex;
-                ss << static_cast<int>(byte);
+                oss << std::uppercase << std::setfill('0') << std::setw(2) << std::hex;
+                oss << static_cast<int>(byte);
 
-                ss << ' ';
+                oss << ' ';
             }
-            if (sliceEnd < dataLength) ss << "... ";
-            ss << ']';
+            if (sliceEnd < dataLength) oss << "... ";
+            oss << ']';
         }
-        return ss.str();
+        return oss.str();
     }
 
     void ReadError::attach(const ReadHandle& handle) {
