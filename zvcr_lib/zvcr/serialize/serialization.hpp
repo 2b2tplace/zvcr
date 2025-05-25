@@ -112,22 +112,16 @@ namespace zvcr::serialize {
             supportBiomes = version >= ZVCR3Version::ZVCR3_0_1_0_0;
             supportDynamicVersioning = version >= ZVCR3Version::ZVCR3_0_1_1_0;
 
-            if (protocolVersion != 0) return;
-
-            protocolVersion = version == ZVCR3Version::ZVCR3_0_0_0_1
-                                ? PROTOCOL_VERSION_ZVCR_0_0_0_X
-                                : PROTOCOL_VERSION;
+            if (protocolVersion == 0 && version == ZVCR3Version::ZVCR3_0_0_0_1)
+                protocolVersion = PROTOCOL_VERSION_ZVCR_0_0_0_X;
         }
 
         void initialize(const ZVCR2Version version) {
             supportBiomes = version >= ZVCR2Version::ZVCR2_0_1_0_0;
             supportDynamicVersioning = version >= ZVCR2Version::ZVCR2_0_1_1_0;
 
-            if (protocolVersion != 0) return;
-
-            protocolVersion = version == ZVCR2Version::ZVCR2_0_0_0_0
-                                ? PROTOCOL_VERSION_ZVCR_0_0_0_X
-                                : PROTOCOL_VERSION;
+            if (protocolVersion == 0 && version == ZVCR2Version::ZVCR2_0_0_0_0)
+                protocolVersion = PROTOCOL_VERSION_ZVCR_0_0_0_X;
         }
     };
 
@@ -359,7 +353,7 @@ namespace zvcr::serialize {
 
     template<typename R>
     size_t writeZVCRFile(const R& file, const fs::path& filepath,
-                         const uint16_t protocolVersion = 0, // auto-detect given the ZVCR version by default
+                         const uint16_t protocolVersion,
                          const int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
                          const int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT) {
         WriteHandle handle{};
@@ -416,7 +410,7 @@ namespace zvcr::serialize {
 
     template<typename R>
     size_t writeZVCRFileAt(const R& file, const fs::path& parentDirectory, const RegionLocation& location,
-                           const uint16_t protocolVersion = 0, // auto-detect given the ZVCR version by default
+                           const uint16_t protocolVersion,
                            const int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
                            const int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT) {
         create_directories(location.getDirectory(parentDirectory));

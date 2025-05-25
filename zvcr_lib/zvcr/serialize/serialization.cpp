@@ -210,7 +210,7 @@ namespace zvcr::serialize {
     ReadResult<TileEntityCountInfo> ReadHandle::deserializeTileEntityCountInfo() {
         const auto totalTileEntities = getTotalTileEntities(ctx.protocolVersion);
 
-        std::vector<uint16_t> counts(totalTileEntities);
+        std::vector<TileEntityType> counts(totalTileEntities);
         Propagate(readArray(counts, EXPECTED_TILE_ENTITY_COUNTS));
         const auto timestamp = static_cast<time_t>(Try(read<uint64_t>(EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP)));
 
