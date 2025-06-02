@@ -5,7 +5,15 @@ set(CMAKE_CXX_STANDARD 20)
 set(SOURCE_FILES main.cpp)
 add_executable(zvcr_run ${SOURCE_FILES})
 
-add_subdirectory(abseil-cpp)
+include(FetchContent)
+FetchContent_Declare(abseil
+        GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+        GIT_TAG        master
+        GIT_PROGRESS TRUE
+        GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(abseil)
+
 include_directories(zvcr_lib)
 add_subdirectory(zvcr_lib)
 
