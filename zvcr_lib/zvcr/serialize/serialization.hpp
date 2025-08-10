@@ -2,7 +2,8 @@
 
 #include <functional>
 #include <fstream>
-#include <zvcr/serialize/compression.hpp>
+#include <thread>
+#include <zstd.h>
 #include <zvcr/common/data_storage.hpp>
 #include <zvcr/region/dimension.hpp>
 #include <zvcr/region/segment/segment_info.hpp>
@@ -15,7 +16,6 @@
 #include <zvcr/common/definitions.hpp>
 
 namespace zvcr::serialize {
-
     using namespace reverse_delta;
     using namespace region;
     using namespace paletted_storage;
@@ -85,8 +85,8 @@ namespace zvcr::serialize {
         void attach(const ReadHandle& handle);
     };
 
-    static constexpr auto ZSTD_COMPRESSION_LEVEL_DEFAULT = 12;
-    static constexpr auto ZSTD_COMPRESSION_THREADS_DEFAULT = 4;
+    static constexpr auto ZSTD_COMPRESSION_LEVEL_DEFAULT = 10;
+    static const auto ZSTD_COMPRESSION_THREADS_DEFAULT = std::thread::hardware_concurrency() / 2;
 
     namespace fs = std::filesystem;
 
@@ -350,44 +350,102 @@ namespace zvcr::serialize {
     };
 
     template<typename R>
-    size_t writeZVCRFile(const R& file, const fs::path& filepath,
+    Result<size_t, std::string> writeZVCRFile(const R& file, const fs::path& filepath,
                          const uint16_t protocolVersion,
                          const int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
-                         const int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT) {
+                         const int zstdCompressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT) {
         WriteHandle handle{};
         handle.ctx.protocolVersion = protocolVersion;
-
         DefaultSerialization<R>::serialize(file, handle);
-        const auto bytesCompressed = compressData(handle.data, zstdCompressionLevel, zstdCompressionThreads);
 
         std::ofstream fileStream(filepath, std::ios::out | std::ios::binary);
-        fileStream.write(reinterpret_cast<const char*>(bytesCompressed.data()), static_cast<int64_t>(bytesCompressed.size()));
+        if (!fileStream)
+            return Err("Failed to open file for writing: " + filepath.string());
+
+        ZSTD_CStream* cstream = ZSTD_createCStream();
+        if (!cstream)
+            return Err("Failed to create ZSTD_CStream");
+
+        size_t ret = ZSTD_initCStream(cstream, zstdCompressionLevel);
+        if (ZSTD_isError(ret)) {
+            ZSTD_freeCStream(cstream);
+            return Err("ZSTD_initCStream error: " + std::string(ZSTD_getErrorName(ret)));
+        }
+        if (zstdCompressionThreads > 0)
+            ZSTD_CCtx_setParameter(cstream, ZSTD_c_nbWorkers, zstdCompressionThreads);
+
+        const size_t outChunkSize = ZSTD_CStreamOutSize();
+        std::vector<char> outBuffer(outChunkSize);
+
+        ZSTD_inBuffer input = { handle.data.data(), handle.data.size(), 0 };
+        while (input.pos < input.size) {
+            ZSTD_outBuffer output = { outBuffer.data(), outBuffer.size(), 0 };
+            ret = ZSTD_compressStream(cstream, &output, &input);
+            if (ZSTD_isError(ret)) {
+                ZSTD_freeCStream(cstream);
+                return Err("ZSTD_compressStream error: " + std::string(ZSTD_getErrorName(ret)));
+            }
+            fileStream.write(outBuffer.data(), output.pos);
+        }
+        bool finished = false;
+        while (!finished) {
+            ZSTD_outBuffer output = { outBuffer.data(), outBuffer.size(), 0 };
+            ret = ZSTD_endStream(cstream, &output);
+            if (ZSTD_isError(ret)) {
+                ZSTD_freeCStream(cstream);
+                return Err("ZSTD_endStream error: " + std::string(ZSTD_getErrorName(ret)));
+            }
+            fileStream.write(outBuffer.data(), output.pos);
+            finished = ret == 0;
+        }
+        ZSTD_freeCStream(cstream);
         fileStream.close();
 
-        return bytesCompressed.size();
+        return fs::file_size(filepath);
     }
 
     template<typename R>
     ReadResult<R> readZVCRFile(const fs::path& filepath, uint16_t* protocolVersion = nullptr, const size_t maxDeltas = 0) {
-        if (!exists(filepath)) {
-            static const auto err = ReadError{FILE_NOT_FOUND, 0, "File not found"};
-            return Err(err);
-        }
         std::ifstream fileStream(filepath, std::ios::in | std::ios::binary);
+        if (!fileStream)
+            return Err(ReadError(FILE_NOT_FOUND, 0, "Failed to open file: " + filepath.string()));
 
-        fileStream.seekg(0, std::ios::end);
-        const int64_t fileSize = fileStream.tellg();
-        fileStream.seekg(0, std::ios::beg);
+        ZSTD_DStream* dstream = ZSTD_createDStream();
+        if (!dstream)
+            return Err(ReadError(GENERIC_READ_ERROR, 0, "Failed to create ZSTD_DStream"));
 
-        const auto bytesCompressed = new char[fileSize];
-        fileStream.read(bytesCompressed, fileSize);
-        fileStream.close();
+        auto ret = ZSTD_initDStream(dstream);
+        if (ZSTD_isError(ret)) {
+            ZSTD_freeDStream(dstream);
+            return Err(ReadError(GENERIC_READ_ERROR, 0, "ZSTD_initDStream error: " + std::string(ZSTD_getErrorName(ret))));
+        }
+        const auto inChunkSize = ZSTD_DStreamInSize();
+        const auto outChunkSize = ZSTD_DStreamOutSize();
 
-        const auto bytesCompressedVector = std::vector<uint8_t>(bytesCompressed, bytesCompressed + fileSize);
-        const auto bytesUncompressed = decompressData(bytesCompressedVector);
-        ReadHandle handle{bytesUncompressed, maxDeltas};
+        std::vector<char> inBuffer(inChunkSize);
+        std::vector<char> outBuffer(outChunkSize);
+        std::vector<uint8_t> decompressed;
 
-        delete[] bytesCompressed;
+        while (true) {
+            fileStream.read(inBuffer.data(), inChunkSize);
+            std::streamsize bytesRead = fileStream.gcount();
+            if (bytesRead == 0) break;
+
+            ZSTD_inBuffer input = { inBuffer.data(), static_cast<size_t>(bytesRead), 0 };
+
+            while (input.pos < input.size) {
+                ZSTD_outBuffer output = { outBuffer.data(), outBuffer.size(), 0 };
+                ret = ZSTD_decompressStream(dstream, &output, &input);
+                if (ZSTD_isError(ret)) {
+                    ZSTD_freeDStream(dstream);
+                    return Err(ReadError(GENERIC_READ_ERROR, 0, "ZSTD_decompressStream error: " + std::string(ZSTD_getErrorName(ret))));
+                }
+                decompressed.insert(decompressed.end(), outBuffer.data(), outBuffer.data() + output.pos);
+            }
+        }
+        ZSTD_freeDStream(dstream);
+        ReadHandle handle{decompressed, maxDeltas};
+
         try {
             const auto result = DefaultSerialization<R>::deserialize(handle);
             if (!result.has_value()) {

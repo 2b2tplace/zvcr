@@ -4,7 +4,6 @@
 #include <ranges>
 #include <cstring>
 #include <zvcr/common/definitions.hpp>
-#include <zvcr/serialize/compression.hpp>
 
 namespace zvcr::serialize {
 
