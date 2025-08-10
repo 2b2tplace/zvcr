@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <vector>
 #include <cassert>
 #include <zvcr/common/result.hpp>
@@ -14,7 +13,7 @@ namespace zvcr::generic_region {
     template<typename S>
     class GenericRegion {
     public:
-        using SegmentMaybe = result::Option<S>;
+        using SegmentMaybe = Option<S>;
         using Segments = std::vector<SegmentMaybe>;
 
         Segments segments;

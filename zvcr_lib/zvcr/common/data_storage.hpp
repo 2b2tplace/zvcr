@@ -2,7 +2,7 @@
 
 #include <absl/container/flat_hash_map.h>
 #include <zvcr/common/definitions.hpp>
-#include <zvcr/common/result.hpp>
+#include <result.hpp>
 
 namespace zvcr::paletted_storage {
 
@@ -303,7 +303,6 @@ namespace zvcr::paletted_storage {
 namespace zvcr::reverse_delta {
 
     using paletted_storage::PackedData;
-    using namespace result;
 
     static constexpr uint16_t STATE_UNCHANGED = 0xFFFF;
 
@@ -326,10 +325,9 @@ namespace zvcr::reverse_delta {
             this->reverseDeltas.push_back(initialState);
         }
 
-        explicit PackedDeltaData(const std::vector<PackedSnapshot<T>>& reverseDeltas, size_t snapshotLength) {
-            this->snapshotLength = snapshotLength;
-            this->reverseDeltas = reverseDeltas;
-        }
+        explicit PackedDeltaData(std::vector<PackedSnapshot<T>> reverseDeltas, const size_t snapshotLength):
+            snapshotLength(snapshotLength),
+            reverseDeltas(std::move(reverseDeltas)) {}
 
         explicit PackedDeltaData(size_t snapshotLength):
             PackedDeltaData({}, snapshotLength) {}
@@ -341,12 +339,12 @@ namespace zvcr::reverse_delta {
 
         [[nodiscard]]
         OptionCRef<PackedSnapshot<T>> delta(size_t deltaIndex) const {
-            return reverseDeltas.empty() ? OptionCRef<PackedSnapshot<T>>{} : OptionCRef{reverseDeltas[deltaIndex]};
+            return reverseDeltas.empty() ? None : OptionCRef{reverseDeltas[deltaIndex]};
         }
 
         [[nodiscard]]
         Option<PackedSnapshot<T>> snapshotFrom(time_t timestamp) const {
-            const auto latest = Require(this->latestSnapshot());
+            const auto latest = Require(this->latestSnapshot()).get();
 
             auto latestSnapshot = latest.data.unpack();
             bool first = true;

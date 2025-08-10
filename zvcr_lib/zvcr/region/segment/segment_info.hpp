@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <zvcr/common/result.hpp>
+#include <result.hpp>
 #include <zvcr/region/segment/tile_entities.hpp>
 
 namespace zvcr::region {
@@ -18,8 +18,6 @@ namespace zvcr::region {
     };
 
     using SegmentStates = std::vector<SegmentState>;
-
-    using namespace result;
 
     class SegmentInfo {
     public:

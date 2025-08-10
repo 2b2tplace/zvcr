@@ -22,22 +22,22 @@ namespace zvcr::region {
         return RegionLocation{recoveredX, recoveredZ, recoveredDim};
     }
 
-    result::Option<RegionLocation> RegionLocation::fromFileName(const DimensionType dimension, const fs::path& file) {
+    Option<RegionLocation> RegionLocation::fromFileName(const DimensionType dimension, const fs::path& file) {
         const auto filename = file.filename().string();
-        if (!filename.starts_with("r.")) return {};
+        if (!filename.starts_with("r.")) return None;
 
         const auto extensionLength = filename.ends_with(".zvcr3") || filename.ends_with(".zvcr2") ? 6
                              : filename.ends_with(".zvr") || filename.ends_with(".zpr") ? 4
                              : 0;
 
-        if (extensionLength == 0) return {};
+        if (extensionLength == 0) return None;
 
         static constexpr auto startOffset = 2; // "r.", 2 chars
         const auto endOffset = extensionLength + startOffset;
 
         const auto regionIdentifier = filename.substr(startOffset, filename.length() - endOffset);
         const auto delimiter = regionIdentifier.find_first_of('.');
-        if (delimiter == std::string::npos) return {};
+        if (delimiter == std::string::npos) return None;
 
         const auto regionX = std::stoi(regionIdentifier.substr(0, delimiter));
         const auto regionZ = std::stoi(regionIdentifier.substr(delimiter + 1));

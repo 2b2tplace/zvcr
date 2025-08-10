@@ -61,15 +61,14 @@ namespace zvcr::serialize {
     }
 
     Option<ReadError> ReadHandle::validateZVCRFilePrefix(const std::string& prefix) {
-        PropagateVal(skip<uint8_t>(prefix.size(), MISSING_HEADER));
+        PropagateAsOption(skip<uint8_t>(prefix.size(), MISSING_HEADER));
 
         for (size_t i = 0; i < prefix.size(); ++i) {
-            const auto expected = static_cast<uint8_t>(prefix[i]);
-            if (data[i] != expected)
+            if (const auto expected = static_cast<uint8_t>(prefix[i]); data[i] != expected)
                 return ReadError{INVALID_HEADER_PREFIX, offset, "Invalid header prefix: "
                     + std::to_string(data[i]) + " != " + std::to_string(expected)};
         }
-        return {};
+        return None;
     }
 
     void WriteHandle::serializePackedSnapshot(const PackedSnapshot<SegmentAtom>& snapshot) {
@@ -81,17 +80,17 @@ namespace zvcr::serialize {
         write<uint64_t>(packedLength);
         writeArray(packedData.data(), packedLength);
 
-        const auto paletteTableLength = paletteTable.size();
+        const auto paletteTableLength = paletteTableStorage.size();
         const auto& palette = snapshot.data.palette;
         size_t paletteIndex = paletteTableLength;
         for (size_t i = 0; i < paletteTableLength; ++i) {
-            if (const auto& existingPalette = paletteTable[i]; palette == existingPalette) {
+            if (const auto& existingPalette = paletteTableStorage[i]; palette == existingPalette) {
                 paletteIndex = i;
                 break;
             }
         }
         if (paletteIndex == paletteTableLength)
-            paletteTable.push_back(palette);
+            paletteTableStorage.push_back(palette);
 
         write<uint32_t>(paletteIndex);
     }
@@ -105,7 +104,7 @@ namespace zvcr::serialize {
             return Err(err);
         }
         LongArray packedData(packedLength);
-        Propagate(readArray(packedData, EXPECTED_PACKED_DATA));
+        PropagateAsError(readArray(packedData, EXPECTED_PACKED_DATA));
 
         const auto paletteIndex = Try(read<uint32_t>(EXPECTED_PALETTE_INDEX));
         const auto& palette = paletteTable[paletteIndex];
@@ -144,19 +143,19 @@ namespace zvcr::serialize {
             const auto paletteLength = static_cast<size_t>(Require(read<uint16_t>(EXPECTED_PALETTE_LENGTH)));
 
             Palette palette(paletteLength);
-            PropagateVal(readArray(palette, EXPECTED_PALETTE_DATA));
+            PropagateAsOption(readArray(palette, EXPECTED_PALETTE_DATA));
             paletteTable.push_back(palette);
         }
-        return {};
+        return None;
     }
 
     Option<ReadError> ReadHandle::skipPackedSnapshot() {
-        PropagateVal(skip<uint64_t>(EXPECTED_TIMESTAMP));
+        PropagateAsOption(skip<uint64_t>(EXPECTED_TIMESTAMP));
         const auto packedLength = Require(read<uint64_t>(EXPECTED_PACKED_LENGTH));
 
-        PropagateVal(skip<uint64_t>(packedLength, EXPECTED_PACKED_DATA));
-        PropagateVal(skip<uint32_t>(EXPECTED_PALETTE_INDEX));
-        return {};
+        PropagateAsOption(skip<uint64_t>(packedLength, EXPECTED_PACKED_DATA));
+        PropagateAsOption(skip<uint32_t>(EXPECTED_PALETTE_INDEX));
+        return None;
     }
 
     void WriteHandle::serializePackedDeltaData(const PackedDeltaData<SegmentAtom>& section3d) {
@@ -178,7 +177,7 @@ namespace zvcr::serialize {
 
         for (size_t deltaIndex = 0; deltaIndex < deltaLength; ++deltaIndex) {
             if (maxDeltas != 0 && deltaIndex >= maxDeltas) {
-                Propagate(skipPackedSnapshot());
+                PropagateAsError(skipPackedSnapshot());
                 continue;
             }
             reverseDeltas.push_back(Try(deserializePackedSnapshot(snapshotLength)));
@@ -211,7 +210,7 @@ namespace zvcr::serialize {
         const auto totalTileEntities = getTotalTileEntities(ctx.protocolVersion);
 
         std::vector<TileEntityType> counts(totalTileEntities);
-        Propagate(readArray(counts, EXPECTED_TILE_ENTITY_COUNTS));
+        PropagateAsError(readArray(counts, EXPECTED_TILE_ENTITY_COUNTS));
         const auto timestamp = static_cast<time_t>(Try(read<uint64_t>(EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP)));
 
         return TileEntityCountInfo{counts, timestamp};
@@ -285,19 +284,19 @@ namespace zvcr::serialize {
     }
 
     void WriteHandle::serializeOptSegment3d(const Option<Segment3d>& segment3dOpt) {
-        if (segment3dOpt.none()) {
+        if (!segment3dOpt.has_value()) {
             writeByte(0);
             return;
         }
         writeByte(1);
-        serializeSegment3d(segment3dOpt.unwrap());
+        serializeSegment3d(segment3dOpt.value());
     }
 
     ReadResult<Option<Segment3d>> ReadHandle::deserializeOptSegment3d() {
         if (const bool hasOption = Try(readByte(EXPECTED_SEGMENT_INDICATOR)); !hasOption)
-            return Option<Segment3d>();
+            return None;
 
-        return static_cast<ReadResult<Option<Segment3d>>>(Try(deserializeSegment3d()));
+        return Try(deserializeSegment3d());
     }
 
     void WriteHandle::serializeRegion3d(const Region3d& region) {
@@ -310,7 +309,7 @@ namespace zvcr::serialize {
         if (ctx.supportDynamicVersioning)
             write<uint16_t>(ctx.protocolVersion);
 
-        serializePaletteTable(regionDataHandle.paletteTable);
+        serializePaletteTable(regionDataHandle.paletteTableStorage);
         writeBytes(regionDataHandle.data);
     }
 
@@ -320,7 +319,7 @@ namespace zvcr::serialize {
         if (ctx.supportDynamicVersioning)
             ctx.protocolVersion = Try(read<uint16_t>(EXPECTED_PROTOCOL_VERSION));
 
-        Propagate(deserializePaletteTable());
+        PropagateAsError(deserializePaletteTable());
         Segments3d segment3ds(SEGMENTS_PER_REGION);
         for (size_t segment3dIndex = 0; segment3dIndex < SEGMENTS_PER_REGION; ++segment3dIndex)
             segment3ds[segment3dIndex] = Try(deserializeOptSegment3d());
@@ -340,7 +339,7 @@ namespace zvcr::serialize {
     }
 
     ReadResult<ZVCR3File> deserializeZVCR3File(ReadHandle& handle) {
-        Propagate(handle.validateZVCRFilePrefix(ZVCR3_FILE_PREFIX));
+        PropagateAsError(handle.validateZVCRFilePrefix(ZVCR3_FILE_PREFIX));
 
         const auto version = Try(handle.deserializeVersion(ZVCR3_VER_LATEST));
         const auto dimensionType = Try(handle.deserializeDimensionType());
@@ -409,19 +408,19 @@ namespace zvcr::serialize {
     }
 
     void WriteHandle::serializeOptSegment2d(const Option<Segment2d>& segment) {
-        if (segment.none()) {
+        if (!segment.has_value()) {
             writeByte(0);
             return;
         }
         writeByte(1);
-        serializeSegment2d(segment.unwrap());
+        serializeSegment2d(segment.value());
     }
 
     ReadResult<Option<Segment2d>> ReadHandle::deserializeOptSegment2d() {
         if (const auto hasOption = Try(readByte(EXPECTED_SEGMENT_INDICATOR)); !hasOption)
-            return Option<Segment2d>{};
+            return None;
 
-        return static_cast<ReadResult<Option<Segment2d>>>(Try(deserializeSegment2d()));
+        return Try(deserializeSegment2d());
     }
 
     void WriteHandle::serializeRegion2d(const Region2d& region) {
@@ -434,7 +433,7 @@ namespace zvcr::serialize {
         if (ctx.supportDynamicVersioning)
             write<uint16_t>(ctx.protocolVersion);
 
-        serializePaletteTable(regionDataHandle.paletteTable);
+        serializePaletteTable(regionDataHandle.paletteTableStorage);
         writeBytes(regionDataHandle.data);
     }
 
@@ -444,7 +443,7 @@ namespace zvcr::serialize {
         if (ctx.supportDynamicVersioning)
             ctx.protocolVersion = Try(read<uint16_t>(EXPECTED_PROTOCOL_VERSION));
 
-        Propagate(deserializePaletteTable());
+        PropagateAsError(deserializePaletteTable());
         Segments2d segment3ds(SEGMENTS_PER_REGION);
         for (size_t segmentIndex = 0; segmentIndex < SEGMENTS_PER_REGION; ++segmentIndex)
             segment3ds[segmentIndex] = Try(deserializeOptSegment2d());
@@ -463,7 +462,7 @@ namespace zvcr::serialize {
     }
 
     ReadResult<ZVCR2File> deserializeZVCR2File(ReadHandle& handle) {
-        Propagate(handle.validateZVCRFilePrefix(ZVCR2_FILE_PREFIX));
+        PropagateAsError(handle.validateZVCRFilePrefix(ZVCR2_FILE_PREFIX));
 
         const auto version = Try(handle.deserializeVersion(ZVCR2_VER_LATEST));
         const auto dimensionType = Try(handle.deserializeDimensionType());

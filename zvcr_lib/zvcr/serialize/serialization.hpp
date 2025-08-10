@@ -17,7 +17,6 @@
 
 namespace zvcr::serialize {
 
-    using namespace result;
     using namespace reverse_delta;
     using namespace region;
     using namespace paletted_storage;
@@ -93,7 +92,7 @@ namespace zvcr::serialize {
     namespace fs = std::filesystem;
 
     template<typename R>
-    using ReadResult = Result<R, ReadError>;
+    using ReadResult = std::expected<R, ReadError>;
 
     template<typename R>
     using FileSerialize = std::function<void(const R&, std::vector<uint8_t>&)>;
@@ -126,7 +125,7 @@ namespace zvcr::serialize {
     };
 
     class WriteHandle {
-        std::vector<Palette> paletteTable;
+        std::vector<Palette> paletteTableStorage;
 
     public:
         Context ctx;
@@ -233,7 +232,7 @@ namespace zvcr::serialize {
 
             std::memcpy(array.data(), data.data() + offset, length * sizeof(T));
             offset += length * sizeof(T);
-            return {};
+            return None;
         }
 
         template<typename T>
@@ -244,7 +243,7 @@ namespace zvcr::serialize {
                 return ReadError{orElseErr, offset, "Read out of bounds"};
 
             offset += length;
-            return {};
+            return None;
         }
 
         template<typename T>
@@ -392,15 +391,15 @@ namespace zvcr::serialize {
         delete[] bytesCompressed;
         try {
             const auto result = DefaultSerialization<R>::deserialize(handle);
-            if (result.error()) {
-                auto err = result.unwrapError();
+            if (!result.has_value()) {
+                auto err = result.error();
                 err.attach(handle);
                 return Err(err);
             }
             if (protocolVersion != nullptr)
                 *protocolVersion = handle.ctx.protocolVersion;
 
-            return result.unwrap();
+            return result.value();
         } catch (const std::length_error& e) {
             auto err = ReadError{GENERIC_READ_ERROR, handle.getOffset(), "Generic read error: " + std::string(e.what())};
             err.attach(handle);

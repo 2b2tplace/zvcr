@@ -14,7 +14,6 @@ namespace zvcr {
     using namespace definitions;
     using namespace paletted_storage;
     using namespace generic_region;
-    using namespace result;
     using namespace thread_pool;
     using namespace reverse_delta;
     using namespace region;

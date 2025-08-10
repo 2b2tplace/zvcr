@@ -10,7 +10,6 @@ namespace zvcr::region {
 
     using namespace definitions;
     using generic_region::GenericRegion;
-    using result::OptionRef;
 
     class LayerContainer2d {
     public:

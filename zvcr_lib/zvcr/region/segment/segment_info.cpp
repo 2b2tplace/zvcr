@@ -13,17 +13,16 @@ namespace zvcr::region {
     }
 
     OptionCRef<SegmentState> SegmentInfo::latestState() const {
-        return segmentStates.empty() ? OptionCRef<SegmentState>{} : OptionCRef{segmentStates[0]};
+        return segmentStates.empty() ? None : Option{segmentStates[0]};
     }
 
     OptionCRef<TileEntityCountInfo> SegmentInfo::latestTileEntityCounts() const {
-        return tileEntityCounts.empty() ? OptionCRef<TileEntityCountInfo>{} : OptionCRef{tileEntityCounts[0]};
+        return tileEntityCounts.empty() ? None : Option{tileEntityCounts[0]};
     }
 
     Option<SegmentState> SegmentInfo::stateFrom(const time_t timestamp) const {
-        const auto& latest = Require(this->latestState());
+        auto[latestStateType, _] = Require(this->latestState());
 
-        auto latestStateType = latest.type;
         for (const auto& [type, deltaTimestamp] : segmentStates) {
             latestStateType = type;
             if (timestamp >= deltaTimestamp) break;
@@ -32,9 +31,8 @@ namespace zvcr::region {
     }
 
     Option<TileEntityCountInfo> SegmentInfo::tileEntityCountsFrom(const time_t timestamp) const {
-        const auto latest = Require(this->latestTileEntityCounts());
+        auto [latestCounts, _] = Require(this->latestTileEntityCounts()).get();
 
-        auto latestCounts = latest.counts;
         for (const auto&[counts, deltaTimestamp] : tileEntityCounts) {
             latestCounts = counts;
             if (timestamp >= deltaTimestamp) break;
@@ -44,7 +42,7 @@ namespace zvcr::region {
 
     bool SegmentInfo::updateState(const SegmentState& newState) {
         if (const auto latest = this->latestState();
-            latest.some() && (newState.timestamp <= latest->timestamp || latest->type == newState.type)) return false;
+            latest.has_value() && (newState.timestamp <= latest->timestamp || latest->type == newState.type)) return false;
 
         segmentStates.insert(segmentStates.begin(), newState);
         return true;
@@ -52,8 +50,8 @@ namespace zvcr::region {
 
     bool SegmentInfo::updateTileEntityCounts(const TileEntityCountInfo& newTileEntityCounts) {
         if (const auto latest = this->latestTileEntityCounts();
-            latest.some() && (newTileEntityCounts.timestamp <= latest->timestamp
-            || latest->counts == newTileEntityCounts.counts)) return false;
+            latest.has_value() && (newTileEntityCounts.timestamp <= latest->get().timestamp
+            || latest->get().counts == newTileEntityCounts.counts)) return false;
 
         tileEntityCounts.insert(tileEntityCounts.begin(), newTileEntityCounts);
         return true;

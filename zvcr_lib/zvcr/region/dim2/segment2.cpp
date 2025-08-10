@@ -3,7 +3,7 @@
 namespace zvcr::region {
 
     OptionCRef<Layer2d> LayerContainer2d::getLayer(const LayerTypeId type) const {
-        if (!layers.contains(type)) return {};
+        if (!layers.contains(type)) return None;
         return layers.at(type);
     }
 
