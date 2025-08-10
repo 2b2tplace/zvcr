@@ -1,7 +1,6 @@
 #pragma once
 
 #include <zvcr/common/data_storage.hpp>
-#include <zvcr/common/result.hpp>
 #include <zvcr/region/file_location.hpp>
 #include <zvcr/common/generic_region.hpp>
 #include <zvcr/common/thread_pool.hpp>

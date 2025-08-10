@@ -3,7 +3,6 @@
 #include <functional>
 #include <fstream>
 #include <zvcr/serialize/compression.hpp>
-#include <zvcr/common/result.hpp>
 #include <zvcr/common/data_storage.hpp>
 #include <zvcr/region/dimension.hpp>
 #include <zvcr/region/segment/segment_info.hpp>

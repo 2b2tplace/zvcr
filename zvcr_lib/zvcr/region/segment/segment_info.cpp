@@ -21,7 +21,7 @@ namespace zvcr::region {
     }
 
     Option<SegmentState> SegmentInfo::stateFrom(const time_t timestamp) const {
-        auto[latestStateType, _] = Require(this->latestState());
+        auto[latestStateType, _] = Require(this->latestState()).get();
 
         for (const auto& [type, deltaTimestamp] : segmentStates) {
             latestStateType = type;
@@ -42,7 +42,7 @@ namespace zvcr::region {
 
     bool SegmentInfo::updateState(const SegmentState& newState) {
         if (const auto latest = this->latestState();
-            latest.has_value() && (newState.timestamp <= latest->timestamp || latest->type == newState.type)) return false;
+            latest.has_value() && (newState.timestamp <= latest->get().timestamp || latest->get().type == newState.type)) return false;
 
         segmentStates.insert(segmentStates.begin(), newState);
         return true;

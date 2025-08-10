@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <cassert>
-#include <zvcr/common/result.hpp>
+#include <result.hpp>
 #include <zvcr/common/definitions.hpp>
 
 namespace zvcr::generic_region {
