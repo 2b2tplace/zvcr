@@ -86,7 +86,7 @@ namespace zvcr::serialize {
     };
 
     static constexpr auto ZSTD_COMPRESSION_LEVEL_DEFAULT = 10;
-    static const auto ZSTD_COMPRESSION_THREADS_DEFAULT = std::thread::hardware_concurrency() / 2;
+    static const auto ZSTD_COMPRESSION_THREADS_DEFAULT = static_cast<int>(std::thread::hardware_concurrency() / 2);
 
     namespace fs = std::filesystem;
 
@@ -385,7 +385,7 @@ namespace zvcr::serialize {
                 ZSTD_freeCStream(cstream);
                 return Err("ZSTD_compressStream error: " + std::string(ZSTD_getErrorName(ret)));
             }
-            fileStream.write(outBuffer.data(), output.pos);
+            fileStream.write(outBuffer.data(), static_cast<int64_t>(output.pos));
         }
         bool finished = false;
         while (!finished) {
@@ -395,7 +395,7 @@ namespace zvcr::serialize {
                 ZSTD_freeCStream(cstream);
                 return Err("ZSTD_endStream error: " + std::string(ZSTD_getErrorName(ret)));
             }
-            fileStream.write(outBuffer.data(), output.pos);
+            fileStream.write(outBuffer.data(), static_cast<int64_t>(output.pos));
             finished = ret == 0;
         }
         ZSTD_freeCStream(cstream);
@@ -427,7 +427,7 @@ namespace zvcr::serialize {
         std::vector<uint8_t> decompressed;
 
         while (true) {
-            fileStream.read(inBuffer.data(), inChunkSize);
+            fileStream.read(inBuffer.data(), static_cast<int64_t>(inChunkSize));
             std::streamsize bytesRead = fileStream.gcount();
             if (bytesRead == 0) break;
 
@@ -440,7 +440,7 @@ namespace zvcr::serialize {
                     ZSTD_freeDStream(dstream);
                     return Err(ReadError(GENERIC_READ_ERROR, 0, "ZSTD_decompressStream error: " + std::string(ZSTD_getErrorName(ret))));
                 }
-                decompressed.insert(decompressed.end(), outBuffer.data(), outBuffer.data() + output.pos);
+                decompressed.insert(decompressed.end(), outBuffer.data(), outBuffer.data() + static_cast<int64_t>(output.pos));
             }
         }
         ZSTD_freeDStream(dstream);
