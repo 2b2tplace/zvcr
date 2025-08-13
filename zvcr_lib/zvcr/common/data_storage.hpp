@@ -339,7 +339,7 @@ namespace zvcr::reverse_delta {
 
         [[nodiscard]]
         OptionCRef<PackedSnapshot<T>> delta(size_t deltaIndex) const {
-            return reverseDeltas.empty() ? None : OptionCRef{reverseDeltas[deltaIndex]};
+            return reverseDeltas.empty() ? None : OptionCRef<PackedSnapshot<T>>{reverseDeltas[deltaIndex]};
         }
 
         [[nodiscard]]
@@ -367,14 +367,14 @@ namespace zvcr::reverse_delta {
         [[nodiscard]]
         DeltaInsertionResult insertSnapshot(const PackedSnapshot<T>& newSnapshot) {
             const auto latest = latestSnapshot();
-            if (latest.none()) {
+            if (!latest.has_value()) {
                 reverseDeltas.push_back(newSnapshot);
                 return newSnapshot.data.snapshotLength;
             }
             if (newSnapshot.data.snapshotLength != this->snapshotLength)
                 return Err(DeltaInsertionStatus::INVALID_SNAPSHOT_LENGTH);
 
-            const auto& [sectionData, timestamp] = latest.unwrap();
+            const auto& [sectionData, timestamp] = latest.value().get();
 
             if (newSnapshot.timestamp <= timestamp)
                 return Err(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
