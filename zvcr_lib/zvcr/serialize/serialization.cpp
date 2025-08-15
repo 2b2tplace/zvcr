@@ -40,7 +40,7 @@ namespace zvcr::serialize {
         sliceStart = offset >= DBG_SLICE_SIZE ? offset - DBG_SLICE_SIZE : 0;
         sliceEnd = std::min(offset + DBG_SLICE_SIZE + 1, dataLength);
         dumpPoint = offset - sliceStart;
-        dumpSlice = std::vector(handle.data.begin() + sliceStart, handle.data.begin() + sliceEnd);
+        dumpSlice = std::vector(handle.data.begin() + static_cast<int64_t>(sliceStart), handle.data.begin() + static_cast<int64_t>(sliceEnd));
     }
 
     ReadResult<DimensionType> ReadHandle::deserializeDimensionType() {
