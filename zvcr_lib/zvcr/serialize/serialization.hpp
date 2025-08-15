@@ -224,30 +224,30 @@ namespace zvcr::serialize {
 
         template<typename T>
         [[nodiscard]]
-        Option<ReadError> readArray(std::vector<T>& array, const ReadErrorType orElseErr) {
+        ReadResult<std::monostate> readArray(std::vector<T>& array, const ReadErrorType orElseErr) {
             const auto length = array.size();
             if (offset + length * sizeof(T) > data.size())
-                return ReadError{orElseErr, offset, "Read out of bounds"};
+                return Err(ReadError(orElseErr, offset, "Read out of bounds"));
 
             std::memcpy(array.data(), data.data() + offset, length * sizeof(T));
             offset += length * sizeof(T);
-            return None;
+            return {};
         }
 
         template<typename T>
         [[nodiscard]]
-        Option<ReadError> skip(const size_t n, const ReadErrorType orElseErr) {
+        ReadResult<std::monostate> skip(const size_t n, const ReadErrorType orElseErr) {
             const auto length = n * sizeof(T);
             if (offset + length > data.size())
-                return ReadError{orElseErr, offset, "Read out of bounds"};
+                return Err(ReadError(orElseErr, offset, "Read out of bounds"));
 
             offset += length;
-            return None;
+            return {};
         }
 
         template<typename T>
         [[nodiscard]]
-        Option<ReadError> skip(const ReadErrorType orElseErr) {
+        ReadResult<std::monostate> skip(const ReadErrorType orElseErr) {
             return skip<T>(1, orElseErr);
         }
 
@@ -264,7 +264,7 @@ namespace zvcr::serialize {
         }
 
         [[nodiscard]]
-        Option<ReadError> validateZVCRFilePrefix(const std::string& prefix);
+        ReadResult<std::monostate> validateZVCRFilePrefix(const std::string& prefix);
 
         [[nodiscard]]
         ReadResult<DimensionType> deserializeDimensionType();
@@ -273,10 +273,10 @@ namespace zvcr::serialize {
         ReadResult<PackedSnapshot<SegmentAtom>> deserializePackedSnapshot(size_t snapshotLength);
 
         [[nodiscard]]
-        Option<ReadError> deserializePaletteTable();
+        ReadResult<std::monostate> deserializePaletteTable();
 
         [[nodiscard]]
-        Option<ReadError> skipPackedSnapshot();
+        ReadResult<std::monostate> skipPackedSnapshot();
 
         [[nodiscard]]
         ReadResult<PackedDeltaData<SegmentAtom>> deserializePackedDeltaData(size_t snapshotLength);
