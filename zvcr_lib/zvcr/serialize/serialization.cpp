@@ -5,7 +5,7 @@
 #include <cstring>
 #include <zvcr/common/definitions.hpp>
 
-namespace zvcr::serialize {
+namespace zvcr {
 
     std::string ReadError::what() const {
         std::ostringstream oss;

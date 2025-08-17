@@ -15,11 +15,7 @@
 #include <zvcr/region/file_location.hpp>
 #include <zvcr/common/definitions.hpp>
 
-namespace zvcr::serialize {
-    using namespace reverse_delta;
-    using namespace region;
-    using namespace paletted_storage;
-    using namespace definitions;
+namespace zvcr {
 
     using Palette = std::vector<SegmentAtom>;
 

@@ -7,15 +7,3 @@
 #include <zvcr/region/dim2/zvcr2.hpp>
 #include <zvcr/region/dim3/zvcr3.hpp>
 #include <zvcr/serialize/serialization.hpp>
-
-namespace zvcr {
-
-    using namespace definitions;
-    using namespace paletted_storage;
-    using namespace generic_region;
-    using namespace thread_pool;
-    using namespace reverse_delta;
-    using namespace region;
-    using namespace serialize;
-
-}

@@ -3,10 +3,7 @@
 #include <unordered_map>
 #include <zvcr/common/data_storage.hpp>
 
-namespace zvcr::region {
-
-    using namespace reverse_delta;
-    using namespace definitions;
+namespace zvcr {
 
     enum class LayerType {
         NORMAL = 0,

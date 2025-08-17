@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-namespace zvcr::region {
+namespace zvcr {
 
     struct DimensionProperties {
         bool hasSkyLight;

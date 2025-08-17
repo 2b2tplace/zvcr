@@ -3,7 +3,7 @@
 #include <zvcr/region/dimension.hpp>
 #include <zvcr/region/dim3/segment3.hpp>
 
-namespace zvcr::region {
+namespace zvcr {
 
     enum class ZVCR3Version {
         ZVCR3_0_0_0_1 = 1,

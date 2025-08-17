@@ -5,10 +5,7 @@
 #include <result.hpp>
 #include <zvcr/common/definitions.hpp>
 
-namespace zvcr::generic_region {
-
-    using definitions::REGION_SIDELENGTH_SEGMENTS;
-    using definitions::SEGMENTS_PER_REGION;
+namespace zvcr {
 
     template<typename S>
     class GenericRegion {

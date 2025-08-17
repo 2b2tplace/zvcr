@@ -6,10 +6,7 @@
 #include <zvcr/region/dim2/layer.hpp>
 #include <zvcr/common/generic_region.hpp>
 
-namespace zvcr::region {
-
-    using namespace definitions;
-    using generic_region::GenericRegion;
+namespace zvcr {
 
     class LayerContainer2d {
     public:

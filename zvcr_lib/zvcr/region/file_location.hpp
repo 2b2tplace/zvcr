@@ -4,7 +4,7 @@
 #include <zvcr/region/dimension.hpp>
 #include <result.hpp>
 
-namespace zvcr::region {
+namespace zvcr {
 
     namespace fs = std::filesystem;
 

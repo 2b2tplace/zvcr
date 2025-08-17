@@ -4,7 +4,7 @@
 #include <result.hpp>
 #include <zvcr/region/segment/tile_entities.hpp>
 
-namespace zvcr::region {
+namespace zvcr {
 
     enum class SegmentStateType {
         UNKNOWN = 0,

@@ -1,6 +1,6 @@
 #include <zvcr/region/file_location.hpp>
 
-namespace zvcr::region {
+namespace zvcr {
 
     RegionID RegionLocation::toRegionID() const {
         const auto ux = static_cast<uint64_t>(static_cast<uint32_t>(rx) & 0x1FFFFF);

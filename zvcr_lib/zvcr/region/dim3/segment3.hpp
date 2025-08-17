@@ -5,11 +5,7 @@
 #include <zvcr/common/generic_region.hpp>
 #include <zvcr/region/dimension.hpp>
 
-namespace zvcr::region {
-
-    using namespace reverse_delta;
-    using namespace definitions;
-    using generic_region::GenericRegion;
+namespace zvcr {
 
     template<typename T>
     class DeltaSections3d {

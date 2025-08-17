@@ -4,7 +4,7 @@
 #include <zvcr/region/dimension.hpp>
 #include <zvcr/region/dim2/segment2.hpp>
 
-namespace zvcr::region {
+namespace zvcr {
 
     enum class ZVCR2Version {
         ZVCR2_0_0_0_0 = 0,

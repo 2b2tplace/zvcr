@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <ctime>
 
-namespace zvcr::region {
+namespace zvcr {
 
     using TileEntityType = uint16_t;
 

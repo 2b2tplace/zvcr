@@ -10,7 +10,7 @@
 #include <functional>
 #include <stdexcept>
 
-namespace zvcr::thread_pool {
+namespace zvcr {
 
     class ThreadPool {
     public:

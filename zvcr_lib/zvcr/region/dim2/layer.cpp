@@ -1,7 +1,7 @@
 #include <zvcr/region/dim2/layer.hpp>
 #include <zvcr/common/definitions.hpp>
 
-namespace zvcr::region {
+namespace zvcr {
 
     Layer2d& LayerTable2d::operator[](const LayerType layerType) {
         return operator[](static_cast<LayerTypeId>(layerType));

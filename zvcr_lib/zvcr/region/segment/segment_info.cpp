@@ -1,6 +1,6 @@
 #include <zvcr/region/segment/segment_info.hpp>
 
-namespace zvcr::region {
+namespace zvcr {
 
     SegmentInfo::SegmentInfo(const SegmentState& initialState, const TileEntityCountInfo& initialTileEntityCounts) {
         this->segmentStates.push_back(initialState);

@@ -4,10 +4,9 @@
 #include <zvcr/common/definitions.hpp>
 #include <result.hpp>
 
-namespace zvcr::paletted_storage {
+namespace zvcr {
 
     using LongArray = std::vector<uint64_t>;
-    using namespace definitions;
 
     template<typename T>
     class UnpackedView;
@@ -104,19 +103,12 @@ namespace zvcr::paletted_storage {
         uint64_t bitsPerIndex;
     };
 
-}
-
-namespace zvcr::reverse_delta {
-
     template<typename T>
     struct PackedSnapshot {
-        paletted_storage::PackedData<T> data;
+        PackedData<T> data;
         time_t timestamp{};
     };
 
-}
-
-namespace zvcr::paletted_storage {
 
     template<typename T>
     class UnpackedView {
@@ -161,8 +153,8 @@ namespace zvcr::paletted_storage {
         }
 
         [[nodiscard]]
-        reverse_delta::PackedSnapshot<T> packSnapshot(time_t timestamp) const {
-            return reverse_delta::PackedSnapshot{pack(), timestamp};
+        PackedSnapshot<T> packSnapshot(time_t timestamp) const {
+            return PackedSnapshot{pack(), timestamp};
         }
 
         [[nodiscard]]
@@ -297,12 +289,6 @@ namespace zvcr::paletted_storage {
         magic_tuple{68174084, 68174084, 0},
         magic_tuple{-2147483648, 0, 5}
     };
-
-}
-
-namespace zvcr::reverse_delta {
-
-    using paletted_storage::PackedData;
 
     static constexpr uint16_t STATE_UNCHANGED = 0xFFFF;
 
