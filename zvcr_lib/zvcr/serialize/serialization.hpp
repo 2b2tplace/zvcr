@@ -148,11 +148,11 @@ namespace zvcr {
             data.push_back(byte);
         }
 
-        void serializePackedSnapshot(const PackedSnapshot<SegmentAtom>& snapshot);
+        void serializePackedSnapshot(const PackedSnapshot& snapshot);
 
         void serializePaletteTable(const std::vector<Palette>& paletteTable);
 
-        void serializePackedDeltaData(const PackedDeltaData<SegmentAtom>& section3d);
+        void serializePackedDeltaData(const PackedDeltaData& section3d);
 
         void serializeSegmentState(const SegmentState& segmentState);
 
@@ -266,7 +266,7 @@ namespace zvcr {
         ReadResult<DimensionType> deserializeDimensionType();
 
         [[nodiscard]]
-        ReadResult<PackedSnapshot<SegmentAtom>> deserializePackedSnapshot(size_t snapshotLength);
+        ReadResult<PackedSnapshot> deserializePackedSnapshot(size_t snapshotLength);
 
         [[nodiscard]]
         ReadResult<std::monostate> deserializePaletteTable();
@@ -275,7 +275,7 @@ namespace zvcr {
         ReadResult<std::monostate> skipPackedSnapshot();
 
         [[nodiscard]]
-        ReadResult<PackedDeltaData<SegmentAtom>> deserializePackedDeltaData(size_t snapshotLength);
+        ReadResult<PackedDeltaData> deserializePackedDeltaData(size_t snapshotLength);
 
         [[nodiscard]]
         ReadResult<SegmentState> deserializeSegmentState();

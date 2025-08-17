@@ -19,20 +19,20 @@ namespace zvcr {
         setLayer(static_cast<LayerTypeId>(layerType), layer);
     }
 
-    void LayerContainer2d::setLayer(const LayerTypeId type, const PackedSnapshot<SegmentAtom>& initialState) {
+    void LayerContainer2d::setLayer(const LayerTypeId type, const PackedSnapshot& initialState) {
         setLayer(type, Layer2d(PackedDeltaData { initialState }, type));
     }
 
-    void LayerContainer2d::setLayer(const LayerType layerType, const PackedSnapshot<SegmentAtom>& initialState) {
+    void LayerContainer2d::setLayer(const LayerType layerType, const PackedSnapshot& initialState) {
         setLayer(static_cast<LayerTypeId>(layerType), initialState);
     }
 
-    void LayerContainer2d::setLayer(const LayerTypeId type, const std::vector<PackedSnapshot<SegmentAtom>>& reverseDeltas,
+    void LayerContainer2d::setLayer(const LayerTypeId type, const std::vector<PackedSnapshot>& reverseDeltas,
                                     const size_t snapshotLength) {
         setLayer(type, Layer2d(PackedDeltaData { reverseDeltas, snapshotLength }, type));
     }
 
-    void LayerContainer2d::setLayer(const LayerType layerType, const std::vector<PackedSnapshot<SegmentAtom>>& reverseDeltas,
+    void LayerContainer2d::setLayer(const LayerType layerType, const std::vector<PackedSnapshot>& reverseDeltas,
                                     const size_t snapshotLength) {
         setLayer(static_cast<LayerTypeId>(layerType), reverseDeltas, snapshotLength);
     }

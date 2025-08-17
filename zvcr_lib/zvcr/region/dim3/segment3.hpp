@@ -7,10 +7,9 @@
 
 namespace zvcr {
 
-    template<typename T>
     class DeltaSections3d {
-        using Segment3dSnapshot = std::vector<PackedSnapshot<T>>;
-        using PackedData = PackedDeltaData<T>;
+        using Segment3dSnapshot = std::vector<PackedSnapshot>;
+        using PackedData = PackedDeltaData;
 
         std::vector<PackedData> sections;
 
@@ -24,12 +23,12 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        PackedData& getSection(uint8_t y) {
+        PackedData& getSection(const uint8_t y) {
             return sections[y];
         }
 
         [[nodiscard]]
-        const PackedData& readSection(uint8_t y) const {
+        const PackedData& readSection(const uint8_t y) const {
             return sections[y];
         }
 
@@ -44,13 +43,13 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        Segment3dSnapshot snapshotFrom(time_t timestamp) const {
+        Segment3dSnapshot snapshotFrom(const time_t timestamp) const {
             Segment3dSnapshot snapshots;
             snapshots.reserve(sectionCount);
 
             for (const auto& section : this->sections) {
-                if (const auto snapshot = section.snapshotFrom(timestamp); snapshot.some())
-                    snapshots.push_back(snapshot.unwrap());
+                if (const auto snapshot = section.snapshotFrom(timestamp); snapshot.has_value())
+                    snapshots.push_back(snapshot.value());
             }
             return snapshots;
         }
@@ -61,8 +60,8 @@ namespace zvcr {
             snapshots.reserve(sectionCount);
 
             for (const auto& section : this->sections) {
-                if (const auto snapshot = section.latestSnapshot(); snapshot.some())
-                    snapshots.push_back(snapshot.unwrap());
+                if (const auto snapshot = section.latestSnapshot(); snapshot.has_value())
+                    snapshots.push_back(snapshot.value());
             }
             return snapshots;
         }
@@ -71,18 +70,16 @@ namespace zvcr {
         size_t updateSections(const Segment3dSnapshot& sectionUpdates) {
             size_t changes = 0;
             for (size_t section = 0; section < sectionUpdates.size(); ++section)
-                changes += sections[section].insertSnapshot(sectionUpdates[section]).orElse(0);
+                changes += sections[section].insertSnapshot(sectionUpdates[section]).value_or(0);
 
             return changes;
         }
     };
 
-    using SegmentSections3d = DeltaSections3d<SegmentAtom>;
-
     struct Segment3d {
         size_t sectionCount;
-        SegmentSections3d blockSections;
-        SegmentSections3d biomeSections;
+        DeltaSections3d blockSections;
+        DeltaSections3d biomeSections;
         SegmentInfo info;
         bool supportBiomes;
 
@@ -94,8 +91,8 @@ namespace zvcr {
 
         explicit Segment3d(const size_t sectionCount, const bool supportBiomes):
             sectionCount(sectionCount),
-            blockSections(SegmentSections3d{sectionCount, SECTION_3D_SIZE_BLOCKS}),
-            biomeSections(SegmentSections3d{sectionCount, SECTION_3D_SIZE_BIOMES}),
+            blockSections(DeltaSections3d{sectionCount, SECTION_3D_SIZE_BLOCKS}),
+            biomeSections(DeltaSections3d{sectionCount, SECTION_3D_SIZE_BIOMES}),
             info({}),
             supportBiomes(supportBiomes) {}
     };

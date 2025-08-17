@@ -8,9 +8,6 @@ namespace zvcr {
 
     using LongArray = std::vector<uint64_t>;
 
-    template<typename T>
-    class UnpackedView;
-
     class BitStorage {
     public:
         LongArray data;
@@ -34,10 +31,118 @@ namespace zvcr {
         int32_t divideShift;
     };
 
-    template<typename T>
+    class PackedData;
+    struct PackedSnapshot;
+
+    class UnpackedView {
+    public:
+        using UnpackedData = std::vector<SegmentAtom>;
+
+        UnpackedData unpacked;
+
+        explicit UnpackedView(const uint8_t sidelength, const size_t snapshotLength): sidelength(sidelength) {
+            this->unpacked = std::vector<SegmentAtom>(snapshotLength);
+        }
+
+        explicit UnpackedView(const uint8_t sidelength, const size_t snapshotLength, const SegmentAtom fill): sidelength(sidelength) {
+            this->unpacked = std::vector(snapshotLength, fill);
+        }
+
+        explicit UnpackedView(const uint8_t sidelength, const UnpackedData& unpacked): sidelength(sidelength) {
+            this->unpacked = unpacked;
+        }
+
+        [[nodiscard]]
+        SegmentAtom getVoxel(const uint8_t x, const uint8_t y, const uint8_t z) const {
+            return unpacked[unpackedIndex(x, y, z)];
+        }
+
+        void setVoxel(const uint8_t x, const uint8_t y, const uint8_t z, const SegmentAtom voxel) {
+            unpacked[unpackedIndex(x, y, z)] = voxel;
+        }
+
+        [[nodiscard]]
+        SegmentAtom getPixel(const uint8_t x, const uint8_t z) const {
+            return unpacked[unpackedIndex(x, z)];
+        }
+
+        void setPixel(const uint8_t x, const uint8_t z, const SegmentAtom pixel) {
+            unpacked[unpackedIndex(x, z)] = pixel;
+        }
+
+        [[nodiscard]]
+        PackedData pack() const;
+
+        [[nodiscard]]
+        PackedSnapshot packSnapshot(time_t timestamp) const;
+
+        [[nodiscard]]
+        size_t unpackedIndex(const uint8_t x, const uint8_t y, const uint8_t z) const {
+            assert(x < sidelength && "X coordinate out of bounds");
+            assert(y < sidelength && "Y coordinate out of bounds");
+            assert(z < sidelength && "Z coordinate out of bounds");
+
+            return static_cast<size_t>(y) * sidelength * sidelength
+                 + static_cast<size_t>(z) * sidelength
+                 + static_cast<size_t>(x);
+        }
+
+        [[nodiscard]]
+        uint8_t getSidelength() const {
+            return sidelength;
+        }
+
+        [[nodiscard]]
+        size_t unpackedIndex(const uint8_t x, const uint8_t z) const {
+            return unpackedIndex(x, 0, z);
+        }
+
+        [[nodiscard]]
+        static UnpackedView create2DBlockView(const SegmentAtom fill) {
+            return UnpackedView{SEGMENT_SIDELENGTH_BLOCKS, SECTION_2D_SIZE_BLOCKS, fill};
+        }
+
+        [[nodiscard]]
+        static UnpackedView create3DBlockView(const SegmentAtom fill) {
+            return UnpackedView{SEGMENT_SIDELENGTH_BLOCKS, SECTION_3D_SIZE_BLOCKS, fill};
+        }
+
+        [[nodiscard]]
+        static UnpackedView create2DBiomeView(const SegmentAtom fill) {
+            return UnpackedView{SEGMENT_SIDELENGTH_BIOMES, SECTION_2D_SIZE_BIOMES, fill};
+        }
+
+        [[nodiscard]]
+        static UnpackedView create3DBiomeView(const SegmentAtom fill) {
+            return UnpackedView{SEGMENT_SIDELENGTH_BIOMES, SECTION_3D_SIZE_BIOMES, fill};
+        }
+
+        [[nodiscard]]
+        static UnpackedView create2DBlockView() {
+            return create2DBlockView(0);
+        }
+
+        [[nodiscard]]
+        static UnpackedView create3DBlockView() {
+            return create3DBlockView(0);
+        }
+
+        [[nodiscard]]
+        static UnpackedView create2DBiomeView() {
+            return create2DBiomeView(0);
+        }
+
+        [[nodiscard]]
+        static UnpackedView create3DBiomeView() {
+            return create3DBiomeView(0);
+        }
+    private:
+        uint8_t sidelength;
+    };
+
     class PackedData {
     public:
-        using UnpackedData = std::vector<T>;
+        using UnpackedData = std::vector<SegmentAtom>;
 
         explicit PackedData(const UnpackedData& palette, LongArray packedData, const size_t snapshotLength): packedData(std::move(packedData)) {
             this->snapshotLength = snapshotLength;
@@ -54,10 +159,10 @@ namespace zvcr {
         static PackedData pack(const UnpackedData& sectionData) {
             const auto snapshotLength = sectionData.size();
 
-            std::vector<T> palette;
+            std::vector<SegmentAtom> palette;
             palette.reserve(snapshotLength);
 
-            absl::flat_hash_map<T, size_t> stateToIndex;
+            absl::flat_hash_map<SegmentAtom, size_t> stateToIndex;
             stateToIndex.reserve(snapshotLength);
 
             for (const auto& item : sectionData) {
@@ -93,7 +198,7 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        UnpackedView<T> view(const uint8_t sidelength) const {
+        UnpackedView view(const uint8_t sidelength) const {
             return UnpackedView{sidelength, unpack()};
         }
 
@@ -103,123 +208,18 @@ namespace zvcr {
         uint64_t bitsPerIndex;
     };
 
-    template<typename T>
     struct PackedSnapshot {
-        PackedData<T> data;
+        PackedData data;
         time_t timestamp{};
     };
 
+    inline PackedData UnpackedView::pack() const {
+        return PackedData::pack(unpacked);
+    }
 
-    template<typename T>
-    class UnpackedView {
-    public:
-        using UnpackedData = std::vector<T>;
-
-        UnpackedData unpacked;
-
-        explicit UnpackedView(const uint8_t sidelength, size_t snapshotLength): sidelength(sidelength) {
-            this->unpacked = std::vector<T>(snapshotLength);
-        }
-
-        explicit UnpackedView(const uint8_t sidelength, size_t snapshotLength, T fill): sidelength(sidelength) {
-            this->unpacked = std::vector<T>(snapshotLength, fill);
-        }
-
-        explicit UnpackedView(const uint8_t sidelength, const UnpackedData& unpacked): sidelength(sidelength) {
-            this->unpacked = unpacked;
-        }
-
-        [[nodiscard]]
-        T getVoxel(const uint8_t x, const uint8_t y, const uint8_t z) const {
-            return unpacked[unpackedIndex(x, y, z)];
-        }
-
-        void setVoxel(const uint8_t x, const uint8_t y, const uint8_t z, T voxel) {
-            unpacked[unpackedIndex(x, y, z)] = voxel;
-        }
-
-        [[nodiscard]]
-        T getPixel(const uint8_t x, const uint8_t z) const {
-            return unpacked[unpackedIndex(x, z)];
-        }
-
-        void setPixel(const uint8_t x, const uint8_t z, T pixel) {
-            unpacked[unpackedIndex(x, z)] = pixel;
-        }
-
-        [[nodiscard]]
-        PackedData<T> pack() const {
-            return PackedData<T>::pack(unpacked);
-        }
-
-        [[nodiscard]]
-        PackedSnapshot<T> packSnapshot(time_t timestamp) const {
-            return PackedSnapshot{pack(), timestamp};
-        }
-
-        [[nodiscard]]
-        size_t unpackedIndex(const uint8_t x, const uint8_t y, const uint8_t z) const {
-            assert(x < sidelength && "X coordinate out of bounds");
-            assert(y < sidelength && "Y coordinate out of bounds");
-            assert(z < sidelength && "Z coordinate out of bounds");
-
-            return static_cast<size_t>(y) * sidelength * sidelength
-                 + static_cast<size_t>(z) * sidelength
-                 + static_cast<size_t>(x);
-        }
-
-        [[nodiscard]]
-        uint8_t getSidelength() const {
-            return sidelength;
-        }
-
-        [[nodiscard]]
-        size_t unpackedIndex(const uint8_t x, const uint8_t z) const {
-            return unpackedIndex(x, 0, z);
-        }
-
-        [[nodiscard]]
-        static UnpackedView create2DBlockView(T fill) {
-            return UnpackedView{SEGMENT_SIDELENGTH_BLOCKS, SECTION_2D_SIZE_BLOCKS, fill};
-        }
-
-        [[nodiscard]]
-        static UnpackedView create3DBlockView(T fill) {
-            return UnpackedView{SEGMENT_SIDELENGTH_BLOCKS, SECTION_3D_SIZE_BLOCKS, fill};
-        }
-
-        [[nodiscard]]
-        static UnpackedView create2DBiomeView(T fill) {
-            return UnpackedView{SEGMENT_SIDELENGTH_BIOMES, SECTION_2D_SIZE_BIOMES, fill};
-        }
-
-        [[nodiscard]]
-        static UnpackedView create3DBiomeView(T fill) {
-            return UnpackedView{SEGMENT_SIDELENGTH_BIOMES, SECTION_3D_SIZE_BIOMES, fill};
-        }
-
-        [[nodiscard]]
-        static UnpackedView create2DBlockView() {
-            return create2DBlockView(0);
-        }
-
-        [[nodiscard]]
-        static UnpackedView create3DBlockView() {
-            return create3DBlockView(0);
-        }
-
-        [[nodiscard]]
-        static UnpackedView create2DBiomeView() {
-            return create2DBiomeView(0);
-        }
-
-        [[nodiscard]]
-        static UnpackedView create3DBiomeView() {
-            return create3DBiomeView(0);
-        }
-    private:
-        uint8_t sidelength;
-    };
+    inline PackedSnapshot UnpackedView::packSnapshot(const time_t timestamp) const {
+        return PackedSnapshot{pack(), timestamp};
+    }
 
     using magic_tuple = std::tuple<int64_t, int64_t, int32_t>;
 
@@ -300,36 +300,35 @@ namespace zvcr {
 
     using DeltaInsertionResult = Result<size_t, DeltaInsertionStatus>;
 
-    template<typename T, T Unchanged = STATE_UNCHANGED>
     class PackedDeltaData {
     public:
         size_t snapshotLength;
-        std::vector<PackedSnapshot<T>> reverseDeltas;
+        std::vector<PackedSnapshot> reverseDeltas;
 
-        explicit PackedDeltaData(const PackedSnapshot<T>& initialState) {
+        explicit PackedDeltaData(const PackedSnapshot& initialState) {
             this->snapshotLength = initialState.data.snapshotLength;
             this->reverseDeltas.push_back(initialState);
         }
 
-        explicit PackedDeltaData(std::vector<PackedSnapshot<T>> reverseDeltas, const size_t snapshotLength):
+        explicit PackedDeltaData(std::vector<PackedSnapshot> reverseDeltas, const size_t snapshotLength):
             snapshotLength(snapshotLength),
             reverseDeltas(std::move(reverseDeltas)) {}
 
-        explicit PackedDeltaData(size_t snapshotLength):
+        explicit PackedDeltaData(const size_t snapshotLength):
             PackedDeltaData({}, snapshotLength) {}
 
         [[nodiscard]]
-        OptionCRef<PackedSnapshot<T>> latestSnapshot() const {
+        OptionCRef<PackedSnapshot> latestSnapshot() const {
             return delta(0);
         }
 
         [[nodiscard]]
-        OptionCRef<PackedSnapshot<T>> delta(size_t deltaIndex) const {
-            return reverseDeltas.empty() ? None : OptionCRef<PackedSnapshot<T>>{reverseDeltas[deltaIndex]};
+        OptionCRef<PackedSnapshot> delta(const size_t deltaIndex) const {
+            return reverseDeltas.empty() ? None : OptionCRef<PackedSnapshot>{reverseDeltas[deltaIndex]};
         }
 
         [[nodiscard]]
-        Option<PackedSnapshot<T>> snapshotFrom(time_t timestamp) const {
+        Option<PackedSnapshot> snapshotFrom(const time_t timestamp) const {
             const auto latest = Require(this->latestSnapshot()).get();
 
             auto latestSnapshot = latest.data.unpack();
@@ -343,15 +342,15 @@ namespace zvcr {
 
                 const auto unpacked = sectionData.unpack();
                 for (size_t j = 0; j < snapshotLength; ++j) {
-                    if (const auto state = unpacked[j]; state != Unchanged)
+                    if (const auto state = unpacked[j]; state != STATE_UNCHANGED)
                         latestSnapshot[j] = state;
                 }
             }
-            return PackedSnapshot{PackedData<T>::pack(latestSnapshot), timestamp};
+            return PackedSnapshot{PackedData::pack(latestSnapshot), timestamp};
         }
 
         [[nodiscard]]
-        DeltaInsertionResult insertSnapshot(const PackedSnapshot<T>& newSnapshot) {
+        DeltaInsertionResult insertSnapshot(const PackedSnapshot& newSnapshot) {
             const auto latest = latestSnapshot();
             if (!latest.has_value()) {
                 reverseDeltas.push_back(newSnapshot);
@@ -365,7 +364,7 @@ namespace zvcr {
             if (newSnapshot.timestamp <= timestamp)
                 return Err(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
 
-            std::vector<T> deltaSnapshotBuilder(snapshotLength);
+            std::vector<SegmentAtom> deltaSnapshotBuilder(snapshotLength);
 
             const auto previousUnpacked = sectionData.unpack();
             const auto newUnpacked = newSnapshot.data.unpack();
@@ -374,7 +373,7 @@ namespace zvcr {
             for (size_t i = 0; i < snapshotLength; ++i) {
                 const auto previous = previousUnpacked[i];
                 const bool changed = newUnpacked[i] != previous;
-                deltaSnapshotBuilder[i] = changed ? previous : Unchanged;
+                deltaSnapshotBuilder[i] = changed ? previous : STATE_UNCHANGED;
 
                 if (changed) changes++;
             }
@@ -382,7 +381,7 @@ namespace zvcr {
                 return Err(DeltaInsertionStatus::NO_CHANGES_MADE);
 
             const auto deltaSnapshot = PackedSnapshot {
-                PackedData<T>::pack(deltaSnapshotBuilder),
+                PackedData::pack(deltaSnapshotBuilder),
                 timestamp
             };
             reverseDeltas.erase(reverseDeltas.begin());

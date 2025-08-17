@@ -10,7 +10,7 @@ namespace zvcr {
     Layer2d& LayerTable2d::operator[](const LayerTypeId layerType) {
         if (contains(layerType)) return at(layerType);
 
-        const auto deltas = PackedDeltaData{std::vector<PackedSnapshot<SegmentAtom>>{}, snapshotSize};
+        const auto deltas = PackedDeltaData{std::vector<PackedSnapshot>{}, snapshotSize};
         const auto emptyLayer = Layer2d{deltas, layerType};
         emplace(layerType, emptyLayer);
 

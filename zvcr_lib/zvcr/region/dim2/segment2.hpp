@@ -33,13 +33,13 @@ namespace zvcr {
 
         void setLayer(LayerType layerType, const Layer2d& layer);
 
-        void setLayer(LayerTypeId type, const PackedSnapshot<SegmentAtom>& initialState);
+        void setLayer(LayerTypeId type, const PackedSnapshot& initialState);
 
-        void setLayer(LayerType layerType, const PackedSnapshot<SegmentAtom>& initialState);
+        void setLayer(LayerType layerType, const PackedSnapshot& initialState);
 
-        void setLayer(LayerTypeId type, const std::vector<PackedSnapshot<SegmentAtom>>& reverseDeltas, size_t snapshotLength);
+        void setLayer(LayerTypeId type, const std::vector<PackedSnapshot>& reverseDeltas, size_t snapshotLength);
 
-        void setLayer(LayerType layerType, const std::vector<PackedSnapshot<SegmentAtom>>& reverseDeltas, size_t snapshotLength);
+        void setLayer(LayerType layerType, const std::vector<PackedSnapshot>& reverseDeltas, size_t snapshotLength);
     };
 
     struct Segment2d {

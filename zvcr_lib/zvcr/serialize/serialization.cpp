@@ -70,7 +70,7 @@ namespace zvcr {
         return {};
     }
 
-    void WriteHandle::serializePackedSnapshot(const PackedSnapshot<SegmentAtom>& snapshot) {
+    void WriteHandle::serializePackedSnapshot(const PackedSnapshot& snapshot) {
         write<uint64_t>(snapshot.timestamp);
 
         const auto& packedData = snapshot.data.packedData;
@@ -94,7 +94,7 @@ namespace zvcr {
         write<uint32_t>(paletteIndex);
     }
 
-    ReadResult<PackedSnapshot<SegmentAtom>> ReadHandle::deserializePackedSnapshot(const size_t snapshotLength) {
+    ReadResult<PackedSnapshot> ReadHandle::deserializePackedSnapshot(const size_t snapshotLength) {
         const auto timestamp = static_cast<time_t>(Try(read<uint64_t>(EXPECTED_TIMESTAMP)));
         const auto packedLength = Try(read<uint64_t>(EXPECTED_PACKED_LENGTH));
         if (packedLength > MAX_PACKED_LENGTH) {
@@ -157,21 +157,21 @@ namespace zvcr {
         return {};
     }
 
-    void WriteHandle::serializePackedDeltaData(const PackedDeltaData<SegmentAtom>& section3d) {
+    void WriteHandle::serializePackedDeltaData(const PackedDeltaData& section3d) {
         write<uint64_t>(section3d.reverseDeltas.size());
 
-        for (const PackedSnapshot<SegmentAtom>& snapshot : section3d.reverseDeltas)
+        for (const PackedSnapshot& snapshot : section3d.reverseDeltas)
             serializePackedSnapshot(snapshot);
     }
 
-    ReadResult<PackedDeltaData<SegmentAtom>> ReadHandle::deserializePackedDeltaData(const size_t snapshotLength) {
+    ReadResult<PackedDeltaData> ReadHandle::deserializePackedDeltaData(const size_t snapshotLength) {
         const auto deltaLength = Try(read<uint64_t>(EXPECTED_DELTA_LENGTH));
         if (deltaLength > MAX_DELTA_LENGTH) {
             const auto err = ReadError{INVALID_DELTA_LENGTH, offset, "Invalid delta length: "
                 + std::to_string(deltaLength) + " > " + std::to_string(MAX_DELTA_LENGTH)};
             return Err(err);
         }
-        std::vector<PackedSnapshot<SegmentAtom>> reverseDeltas;
+        std::vector<PackedSnapshot> reverseDeltas;
         reverseDeltas.reserve(deltaLength);
 
         for (size_t deltaIndex = 0; deltaIndex < deltaLength; ++deltaIndex) {
@@ -258,11 +258,11 @@ namespace zvcr {
     }
 
     void WriteHandle::serializeSegment3d(const Segment3d& segment3d) {
-        for (const PackedDeltaData<SegmentAtom>& section : segment3d.blockSections.getSections())
+        for (const PackedDeltaData& section : segment3d.blockSections.getSections())
             serializePackedDeltaData(section);
 
         if (ctx.supportBiomes) {
-            for (const PackedDeltaData<SegmentAtom>& section : segment3d.biomeSections.getSections())
+            for (const PackedDeltaData& section : segment3d.biomeSections.getSections())
                 serializePackedDeltaData(section);
         }
         serializeSegmentInfo(segment3d.info);

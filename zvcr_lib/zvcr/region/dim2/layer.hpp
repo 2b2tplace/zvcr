@@ -19,10 +19,10 @@ namespace zvcr {
     using LayerTypeId = uint8_t;
 
     struct Layer2d {
-        PackedDeltaData<SegmentAtom> deltas;
+        PackedDeltaData deltas;
         LayerTypeId type{};
 
-        explicit Layer2d(const PackedDeltaData<SegmentAtom>& deltas, const LayerTypeId type):
+        explicit Layer2d(const PackedDeltaData& deltas, const LayerTypeId type):
             deltas(deltas),
             type(type) {}
 
