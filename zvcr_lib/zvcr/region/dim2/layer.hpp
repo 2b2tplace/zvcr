@@ -8,14 +8,14 @@ namespace zvcr {
 
     enum class LayerType {
         NORMAL = 0,
-        TERRAIN = 1,
-        HEIGHTMAP = 2,
-        TERRAIN_HEIGHTMAP = 3,
         DRAINED = 4,
-        DRAINED_HEIGHTMAP = 5,
-        PREDICTED = 6,
+        TERRAIN = 1,
         DRAINED_TERRAIN = 7,
+        HEIGHTMAP = 2,
+        DRAINED_HEIGHTMAP = 5,
+        TERRAIN_HEIGHTMAP = 3,
         DRAINED_TERRAIN_HEIGHTMAP = 8,
+        PREDICTED = 6,
         CUSTOM = 255
     };
 
