@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <utility>
 #include <zvcr/common/data_storage.hpp>
 
 namespace zvcr {
@@ -22,8 +23,8 @@ namespace zvcr {
         PackedDeltaData deltas;
         LayerTypeId type{};
 
-        explicit Layer2d(const PackedDeltaData& deltas, const LayerTypeId type):
-            deltas(deltas),
+        explicit Layer2d(PackedDeltaData deltas, const LayerTypeId type):
+            deltas(std::move(deltas)),
             type(type) {}
 
         explicit Layer2d(const size_t snapshotSize, const LayerTypeId type):
