@@ -21,6 +21,9 @@ namespace zvcr {
 
     using LayerTypeId = uint8_t;
 
+    [[nodiscard]]
+    LayerType getHeightmapLayer(LayerType topDownLayer);
+
     struct Layer2d {
         PackedDeltaData deltas;
         LayerTypeId type{};
