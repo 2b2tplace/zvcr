@@ -14,6 +14,8 @@ namespace zvcr {
         DRAINED = 4,
         DRAINED_HEIGHTMAP = 5,
         PREDICTED = 6,
+        DRAINED_TERRAIN = 7,
+        DRAINED_TERRAIN_HEIGHTMAP = 8,
         CUSTOM = 255
     };
 
