@@ -10,10 +10,11 @@ namespace zvcr {
         ZVCR2_0_0_0_0 = 0,
         ZVCR2_0_1_0_0,
         ZVCR2_0_1_1_0,
-        ZVCR2_0_1_1_1
+        ZVCR2_0_1_1_1,
+        ZVCR2_0_1_2_0
     };
 
-    static constexpr auto ZVCR2_VER_LATEST = ZVCR2Version::ZVCR2_0_1_1_1;
+    static constexpr auto ZVCR2_VER_LATEST = ZVCR2Version::ZVCR2_0_1_2_0;
     static constexpr auto ZVCR2_FILE_PREFIX = "ZPRegion";
 
     struct ZVCR2File {
