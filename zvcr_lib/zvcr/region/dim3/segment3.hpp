@@ -55,13 +55,17 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        Segment3dSnapshot latestSnapshot() const {
+        Segment3dSnapshot latestSnapshot(time_t *getEarliestTimestamp = nullptr) const {
             Segment3dSnapshot snapshots;
             snapshots.reserve(sectionCount);
 
             for (const auto& section : this->sections) {
-                if (const auto snapshot = section.latestSnapshot(); snapshot.has_value())
+                if (const auto snapshot = section.latestSnapshot(); snapshot.has_value()) {
+                    if (const auto timestamp = snapshot->get().timestamp; getEarliestTimestamp && timestamp < *getEarliestTimestamp)
+                        *getEarliestTimestamp = timestamp;
+
                     snapshots.push_back(snapshot.value());
+                }
             }
             return snapshots;
         }
