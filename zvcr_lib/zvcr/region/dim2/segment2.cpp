@@ -11,6 +11,15 @@ namespace zvcr {
         return getLayer(static_cast<LayerTypeId>(layerType));
     }
 
+    OptionRef<Layer2d> LayerContainer2d::getLayer(const LayerTypeId type) {
+        if (!layers.contains(type)) return None;
+        return layers.at(type);
+    }
+
+    OptionRef<Layer2d> LayerContainer2d::getLayer(LayerType layerType) {
+        return getLayer(static_cast<LayerTypeId>(layerType));
+    }
+
     void LayerContainer2d::setLayer(const LayerTypeId type, const Layer2d& layer) {
         layers[type] = layer;
     }

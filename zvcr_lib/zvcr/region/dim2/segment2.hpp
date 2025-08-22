@@ -29,6 +29,12 @@ namespace zvcr {
         [[nodiscard]]
         OptionCRef<Layer2d> getLayer(LayerType layerType) const;
 
+        [[nodiscard]]
+        OptionRef<Layer2d> getLayer(LayerTypeId type);
+
+        [[nodiscard]]
+        OptionRef<Layer2d> getLayer(LayerType layerType);
+
         void setLayer(LayerTypeId type, const Layer2d& layer);
 
         void setLayer(LayerType layerType, const Layer2d& layer);
