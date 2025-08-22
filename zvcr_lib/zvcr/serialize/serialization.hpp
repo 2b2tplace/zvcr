@@ -461,10 +461,10 @@ namespace zvcr {
     }
 
     template<typename R>
-    size_t writeZVCRFileAt(const R& file, const fs::path& parentDirectory, const RegionLocation& location,
-                           const uint16_t protocolVersion,
-                           const int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
-                           const int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT) {
+    Result<size_t, std::string> writeZVCRFileAt(const R& file, const fs::path& parentDirectory, const RegionLocation& location,
+                                                const uint16_t protocolVersion,
+                                                const int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
+                                                const int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT) {
         create_directories(location.getDirectory(parentDirectory));
         return writeZVCRFile<R>(file, location.getFilePath(parentDirectory, DefaultSerialization<R>::format),
                                 protocolVersion, zstdCompressionLevel, zstdCompressionThreads);
