@@ -24,16 +24,16 @@ namespace zvcr {
             layers(LayerTable2d {snapshotSize}), snapshotSize(snapshotSize) {}
 
         [[nodiscard]]
-        OptionCRef<Layer2d> getLayer(LayerTypeId type) const;
+        result::OptionCRef<Layer2d> getLayer(LayerTypeId type) const;
 
         [[nodiscard]]
-        OptionCRef<Layer2d> getLayer(LayerType layerType) const;
+        result::OptionCRef<Layer2d> getLayer(LayerType layerType) const;
 
         [[nodiscard]]
-        OptionRef<Layer2d> getLayer(LayerTypeId type);
+        result::OptionRef<Layer2d> getLayer(LayerTypeId type);
 
         [[nodiscard]]
-        OptionRef<Layer2d> getLayer(LayerType layerType);
+        result::OptionRef<Layer2d> getLayer(LayerType layerType);
 
         void setLayer(LayerTypeId type, const Layer2d& layer);
 

@@ -162,7 +162,7 @@ namespace zvcr {
 
         void serializeSegment3d(const Segment3d& segment3d);
 
-        void serializeOptSegment3d(const Option<Segment3d>& segment3dOpt);
+        void serializeOptSegment3d(const result::Option<Segment3d>& segment3dOpt);
 
         void serializeRegion3d(const Region3d& region);
 
@@ -172,7 +172,7 @@ namespace zvcr {
 
         void serializeSegment2d(const Segment2d& segment);
 
-        void serializeOptSegment2d(const Option<Segment2d>& segment);
+        void serializeOptSegment2d(const result::Option<Segment2d>& segment);
 
         void serializeRegion2d(const Region2d& region);
     };
@@ -200,7 +200,7 @@ namespace zvcr {
         ReadResult<uint8_t> readByte(const ReadErrorType orElseErr) {
             if (offset >= data.size()) {
                 const auto err = ReadError{orElseErr, offset, "Read out of bounds"};
-                return Err(err);
+                return ERR(err);
             }
             return data[offset++];
         }
@@ -210,7 +210,7 @@ namespace zvcr {
         ReadResult<T> read(const ReadErrorType orElseErr) {
             if (offset + sizeof(T) > data.size()) {
                 const auto err = ReadError{orElseErr, offset, "Read out of bounds"};
-                return Err(err);
+                return ERR(err);
             }
             T value;
             std::memcpy(&value, data.data() + offset, sizeof(T));
@@ -223,7 +223,7 @@ namespace zvcr {
         ReadResult<std::monostate> readArray(std::vector<T>& array, const ReadErrorType orElseErr) {
             const auto length = array.size();
             if (offset + length * sizeof(T) > data.size())
-                return Err(ReadError(orElseErr, offset, "Read out of bounds"));
+                return ERR(ReadError(orElseErr, offset, "Read out of bounds"));
 
             std::memcpy(array.data(), data.data() + offset, length * sizeof(T));
             offset += length * sizeof(T);
@@ -235,7 +235,7 @@ namespace zvcr {
         ReadResult<std::monostate> skip(const size_t n, const ReadErrorType orElseErr) {
             const auto length = n * sizeof(T);
             if (offset + length > data.size())
-                return Err(ReadError(orElseErr, offset, "Read out of bounds"));
+                return ERR(ReadError(orElseErr, offset, "Read out of bounds"));
 
             offset += length;
             return {};
@@ -250,11 +250,11 @@ namespace zvcr {
         template<typename Version>
         [[nodiscard]]
         ReadResult<Version> deserializeVersion(const Version latest) {
-            const auto versionNumber = Try(readByte(EXPECTED_VERSION));
+            const auto versionNumber = TRY(readByte(EXPECTED_VERSION));
 
             if (versionNumber > static_cast<uint8_t>(latest)) {
                 const auto err = ReadError{INVALID_VERSION, offset, "Read out of bounds"};
-                return Err(err);
+                return ERR(err);
             }
             return static_cast<Version>(versionNumber);
         }
@@ -290,7 +290,7 @@ namespace zvcr {
         ReadResult<Segment3d> deserializeSegment3d();
 
         [[nodiscard]]
-        ReadResult<Option<Segment3d>> deserializeOptSegment3d();
+        ReadResult<result::Option<Segment3d>> deserializeOptSegment3d();
 
         [[nodiscard]]
         ReadResult<Region3d> deserializeRegion3d(ZVCR3Version version);
@@ -311,7 +311,7 @@ namespace zvcr {
         ReadResult<Segment2d> deserializeSegment2d();
 
         [[nodiscard]]
-        ReadResult<Option<Segment2d>> deserializeOptSegment2d();
+        ReadResult<result::Option<Segment2d>> deserializeOptSegment2d();
 
         [[nodiscard]]
         ReadResult<Region2d> deserializeRegion2d(ZVCR2Version version);
@@ -346,7 +346,7 @@ namespace zvcr {
     };
 
     template<typename R>
-    Result<size_t, std::string> writeZVCRFile(const R& file, const fs::path& filepath,
+    result::Result<size_t, std::string> writeZVCRFile(const R& file, const fs::path& filepath,
                          const uint16_t protocolVersion,
                          const int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
                          const int zstdCompressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT) {
@@ -356,16 +356,16 @@ namespace zvcr {
 
         std::ofstream fileStream(filepath, std::ios::out | std::ios::binary);
         if (!fileStream)
-            return Err("Failed to open file for writing: " + filepath.string());
+            return ERR("Failed to open file for writing: " + filepath.string());
 
         ZSTD_CStream* cstream = ZSTD_createCStream();
         if (!cstream)
-            return Err("Failed to create ZSTD_CStream");
+            return ERR("Failed to create ZSTD_CStream");
 
         size_t ret = ZSTD_initCStream(cstream, zstdCompressionLevel);
         if (ZSTD_isError(ret)) {
             ZSTD_freeCStream(cstream);
-            return Err("ZSTD_initCStream error: " + std::string(ZSTD_getErrorName(ret)));
+            return ERR("ZSTD_initCStream error: " + std::string(ZSTD_getErrorName(ret)));
         }
         if (zstdCompressionThreads > 0)
             ZSTD_CCtx_setParameter(cstream, ZSTD_c_nbWorkers, zstdCompressionThreads);
@@ -379,7 +379,7 @@ namespace zvcr {
             ret = ZSTD_compressStream(cstream, &output, &input);
             if (ZSTD_isError(ret)) {
                 ZSTD_freeCStream(cstream);
-                return Err("ZSTD_compressStream error: " + std::string(ZSTD_getErrorName(ret)));
+                return ERR("ZSTD_compressStream error: " + std::string(ZSTD_getErrorName(ret)));
             }
             fileStream.write(outBuffer.data(), static_cast<int64_t>(output.pos));
         }
@@ -389,7 +389,7 @@ namespace zvcr {
             ret = ZSTD_endStream(cstream, &output);
             if (ZSTD_isError(ret)) {
                 ZSTD_freeCStream(cstream);
-                return Err("ZSTD_endStream error: " + std::string(ZSTD_getErrorName(ret)));
+                return ERR("ZSTD_endStream error: " + std::string(ZSTD_getErrorName(ret)));
             }
             fileStream.write(outBuffer.data(), static_cast<int64_t>(output.pos));
             finished = ret == 0;
@@ -404,16 +404,16 @@ namespace zvcr {
     ReadResult<R> readZVCRFile(const fs::path& filepath, uint16_t* protocolVersion = nullptr, const size_t maxDeltas = 0) {
         std::ifstream fileStream(filepath, std::ios::in | std::ios::binary);
         if (!fileStream)
-            return Err(ReadError(FILE_NOT_FOUND, 0, "Failed to open file: " + filepath.string()));
+            return ERR(ReadError(FILE_NOT_FOUND, 0, "Failed to open file: " + filepath.string()));
 
         ZSTD_DStream* dstream = ZSTD_createDStream();
         if (!dstream)
-            return Err(ReadError(GENERIC_READ_ERROR, 0, "Failed to create ZSTD_DStream"));
+            return ERR(ReadError(GENERIC_READ_ERROR, 0, "Failed to create ZSTD_DStream"));
 
         auto ret = ZSTD_initDStream(dstream);
         if (ZSTD_isError(ret)) {
             ZSTD_freeDStream(dstream);
-            return Err(ReadError(GENERIC_READ_ERROR, 0, "ZSTD_initDStream error: " + std::string(ZSTD_getErrorName(ret))));
+            return ERR(ReadError(GENERIC_READ_ERROR, 0, "ZSTD_initDStream error: " + std::string(ZSTD_getErrorName(ret))));
         }
         const auto inChunkSize = ZSTD_DStreamInSize();
         const auto outChunkSize = ZSTD_DStreamOutSize();
@@ -434,7 +434,7 @@ namespace zvcr {
                 ret = ZSTD_decompressStream(dstream, &output, &input);
                 if (ZSTD_isError(ret)) {
                     ZSTD_freeDStream(dstream);
-                    return Err(ReadError(GENERIC_READ_ERROR, 0, "ZSTD_decompressStream error: " + std::string(ZSTD_getErrorName(ret))));
+                    return ERR(ReadError(GENERIC_READ_ERROR, 0, "ZSTD_decompressStream error: " + std::string(ZSTD_getErrorName(ret))));
                 }
                 decompressed.insert(decompressed.end(), outBuffer.data(), outBuffer.data() + static_cast<int64_t>(output.pos));
             }
@@ -447,7 +447,7 @@ namespace zvcr {
             if (!result.has_value()) {
                 auto err = result.error();
                 err.attach(handle);
-                return Err(err);
+                return ERR(err);
             }
             if (protocolVersion != nullptr)
                 *protocolVersion = handle.ctx.protocolVersion;
@@ -456,12 +456,12 @@ namespace zvcr {
         } catch (const std::length_error& e) {
             auto err = ReadError{GENERIC_READ_ERROR, handle.getOffset(), "Generic read error: " + std::string(e.what())};
             err.attach(handle);
-            return Err(err);
+            return ERR(err);
         }
     }
 
     template<typename R>
-    Result<size_t, std::string> writeZVCRFileAt(const R& file, const fs::path& parentDirectory, const RegionLocation& location,
+    result::Result<size_t, std::string> writeZVCRFileAt(const R& file, const fs::path& parentDirectory, const RegionLocation& location,
                                                 const uint16_t protocolVersion,
                                                 const int zstdCompressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
                                                 const int zstdCompressionThreads = ZSTD_COMPRESSION_LEVEL_DEFAULT) {

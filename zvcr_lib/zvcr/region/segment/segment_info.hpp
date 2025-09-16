@@ -31,16 +31,16 @@ namespace zvcr {
         SegmentInfo() = default;
 
         [[nodiscard]]
-        OptionCRef<SegmentState> latestState() const;
+        result::OptionCRef<SegmentState> latestState() const;
 
         [[nodiscard]]
-        OptionCRef<TileEntityCountInfo> latestTileEntityCounts() const;
+        result::OptionCRef<TileEntityCountInfo> latestTileEntityCounts() const;
 
         [[nodiscard]]
-        Option<SegmentState> stateFrom(time_t timestamp) const;
+        result::Option<SegmentState> stateFrom(time_t timestamp) const;
 
         [[nodiscard]]
-        Option<TileEntityCountInfo> tileEntityCountsFrom(time_t timestamp) const;
+        result::Option<TileEntityCountInfo> tileEntityCountsFrom(time_t timestamp) const;
 
         [[nodiscard]]
         bool updateState(const SegmentState& newState);

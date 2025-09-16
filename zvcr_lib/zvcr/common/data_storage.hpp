@@ -298,7 +298,7 @@ namespace zvcr {
         NO_CHANGES_MADE
     };
 
-    using DeltaInsertionResult = Result<size_t, DeltaInsertionStatus>;
+    using DeltaInsertionResult = result::Result<size_t, DeltaInsertionStatus>;
 
     class PackedDeltaData {
     public:
@@ -318,20 +318,18 @@ namespace zvcr {
             PackedDeltaData({}, snapshotLength) {}
 
         [[nodiscard]]
-        OptionCRef<PackedSnapshot> latestSnapshot() const {
+        result::OptionCRef<PackedSnapshot> latestSnapshot() const {
             return delta(0);
         }
 
         [[nodiscard]]
-        OptionCRef<PackedSnapshot> delta(const size_t deltaIndex) const {
-            return reverseDeltas.empty() ? None : OptionCRef<PackedSnapshot>{reverseDeltas[deltaIndex]};
+        result::OptionCRef<PackedSnapshot> delta(const size_t deltaIndex) const {
+            return reverseDeltas.empty() ? result::None : result::OptionCRef<PackedSnapshot>{reverseDeltas[deltaIndex]};
         }
 
         [[nodiscard]]
-        Option<PackedSnapshot> snapshotFrom(const time_t timestamp) const {
-            const auto latest = Require(this->latestSnapshot()).get();
-
-            auto latestSnapshot = latest.data.unpack();
+        result::Option<PackedSnapshot> snapshotFrom(const time_t timestamp) const {
+            auto latestSnapshot = REQUIRE(this->latestSnapshot()).get().data.unpack();
             bool first = true;
             for (const auto& [sectionData, deltaTimestamp] : reverseDeltas) {
                 if (first) {
@@ -357,12 +355,12 @@ namespace zvcr {
                 return newSnapshot.data.snapshotLength;
             }
             if (newSnapshot.data.snapshotLength != this->snapshotLength)
-                return Err(DeltaInsertionStatus::INVALID_SNAPSHOT_LENGTH);
+                return ERR(DeltaInsertionStatus::INVALID_SNAPSHOT_LENGTH);
 
             const auto& [sectionData, timestamp] = latest.value().get();
 
             if (newSnapshot.timestamp <= timestamp)
-                return Err(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
+                return ERR(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
 
             std::vector<SegmentAtom> deltaSnapshotBuilder(snapshotLength);
 
@@ -378,7 +376,7 @@ namespace zvcr {
                 if (changed) changes++;
             }
             if (changes == 0)
-                return Err(DeltaInsertionStatus::NO_CHANGES_MADE);
+                return ERR(DeltaInsertionStatus::NO_CHANGES_MADE);
 
             const auto deltaSnapshot = PackedSnapshot {
                 PackedData::pack(deltaSnapshotBuilder),

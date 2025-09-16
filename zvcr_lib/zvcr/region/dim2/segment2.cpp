@@ -2,21 +2,21 @@
 
 namespace zvcr {
 
-    OptionCRef<Layer2d> LayerContainer2d::getLayer(const LayerTypeId type) const {
-        if (!layers.contains(type)) return None;
+    result::OptionCRef<Layer2d> LayerContainer2d::getLayer(const LayerTypeId type) const {
+        if (!layers.contains(type)) return result::None;
         return layers.at(type);
     }
 
-    OptionCRef<Layer2d> LayerContainer2d::getLayer(LayerType layerType) const {
+    result::OptionCRef<Layer2d> LayerContainer2d::getLayer(LayerType layerType) const {
         return getLayer(static_cast<LayerTypeId>(layerType));
     }
 
-    OptionRef<Layer2d> LayerContainer2d::getLayer(const LayerTypeId type) {
-        if (!layers.contains(type)) return None;
+    result::OptionRef<Layer2d> LayerContainer2d::getLayer(const LayerTypeId type) {
+        if (!layers.contains(type)) return result::None;
         return layers.at(type);
     }
 
-    OptionRef<Layer2d> LayerContainer2d::getLayer(LayerType layerType) {
+    result::OptionRef<Layer2d> LayerContainer2d::getLayer(LayerType layerType) {
         return getLayer(static_cast<LayerTypeId>(layerType));
     }
 

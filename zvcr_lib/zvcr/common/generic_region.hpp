@@ -10,7 +10,7 @@ namespace zvcr {
     template<typename S>
     class GenericRegion {
     public:
-        using SegmentMaybe = Option<S>;
+        using SegmentMaybe = result::Option<S>;
         using Segments = std::vector<SegmentMaybe>;
 
         Segments segments;

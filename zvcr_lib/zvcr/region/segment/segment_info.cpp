@@ -12,16 +12,16 @@ namespace zvcr {
         this->tileEntityCounts = tileEntities;
     }
 
-    OptionCRef<SegmentState> SegmentInfo::latestState() const {
-        return segmentStates.empty() ? None : Option{segmentStates[0]};
+    result::OptionCRef<SegmentState> SegmentInfo::latestState() const {
+        return segmentStates.empty() ? result::None : result::Option{segmentStates[0]};
     }
 
-    OptionCRef<TileEntityCountInfo> SegmentInfo::latestTileEntityCounts() const {
-        return tileEntityCounts.empty() ? None : Option{tileEntityCounts[0]};
+    result::OptionCRef<TileEntityCountInfo> SegmentInfo::latestTileEntityCounts() const {
+        return tileEntityCounts.empty() ? result::None : result::Option{tileEntityCounts[0]};
     }
 
-    Option<SegmentState> SegmentInfo::stateFrom(const time_t timestamp) const {
-        auto[latestStateType, _] = Require(this->latestState()).get();
+    result::Option<SegmentState> SegmentInfo::stateFrom(const time_t timestamp) const {
+        auto[latestStateType, _] = REQUIRE(this->latestState()).get();
 
         for (const auto& [type, deltaTimestamp] : segmentStates) {
             latestStateType = type;
@@ -30,8 +30,8 @@ namespace zvcr {
         return SegmentState{latestStateType, timestamp};
     }
 
-    Option<TileEntityCountInfo> SegmentInfo::tileEntityCountsFrom(const time_t timestamp) const {
-        auto [latestCounts, _] = Require(this->latestTileEntityCounts()).get();
+    result::Option<TileEntityCountInfo> SegmentInfo::tileEntityCountsFrom(const time_t timestamp) const {
+        auto [latestCounts, _] = REQUIRE(this->latestTileEntityCounts()).get();
 
         for (const auto&[counts, deltaTimestamp] : tileEntityCounts) {
             latestCounts = counts;

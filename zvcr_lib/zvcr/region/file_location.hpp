@@ -32,7 +32,7 @@ namespace zvcr {
         static RegionLocation fromRegionID(RegionID regionID);
 
         [[nodiscard]]
-        static Option<RegionLocation> fromFileName(DimensionType dimension, const fs::path& file);
+        static result::Option<RegionLocation> fromFileName(DimensionType dimension, const fs::path& file);
 
         [[nodiscard]]
         fs::path getDirectory(const std::string& parentDirectory) const;
