@@ -16,7 +16,7 @@ namespace zvcr {
     using TileEntityCounts = std::vector<TileEntityCountInfo>;
 
     [[nodiscard]]
-    inline size_t getTotalTileEntities(const uint16_t protocolVersion) {
+    static constexpr size_t getTotalTileEntities(const uint16_t protocolVersion) {
         if (protocolVersion >= 768) return 45;
         if (protocolVersion >= 766) return 44;
         if (protocolVersion >= 765) return 41;
