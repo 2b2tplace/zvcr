@@ -195,13 +195,7 @@ namespace zvcr {
         bool equals(const Palette &other) const {
             if (length != other.length) return false;
 
-            std::array<SegmentAtom, MAX_PALETTE_SIZE> first = palette;
-            std::array<SegmentAtom, MAX_PALETTE_SIZE> second = other.palette;
-
-            std::sort(first.begin(), first.begin() + length);
-            std::sort(second.begin(), second.begin() + length);
-
-            return std::equal(first.begin(), first.begin() + length, second.begin());
+            return std::equal(palette.begin(), palette.begin() + length, other.palette.begin());
         }
 
         [[nodiscard]]
