@@ -365,7 +365,6 @@ namespace zvcr {
     static constexpr uint16_t STATE_UNCHANGED = 0xFFFF;
 
     enum class DeltaInsertionStatus {
-        INVALID_SNAPSHOT_LENGTH,
         SNAPSHOT_OLDER_THAN_LATEST,
         NO_CHANGES_MADE
     };
@@ -424,11 +423,8 @@ namespace zvcr {
             const auto latest = latestSnapshot();
             if (!latest.has_value()) {
                 reverseDeltas.push_back(newSnapshot);
-                return newSnapshot.data.snapshotLength;
+                return snapshotLength;
             }
-            if (newSnapshot.data.snapshotLength != snapshotLength)
-                return ERR(DeltaInsertionStatus::INVALID_SNAPSHOT_LENGTH);
-
             const auto& [sectionData, timestamp] = latest.value().get();
 
             if (newSnapshot.timestamp <= timestamp)
