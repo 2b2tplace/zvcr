@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vector>
 #include <cassert>
 #include <result.hpp>
 #include <zvcr/common/definitions.hpp>
@@ -10,8 +9,8 @@ namespace zvcr {
     template<typename S>
     class GenericRegion {
     public:
-        using SegmentMaybe = result::Option<S>;
-        using Segments = std::vector<SegmentMaybe>;
+        using SegmentMaybe = std::shared_ptr<S>;
+        using Segments = std::array<std::shared_ptr<S>, SEGMENTS_PER_REGION>;
 
         Segments segments;
         uint16_t protocolVersion;
@@ -23,7 +22,13 @@ namespace zvcr {
             segments(segments), protocolVersion(protocolVersion) {}
 
         explicit GenericRegion(const uint16_t protocolVersion):
-            segments(SEGMENTS_PER_REGION), protocolVersion(protocolVersion) {}
+            segments(), protocolVersion(protocolVersion) {}
+
+        GenericRegion(GenericRegion &&other) noexcept:
+            segments(std::move(other.segments)),
+            protocolVersion(other.protocolVersion) {}
+
+        GenericRegion(const GenericRegion &other) = default;
 
         GenericRegion(): GenericRegion(0) {}
 
