@@ -225,7 +225,6 @@ namespace zvcr {
     }
 
     ReadResult<std::monostate> ReadHandle::deserializeTileEntityCountInfo() {
-        if (!ctx.supportTileEntities) return {};
         const auto totalTileEntities = getTotalTileEntities(ctx.protocolVersion);
 
         TRY(skip<uint16_t>(totalTileEntities, EXPECTED_TILE_ENTITY_COUNTS));
@@ -256,9 +255,6 @@ namespace zvcr {
 
         for (size_t i = 0; i < statesLength; ++i)
             states[i] = TRY(deserializeSegmentState());
-
-        if (!ctx.supportTileEntities)
-            return SegmentInfo{states};
 
         const auto tileEntitiesLength = TRY(read<uint64_t>(EXPECTED_TILE_ENTITIES_LENGTH));
         if (tileEntitiesLength > MAX_TILE_ENTITIES_LENGTH) {
@@ -451,7 +447,6 @@ namespace zvcr {
                 region2d.segments[segmentIndex] = TRY(deserializeSegment2d());
             }
         }
-
         return {};
     }
 
