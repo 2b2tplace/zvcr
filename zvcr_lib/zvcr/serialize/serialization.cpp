@@ -70,20 +70,26 @@ namespace zvcr {
         return {};
     }
 
-    void WriteHandle::serializePackedSnapshot(const PackedSnapshot& snapshot) {
+    template<size_t snapshotLength>
+    void WriteHandle::serializePackedSnapshot(const PackedSnapshot<snapshotLength>& snapshot) {
         write<uint64_t>(snapshot.timestamp);
 
-        const auto& packedData = snapshot.data.packedData;
-        const auto packedLength = packedData.size();
+        const auto& packedData = snapshot.data.bitStorage.data;
+        const auto packedLength = snapshot.data.bitStorage.packedLength;
 
         write<uint64_t>(packedLength);
         writeArray(packedData.data(), packedLength);
 
         const auto paletteTableLength = paletteTableStorage.size();
         const auto& palette = snapshot.data.palette;
+        if (palette.direct()) {
+            // direct palette update; don't store direct palettes, use uint32 max to encode direct palette
+            write<uint32_t>(UINT32_MAX);
+            return;
+        }
         size_t paletteIndex = paletteTableLength;
         for (size_t i = 0; i < paletteTableLength; ++i) {
-            if (const auto& existingPalette = paletteTableStorage[i]; palette == existingPalette) {
+            if (const auto& existingPalette = paletteTableStorage[i]; palette.equals(existingPalette)) {
                 paletteIndex = i;
                 break;
             }
@@ -94,39 +100,46 @@ namespace zvcr {
         write<uint32_t>(paletteIndex);
     }
 
-    ReadResult<PackedSnapshot> ReadHandle::deserializePackedSnapshot(const size_t snapshotLength) {
-        const auto timestamp = static_cast<time_t>(TRY(read<uint64_t>(EXPECTED_TIMESTAMP)));
+    template<size_t snapshotLength>
+    ReadResult<std::monostate> ReadHandle::deserializePackedSnapshot(PackedSnapshot<snapshotLength> &snapshot) {
+        snapshot.timestamp = static_cast<time_t>(TRY(read<uint64_t>(EXPECTED_TIMESTAMP)));
         const auto packedLength = TRY(read<uint64_t>(EXPECTED_PACKED_LENGTH));
         if (packedLength > MAX_PACKED_LENGTH) {
             const auto err = ReadError{INVALID_PACKED_LENGTH, offset, "Invalid packed length: "
                 + std::to_string(packedLength) + " > " + std::to_string(MAX_PACKED_LENGTH)};
             return ERR(err);
         }
-        LongArray packedData(packedLength);
-        TRY(readArray(packedData, EXPECTED_PACKED_DATA));
+        TRY(readArray(snapshot.data.bitStorage.data, packedLength, EXPECTED_PACKED_DATA));
+        snapshot.data.bitStorage.size = snapshotLength;
 
         const auto paletteIndex = TRY(read<uint32_t>(EXPECTED_PALETTE_INDEX));
-        const auto& palette = paletteTable[paletteIndex];
-
+        if (paletteIndex == UINT32_MAX) {
+            // direct palette update; use uint32 max to encode direct palette
+            snapshot.data.palette = DIRECT_PALETTE;
+            snapshot.data.bitStorage.bits = snapshot.data.palette.bitsPerIndex;
+            snapshot.data.bitStorage.init();
+            return {};
+        }
         if (paletteIndex >= paletteTable.size()) {
             const auto err = ReadError{INVALID_PALETTE_INDEX, offset, "Invalid palette index: "
                 + std::to_string(paletteIndex) + " >= " + std::to_string(paletteTable.size())};
             return ERR(err);
         }
-        return PackedSnapshot {
-            PackedData{palette, packedData, snapshotLength},
-            timestamp
-        };
+        snapshot.data.palette = paletteTable[paletteIndex];
+        snapshot.data.bitStorage.bits = snapshot.data.palette.bitsPerIndex;
+        snapshot.data.bitStorage.init();
+        return {};
     }
 
     void WriteHandle::serializePaletteTable(const std::vector<Palette>& paletteTable) {
         write(static_cast<uint32_t>(paletteTable.size()));
 
         for (const auto& palette : paletteTable) {
-            const auto paletteLength = palette.size();
+            if (palette.direct()) continue;  // direct palette update; don't store direct palettes
+            const auto paletteLength = palette.length;
 
             write<uint16_t>(paletteLength);
-            writeArray(palette.data(), paletteLength);
+            writeArray(palette.palette.data(), paletteLength);
         }
     }
 
@@ -137,13 +150,18 @@ namespace zvcr {
                 + std::to_string(paletteTableLength) + " > " + std::to_string(MAX_PALETTE_TABLE_LENGTH)));
 
         paletteTable.reserve(paletteTableLength);
-
         for (size_t i = 0; i < paletteTableLength; ++i) {
             const auto paletteLength = static_cast<size_t>(TRY(read<uint16_t>(EXPECTED_PALETTE_LENGTH)));
 
-            Palette palette(paletteLength);
-            TRY(readArray(palette, EXPECTED_PALETTE_DATA));
-            paletteTable.push_back(palette);
+            std::array<SegmentAtom, MAX_PALETTE_SIZE> palette{};
+            TRY(readArray(palette, std::min(MAX_PALETTE_SIZE, paletteLength), EXPECTED_PALETTE_DATA));
+
+            // direct palette update; needed for backwards compat
+            if (paletteLength > MAX_PALETTE_SIZE) {
+                paletteTable.push_back(DIRECT_PALETTE);
+                continue;
+            }
+            paletteTable.emplace_back(palette, paletteLength, Palette::getBitsPerIndex(paletteLength));
         }
         return {};
     }
@@ -157,31 +175,31 @@ namespace zvcr {
         return {};
     }
 
-    void WriteHandle::serializePackedDeltaData(const PackedDeltaData& section3d) {
+    template<size_t snapshotLength>
+    void WriteHandle::serializePackedDeltaData(const PackedDeltaData<snapshotLength>& section3d) {
         write<uint64_t>(section3d.reverseDeltas.size());
 
-        for (const PackedSnapshot& snapshot : section3d.reverseDeltas)
+        for (const PackedSnapshot<snapshotLength>& snapshot : section3d.reverseDeltas)
             serializePackedSnapshot(snapshot);
     }
 
-    ReadResult<PackedDeltaData> ReadHandle::deserializePackedDeltaData(const size_t snapshotLength) {
+    template<size_t snapshotLength>
+    ReadResult<std::monostate> ReadHandle::deserializePackedDeltaData(PackedDeltaData<snapshotLength> &reverseDeltas) {
         const auto deltaLength = TRY(read<uint64_t>(EXPECTED_DELTA_LENGTH));
         if (deltaLength > MAX_DELTA_LENGTH) {
             const auto err = ReadError{INVALID_DELTA_LENGTH, offset, "Invalid delta length: "
                 + std::to_string(deltaLength) + " > " + std::to_string(MAX_DELTA_LENGTH)};
             return ERR(err);
         }
-        std::vector<PackedSnapshot> reverseDeltas;
-        reverseDeltas.reserve(deltaLength);
-
+        reverseDeltas.reverseDeltas.resize(deltaLength);
         for (size_t deltaIndex = 0; deltaIndex < deltaLength; ++deltaIndex) {
             if (maxDeltas != 0 && deltaIndex >= maxDeltas) {
                 TRY(skipPackedSnapshot());
                 continue;
             }
-            reverseDeltas.push_back(TRY(deserializePackedSnapshot(snapshotLength)));
+            TRY(deserializePackedSnapshot<snapshotLength>(reverseDeltas.reverseDeltas[deltaIndex]));
         }
-        return PackedDeltaData{reverseDeltas, snapshotLength};
+        return {};
     }
 
     void WriteHandle::serializeSegmentState(const SegmentState& segmentState) {
@@ -197,22 +215,23 @@ namespace zvcr {
         return SegmentState{stateType, timestamp};
     }
 
-    void WriteHandle::serializeTileEntityCountInfo(const TileEntityCountInfo& tileEntityCounts) {
-        const auto length = tileEntityCounts.counts.size();
-        assert(length == getTotalTileEntities(ctx.protocolVersion) && "Attempting to write unconverted tileEntityCounts");
+    [[nodiscard]]
+    static constexpr size_t getTotalTileEntities(const uint16_t protocolVersion) {
+        if (protocolVersion >= 768) return 45;
+        if (protocolVersion >= 766) return 44;
+        if (protocolVersion >= 765) return 41;
 
-        writeArray(tileEntityCounts.counts.data(), length);
-        write<uint64_t>(tileEntityCounts.timestamp);
+        return -1; // versions pre 1.20.4 are not supported
     }
 
-    ReadResult<TileEntityCountInfo> ReadHandle::deserializeTileEntityCountInfo() {
+    ReadResult<std::monostate> ReadHandle::deserializeTileEntityCountInfo() {
+        if (!ctx.supportTileEntities) return {};
         const auto totalTileEntities = getTotalTileEntities(ctx.protocolVersion);
 
-        std::vector<TileEntityType> counts(totalTileEntities);
-        TRY(readArray(counts, EXPECTED_TILE_ENTITY_COUNTS));
-        const auto timestamp = static_cast<time_t>(TRY(read<uint64_t>(EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP)));
+        TRY(skip<uint16_t>(totalTileEntities, EXPECTED_TILE_ENTITY_COUNTS));
+        TRY(read<uint64_t>(EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP));
 
-        return TileEntityCountInfo{counts, timestamp};
+        return {};
     }
 
     void WriteHandle::serializeSegmentInfo(const SegmentInfo& segmentInfo) {
@@ -221,10 +240,7 @@ namespace zvcr {
         for (const SegmentState& state : segmentInfo.segmentStates)
             serializeSegmentState(state);
 
-        write<uint64_t>(segmentInfo.tileEntityCounts.size());
-
-        for (const TileEntityCountInfo& tiles : segmentInfo.tileEntityCounts)
-            serializeTileEntityCountInfo(tiles);
+        write<uint64_t>(0);
     }
 
     ReadResult<SegmentInfo> ReadHandle::deserializeSegmentInfo() {
@@ -236,10 +252,13 @@ namespace zvcr {
         }
 
         SegmentStates states;
-        states.reserve(statesLength);
+        states.resize(statesLength);
 
         for (size_t i = 0; i < statesLength; ++i)
-            states.push_back(TRY(deserializeSegmentState()));
+            states[i] = TRY(deserializeSegmentState());
+
+        if (!ctx.supportTileEntities)
+            return SegmentInfo{states};
 
         const auto tileEntitiesLength = TRY(read<uint64_t>(EXPECTED_TILE_ENTITIES_LENGTH));
         if (tileEntitiesLength > MAX_TILE_ENTITIES_LENGTH) {
@@ -247,63 +266,52 @@ namespace zvcr {
                 + std::to_string(tileEntitiesLength) + " > " + std::to_string(MAX_TILE_ENTITIES_LENGTH)};
             return ERR(err);
         }
-
-        TileEntityCounts tileEntityCounts;
-        tileEntityCounts.reserve(tileEntitiesLength);
-
         for (size_t i = 0; i < tileEntitiesLength; ++i)
-            tileEntityCounts.push_back(TRY(deserializeTileEntityCountInfo()));
+            TRY(deserializeTileEntityCountInfo());
 
-        return SegmentInfo{states, tileEntityCounts};
+        return SegmentInfo{states};
     }
 
     void WriteHandle::serializeSegment3d(const Segment3d& segment3d) {
-        for (const PackedDeltaData& section : segment3d.blockSections.getSections())
+        for (const PackedDeltaData<SECTION_3D_SIZE_BLOCKS>& section : segment3d.blockSections.sections)
             serializePackedDeltaData(section);
 
         if (ctx.supportBiomes) {
-            for (const PackedDeltaData& section : segment3d.biomeSections.getSections())
+            for (const PackedDeltaData<SECTION_3D_SIZE_BIOMES>& section : segment3d.biomeSections.sections)
                 serializePackedDeltaData(section);
         }
         serializeSegmentInfo(segment3d.info);
     }
 
-    ReadResult<Segment3d> ReadHandle::deserializeSegment3d() {
-        Segment3d segment{sectionCount, ctx.supportBiomes};
+    ReadResult<std::shared_ptr<Segment3d>> ReadHandle::deserializeSegment3d() {
+        auto segment = std::make_shared<Segment3d>(sectionCount, ctx.supportBiomes);
 
         for (size_t sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex)
-            segment.blockSections.getSection(sectionIndex) = TRY(deserializePackedDeltaData(SECTION_3D_SIZE_BLOCKS));
+            TRY(deserializePackedDeltaData<SECTION_3D_SIZE_BLOCKS>(segment->blockSections.sections[sectionIndex]));
 
         if (ctx.supportBiomes) {
             for (size_t sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex)
-                segment.biomeSections.getSection(sectionIndex) = TRY(deserializePackedDeltaData(SECTION_3D_SIZE_BIOMES));
+                TRY(deserializePackedDeltaData<SECTION_3D_SIZE_BIOMES>(segment->biomeSections.sections[sectionIndex]));
         }
-        segment.info = TRY(deserializeSegmentInfo());
+        segment->info = TRY(deserializeSegmentInfo());
         return segment;
     }
 
-    void WriteHandle::serializeOptSegment3d(const result::Option<Segment3d>& segment3dOpt) {
-        if (!segment3dOpt.has_value()) {
+    void WriteHandle::serializeOptSegment3d(const Segment3d *segment3dOpt) {
+        if (!segment3dOpt) {
             writeByte(0);
             return;
         }
         writeByte(1);
-        serializeSegment3d(segment3dOpt.value());
-    }
-
-    ReadResult<result::Option<Segment3d>> ReadHandle::deserializeOptSegment3d() {
-        if (const bool hasOption = TRY(readByte(EXPECTED_SEGMENT_INDICATOR)); !hasOption)
-            return result::None;
-
-        return TRY(deserializeSegment3d());
+        serializeSegment3d(*segment3dOpt);
     }
 
     void WriteHandle::serializeRegion3d(const Region3d& region) {
         WriteHandle regionDataHandle{};
         regionDataHandle.ctx = ctx;
 
-        for (const auto& segment3d : region.segments)
-            regionDataHandle.serializeOptSegment3d(segment3d);
+        for (size_t i = 0; i < SEGMENTS_PER_REGION; i++)
+            regionDataHandle.serializeOptSegment3d(region.segments[i].get());
 
         if (ctx.supportDynamicVersioning)
             write<uint16_t>(ctx.protocolVersion);
@@ -312,18 +320,14 @@ namespace zvcr {
         writeBytes(regionDataHandle.data);
     }
 
-    ReadResult<Region3d> ReadHandle::deserializeRegion3d(const ZVCR3Version version) {
-        ctx.initialize(version);
-
-        if (ctx.supportDynamicVersioning)
-            ctx.protocolVersion = TRY(read<uint16_t>(EXPECTED_PROTOCOL_VERSION));
-
+    ReadResult<std::monostate> ReadHandle::deserializeRegion3d(Region3d &region3d) {
         TRY(deserializePaletteTable());
-        Segments3d segment3ds(SEGMENTS_PER_REGION);
-        for (size_t segment3dIndex = 0; segment3dIndex < SEGMENTS_PER_REGION; ++segment3dIndex)
-            segment3ds[segment3dIndex] = TRY(deserializeOptSegment3d());
-
-        return Region3d{segment3ds, ctx.protocolVersion};
+        for (size_t segment3dIndex = 0; segment3dIndex < SEGMENTS_PER_REGION; ++segment3dIndex) {
+            if (const auto hasOption = TRY(readByte(EXPECTED_SEGMENT_INDICATOR)); hasOption) {
+                region3d.segments[segment3dIndex] = TRY(deserializeSegment3d());
+            }
+        }
+        return {};
     }
 
     void serializeZVCR3File(const ZVCR3File& file, WriteHandle& handle) {
@@ -342,50 +346,61 @@ namespace zvcr {
 
         const auto version = TRY(handle.deserializeVersion(ZVCR3_VER_LATEST));
         const auto dimensionType = TRY(handle.deserializeDimensionType());
-        const auto region = TRY(handle.deserializeRegion3d(version));
 
-        return ZVCR3File{version, dimensionType, region};
+        handle.ctx.initialize(version);
+
+        if (handle.ctx.supportDynamicVersioning)
+            handle.ctx.protocolVersion = TRY(handle.read<uint16_t>(EXPECTED_PROTOCOL_VERSION));
+
+        Region3d region3d{handle.ctx.protocolVersion};
+        TRY(handle.deserializeRegion3d(region3d));
+
+        return ZVCR3File{version, dimensionType, std::move(region3d)};
     }
 
-    void WriteHandle::serializeLayer(const Layer2d& layer) {
+    template<size_t snapshotLength>
+    void WriteHandle::serializeLayer(const Layer2d<snapshotLength>& layer) {
         writeByte(layer.type);
-        serializePackedDeltaData(layer.deltas);
+        serializePackedDeltaData<snapshotLength>(layer.deltas);
     }
 
-    ReadResult<Layer2d> ReadHandle::deserializeLayer(const size_t snapshotSize) {
+    template<size_t snapshotLength>
+    ReadResult<Layer2d<snapshotLength>> ReadHandle::deserializeLayer() {
         const auto type = TRY(readByte(EXPECTED_LAYER_TYPE));
-        const auto deltas = TRY(deserializePackedDeltaData(snapshotSize));
+        auto layer = Layer2d<snapshotLength>{type};
+        TRY(deserializePackedDeltaData<snapshotLength>(layer.deltas));
 
-        return Layer2d{deltas, type};
+        return std::move(layer);
     }
 
-    void WriteHandle::serializeLayers(const LayerContainer2d& layers) {
+    template<size_t snapshotLength>
+    void WriteHandle::serializeLayers(const LayerContainer2d<snapshotLength>& layers) {
         write<uint64_t>(layers.layers.size());
 
         for (const auto& layer: layers.layers | std::views::values)
-            serializeLayer(layer);
+            serializeLayer<snapshotLength>(layer);
     }
 
-    ReadResult<LayerContainer2d> ReadHandle::deserializeLayers(const size_t snapshotSize) {
+    template<size_t snapshotLength>
+    ReadResult<std::monostate> ReadHandle::deserializeLayers(LayerContainer2d<snapshotLength> &layers) {
         const auto layersLength = TRY(read<uint64_t>(EXPECTED_LAYERS_LENGTH));
 
-        LayerTable2d layers{snapshotSize};
         for (size_t layerIndex = 0; layerIndex < layersLength; ++layerIndex) {
-            const auto layer = TRY(deserializeLayer(snapshotSize));
-            layers[layer.type] = layer;
+            auto layer = TRY(deserializeLayer<snapshotLength>());
+            layers.layers[layer.type] = layer;
         }
-        return LayerContainer2d{layers};
+        return {};
     }
 
-    ReadResult<LayerContainer2d> ReadHandle::deserializeBlockLayers() {
-        return deserializeLayers(SECTION_2D_SIZE_BLOCKS);
+    ReadResult<std::monostate> ReadHandle::deserializeBlockLayers(Segment2d &segment2d) {
+        return deserializeLayers<SECTION_2D_SIZE_BLOCKS>(segment2d.layers);
     }
 
-    ReadResult<LayerContainer2d> ReadHandle::deserializeBiomeLayers() {
+    ReadResult<std::monostate> ReadHandle::deserializeBiomeLayers(Segment2d &segment2d) {
         if (ctx.supportBiomes)
-            return deserializeLayers(SECTION_2D_SIZE_BIOMES);
+            return deserializeLayers<SECTION_2D_SIZE_BIOMES>(segment2d.biomeLayers);
 
-        return LayerContainer2d{SECTION_2D_SIZE_BIOMES};
+        return {};
     }
 
     void WriteHandle::serializeSegment2d(const Segment2d& segment) {
@@ -397,37 +412,30 @@ namespace zvcr {
         serializeSegmentInfo(segment.info);
     }
 
-    ReadResult<Segment2d> ReadHandle::deserializeSegment2d() {
-        return Segment2d {
-            TRY(deserializeBlockLayers()),
-            TRY(deserializeBiomeLayers()),
-            TRY(deserializeSegmentInfo()),
-            ctx.supportBiomes
-        };
+    ReadResult<std::shared_ptr<Segment2d>> ReadHandle::deserializeSegment2d() {
+        auto segment = std::make_shared<Segment2d>();
+        segment->supportBiomes = ctx.supportBiomes;
+        TRY(deserializeBlockLayers(*segment));
+        TRY(deserializeBiomeLayers(*segment));
+        segment->info = TRY(deserializeSegmentInfo());
+        return segment;
     }
 
-    void WriteHandle::serializeOptSegment2d(const result::Option<Segment2d>& segment) {
-        if (!segment.has_value()) {
+    void WriteHandle::serializeOptSegment2d(const Segment2d *segment) {
+        if (!segment) {
             writeByte(0);
             return;
         }
         writeByte(1);
-        serializeSegment2d(segment.value());
-    }
-
-    ReadResult<result::Option<Segment2d>> ReadHandle::deserializeOptSegment2d() {
-        if (const auto hasOption = TRY(readByte(EXPECTED_SEGMENT_INDICATOR)); !hasOption)
-            return result::None;
-
-        return TRY(deserializeSegment2d());
+        serializeSegment2d(*segment);
     }
 
     void WriteHandle::serializeRegion2d(const Region2d& region) {
         WriteHandle regionDataHandle{};
         regionDataHandle.ctx = ctx;
 
-        for (const auto& segment : region.segments)
-            regionDataHandle.serializeOptSegment2d(segment);
+        for (size_t i = 0; i < SEGMENTS_PER_REGION; i++)
+            regionDataHandle.serializeOptSegment2d(region.segments[i].get());
 
         if (ctx.supportDynamicVersioning)
             write<uint16_t>(ctx.protocolVersion);
@@ -436,18 +444,15 @@ namespace zvcr {
         writeBytes(regionDataHandle.data);
     }
 
-    ReadResult<Region2d> ReadHandle::deserializeRegion2d(const ZVCR2Version version) {
-        ctx.initialize(version);
-
-        if (ctx.supportDynamicVersioning)
-            ctx.protocolVersion = TRY(read<uint16_t>(EXPECTED_PROTOCOL_VERSION));
-
+    ReadResult<std::monostate> ReadHandle::deserializeRegion2d(Region2d &region2d) {
         TRY(deserializePaletteTable());
-        Segments2d segment3ds(SEGMENTS_PER_REGION);
-        for (size_t segmentIndex = 0; segmentIndex < SEGMENTS_PER_REGION; ++segmentIndex)
-            segment3ds[segmentIndex] = TRY(deserializeOptSegment2d());
+        for (size_t segmentIndex = 0; segmentIndex < SEGMENTS_PER_REGION; ++segmentIndex) {
+            if (const auto hasOption = TRY(readByte(EXPECTED_SEGMENT_INDICATOR)); hasOption) {
+                region2d.segments[segmentIndex] = TRY(deserializeSegment2d());
+            }
+        }
 
-        return Region2d{segment3ds, ctx.protocolVersion};
+        return {};
     }
 
     void serializeZVCR2File(const ZVCR2File& file, WriteHandle& handle) {
@@ -465,9 +470,16 @@ namespace zvcr {
 
         const auto version = TRY(handle.deserializeVersion(ZVCR2_VER_LATEST));
         const auto dimensionType = TRY(handle.deserializeDimensionType());
-        const auto region = TRY(handle.deserializeRegion2d(version));
 
-        return ZVCR2File{version, dimensionType, region};
+        handle.ctx.initialize(version);
+
+        if (handle.ctx.supportDynamicVersioning)
+            handle.ctx.protocolVersion = TRY(handle.read<uint16_t>(EXPECTED_PROTOCOL_VERSION));
+
+        Region2d region2d{handle.ctx.protocolVersion};
+        TRY(handle.deserializeRegion2d(region2d));
+
+        return ZVCR2File{version, dimensionType, std::move(region2d)};
     }
 
 }

@@ -3,6 +3,9 @@
 #include <functional>
 #include <fstream>
 #include <thread>
+#include <cstring>
+#include <iostream>
+#include <variant>
 #include <zstd.h>
 #include <zvcr/common/data_storage.hpp>
 #include <zvcr/region/dimension.hpp>
@@ -13,17 +16,14 @@
 #include <zvcr/region/dim2/zvcr2.hpp>
 #include <zvcr/region/dim2/layer.hpp>
 #include <zvcr/region/file_location.hpp>
-#include <zvcr/common/definitions.hpp>
 
 namespace zvcr {
-
-    using Palette = std::vector<SegmentAtom>;
 
     static constexpr auto MAX_DELTA_LENGTH = 65536;
     static constexpr auto MAX_SEGMENT_STATES_LENGTH = 65536;
     static constexpr auto MAX_TILE_ENTITIES_LENGTH = 65536;
 
-    static constexpr auto MAX_PACKED_LENGTH = 1048560;
+    static constexpr auto MAX_PACKED_LENGTH = 1024;
     static constexpr auto MAX_PALETTE_TABLE_LENGTH = 262144;
 
     enum ReadErrorType {
@@ -100,11 +100,13 @@ namespace zvcr {
     struct Context {
         bool supportBiomes{};
         bool supportDynamicVersioning{};
+        bool supportTileEntities{};
         uint16_t protocolVersion{};
 
         void initialize(const ZVCR3Version version) {
             supportBiomes = version >= ZVCR3Version::ZVCR3_0_1_0_0;
             supportDynamicVersioning = version >= ZVCR3Version::ZVCR3_0_1_1_0;
+            supportTileEntities = version <= ZVCR3Version::ZVCR3_0_1_1_0; // support removed in future versions
 
             if (protocolVersion == 0 && version == ZVCR3Version::ZVCR3_0_0_0_1)
                 protocolVersion = PROTOCOL_VERSION_ZVCR_0_0_0_X;
@@ -113,6 +115,7 @@ namespace zvcr {
         void initialize(const ZVCR2Version version) {
             supportBiomes = version >= ZVCR2Version::ZVCR2_0_1_0_0;
             supportDynamicVersioning = version >= ZVCR2Version::ZVCR2_0_1_1_0;
+            supportTileEntities = version <= ZVCR2Version::ZVCR2_0_1_2_0; // support removed in future versions
 
             if (protocolVersion == 0 && version == ZVCR2Version::ZVCR2_0_0_0_0)
                 protocolVersion = PROTOCOL_VERSION_ZVCR_0_0_0_X;
@@ -148,31 +151,33 @@ namespace zvcr {
             data.push_back(byte);
         }
 
-        void serializePackedSnapshot(const PackedSnapshot& snapshot);
+        template<size_t snapshotLength>
+        void serializePackedSnapshot(const PackedSnapshot<snapshotLength>& snapshot);
 
         void serializePaletteTable(const std::vector<Palette>& paletteTable);
 
-        void serializePackedDeltaData(const PackedDeltaData& section3d);
+        template<size_t snapshotLength>
+        void serializePackedDeltaData(const PackedDeltaData<snapshotLength>& section3d);
 
         void serializeSegmentState(const SegmentState& segmentState);
-
-        void serializeTileEntityCountInfo(const TileEntityCountInfo& tileEntityCounts);
 
         void serializeSegmentInfo(const SegmentInfo& segmentInfo);
 
         void serializeSegment3d(const Segment3d& segment3d);
 
-        void serializeOptSegment3d(const result::Option<Segment3d>& segment3dOpt);
+        void serializeOptSegment3d(const Segment3d *segment3dOpt);
 
         void serializeRegion3d(const Region3d& region);
 
-        void serializeLayer(const Layer2d& layer);
+        template<size_t snapshotLength>
+        void serializeLayer(const Layer2d<snapshotLength>& layer);
 
-        void serializeLayers(const LayerContainer2d& layers);
+        template<size_t snapshotLength>
+        void serializeLayers(const LayerContainer2d<snapshotLength>& layers);
 
         void serializeSegment2d(const Segment2d& segment);
 
-        void serializeOptSegment2d(const result::Option<Segment2d>& segment);
+        void serializeOptSegment2d(const Segment2d *segment);
 
         void serializeRegion2d(const Region2d& region);
     };
@@ -180,11 +185,11 @@ namespace zvcr {
     class ReadHandle {
         size_t offset{};
         std::vector<Palette> paletteTable{};
-        uint32_t sectionCount{};
 
         size_t maxDeltas;
 
     public:
+        uint32_t sectionCount{};
         Context ctx{};
         const std::vector<uint8_t>& data;
 
@@ -230,6 +235,17 @@ namespace zvcr {
             return {};
         }
 
+        template<typename T, size_t BufferSize>
+        [[nodiscard]]
+        ReadResult<std::monostate> readArray(std::array<T, BufferSize>& array, const size_t length, const ReadErrorType orElseErr) {
+            if (offset + length * sizeof(T) > data.size())
+                return ERR(ReadError(orElseErr, offset, "Read out of bounds"));
+
+            std::memcpy(array.data(), data.data() + offset, length * sizeof(T));
+            offset += length * sizeof(T);
+            return {};
+        }
+
         template<typename T>
         [[nodiscard]]
         ReadResult<std::monostate> skip(const size_t n, const ReadErrorType orElseErr) {
@@ -265,8 +281,9 @@ namespace zvcr {
         [[nodiscard]]
         ReadResult<DimensionType> deserializeDimensionType();
 
+        template<size_t snapshotLength>
         [[nodiscard]]
-        ReadResult<PackedSnapshot> deserializePackedSnapshot(size_t snapshotLength);
+        ReadResult<std::monostate> deserializePackedSnapshot(PackedSnapshot<snapshotLength> &snapshot);
 
         [[nodiscard]]
         ReadResult<std::monostate> deserializePaletteTable();
@@ -274,47 +291,44 @@ namespace zvcr {
         [[nodiscard]]
         ReadResult<std::monostate> skipPackedSnapshot();
 
+        template<size_t snapshotLength>
         [[nodiscard]]
-        ReadResult<PackedDeltaData> deserializePackedDeltaData(size_t snapshotLength);
+        ReadResult<std::monostate> deserializePackedDeltaData(PackedDeltaData<snapshotLength> &reverseDeltas);
 
         [[nodiscard]]
         ReadResult<SegmentState> deserializeSegmentState();
 
         [[nodiscard]]
-        ReadResult<TileEntityCountInfo> deserializeTileEntityCountInfo();
+        ReadResult<std::monostate> deserializeTileEntityCountInfo();
 
         [[nodiscard]]
         ReadResult<SegmentInfo> deserializeSegmentInfo();
 
         [[nodiscard]]
-        ReadResult<Segment3d> deserializeSegment3d();
+        ReadResult<std::shared_ptr<Segment3d>> deserializeSegment3d();
 
         [[nodiscard]]
-        ReadResult<result::Option<Segment3d>> deserializeOptSegment3d();
+        ReadResult<std::monostate> deserializeRegion3d(Region3d &region3d);
+
+        template<size_t snapshotLength>
+        [[nodiscard]]
+        ReadResult<Layer2d<snapshotLength>> deserializeLayer();
+
+        template<size_t snapshotLength>
+        [[nodiscard]]
+        ReadResult<std::monostate> deserializeLayers(LayerContainer2d<snapshotLength> &layers);
 
         [[nodiscard]]
-        ReadResult<Region3d> deserializeRegion3d(ZVCR3Version version);
+        ReadResult<std::monostate> deserializeBlockLayers(Segment2d &segment2d);
 
         [[nodiscard]]
-        ReadResult<Layer2d> deserializeLayer(size_t snapshotSize);
+        ReadResult<std::monostate> deserializeBiomeLayers(Segment2d &segment2d);
 
         [[nodiscard]]
-        ReadResult<LayerContainer2d> deserializeLayers(size_t snapshotSize);
+        ReadResult<std::shared_ptr<Segment2d>> deserializeSegment2d();
 
         [[nodiscard]]
-        ReadResult<LayerContainer2d> deserializeBlockLayers();
-
-        [[nodiscard]]
-        ReadResult<LayerContainer2d> deserializeBiomeLayers();
-
-        [[nodiscard]]
-        ReadResult<Segment2d> deserializeSegment2d();
-
-        [[nodiscard]]
-        ReadResult<result::Option<Segment2d>> deserializeOptSegment2d();
-
-        [[nodiscard]]
-        ReadResult<Region2d> deserializeRegion2d(ZVCR2Version version);
+        ReadResult<std::monostate> deserializeRegion2d(Region2d &region2d);
     };
 
     void serializeZVCR2File(const ZVCR2File& file, WriteHandle& handle);
@@ -421,6 +435,7 @@ namespace zvcr {
         std::vector<char> inBuffer(inChunkSize);
         std::vector<char> outBuffer(outChunkSize);
         std::vector<uint8_t> decompressed;
+        decompressed.reserve(outChunkSize * 188);
 
         while (true) {
             fileStream.read(inBuffer.data(), static_cast<int64_t>(inChunkSize));
@@ -443,7 +458,8 @@ namespace zvcr {
         ReadHandle handle{decompressed, maxDeltas};
 
         try {
-            const auto result = DefaultSerialization<R>::deserialize(handle);
+            auto result = DefaultSerialization<R>::deserialize(handle);
+
             if (!result.has_value()) {
                 auto err = result.error();
                 err.attach(handle);
@@ -452,7 +468,7 @@ namespace zvcr {
             if (protocolVersion != nullptr)
                 *protocolVersion = handle.ctx.protocolVersion;
 
-            return result.value();
+            return result;
         } catch (const std::length_error& e) {
             auto err = ReadError{GENERIC_READ_ERROR, handle.getOffset(), "Generic read error: " + std::string(e.what())};
             err.attach(handle);
