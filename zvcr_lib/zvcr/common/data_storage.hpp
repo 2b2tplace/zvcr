@@ -12,7 +12,15 @@
 
 namespace zvcr {
 
-    using LongArray = absl::InlinedVector<uint64_t, 512>;
+    // constants measured in real world contexts for the best ram <-> compute tradeoff
+
+    // usually 342 but vanilla world generation CAN frequently make chunk sections complicated enough, so this is the default upper bound
+    static constexpr auto INITIAL_PACKED_LENGTH = 410;
+
+    // usually 48 (we could fit up to 64 before exceeding a packed length > 410; rarely, if ever, happens in vanilla world generation, so we save ram)
+    static constexpr auto INITIAL_PALETTE_LENGTH = 48;
+
+    using LongArray = absl::InlinedVector<uint64_t, INITIAL_PACKED_LENGTH>;
 
     struct BitStorage {
 
@@ -160,8 +168,10 @@ namespace zvcr {
 
     static constexpr size_t MAX_PALETTE_SIZE = UINT8_MAX + 1;
 
+    using VectorPalette = absl::InlinedVector<SegmentAtom, INITIAL_PALETTE_LENGTH>;
+
     struct Palette {
-        std::array<SegmentAtom, MAX_PALETTE_SIZE> palette{};
+        VectorPalette palette{};
         size_t length{};
         uint64_t bitsPerIndex{};
 
@@ -173,19 +183,22 @@ namespace zvcr {
         template<size_t snapshotLength>
         [[nodiscard]]
         static Palette build(const std::array<SegmentAtom, snapshotLength> &data, std::array<uint8_t, UINT16_MAX + 1> &indices) {
-            static constexpr auto DIRECT_PALETTE = Palette{.bitsPerIndex = 16};
+            static const auto DIRECT_PALETTE = Palette{.bitsPerIndex = 16};
 
             Palette palette;
             std::bitset<UINT16_MAX + 1> unique;
             for (const auto atom : data) {
                 if (unique.test(atom)) continue;
-
                 unique.set(atom);
+
+                if (palette.length >= MAX_PALETTE_SIZE)
+                    return DIRECT_PALETTE;
+
+                if (palette.length >= palette.palette.size())
+                    palette.palette.resize(MAX_PALETTE_SIZE);
+
                 palette.palette[palette.length] = atom;
                 indices[atom] = static_cast<uint16_t>(palette.length++);
-
-                if (palette.length > palette.palette.size())
-                    return DIRECT_PALETTE;
             }
             palette.bitsPerIndex = getBitsPerIndex(palette.length);
             return palette;
@@ -204,7 +217,7 @@ namespace zvcr {
         }
     };
 
-    static constexpr auto DIRECT_PALETTE = Palette{.bitsPerIndex = 16};
+    static const auto DIRECT_PALETTE = Palette{.bitsPerIndex = 16};
 
     template<size_t snapshotLength>
     class PackedData {
