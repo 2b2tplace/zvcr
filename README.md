@@ -7,8 +7,7 @@ a reverse delta algorithm. The newest snapshot is always stored in its full form
 
 Other differences include:
 - the storage of the state each chunk was in when it was saved (newly generated or already existing),
-- tile entity counts for each type of tile entity (useful for searching a large number of files for things like chests and shulker boxes quickly) 
-- and, of course, the Zstd compression, achieving more than a 50% reduction in filesize, or a 95% reduction in the end dimension, at Zstd compression level 22.
+- Zstd compression, achieving more than a 50% reduction in filesize, or a 95% reduction in the end dimension, at Zstd compression level 22.
 
 Additionally, the zvcr2 file format was created to only store top-down information (also with reverse deltas) about a region (for map rendering or similar)
 and it also includes chunk states (old/new) and tile entity counts. Any zvcr3 file can be easily converted into a zvcr2 file.
@@ -40,13 +39,13 @@ target_link_libraries(my_project
 Files as shown below are compressed with Zstd (the entire file, with a compression level of 12 by default).
 
 ## File content
-| Field               | Type          | Support        | Bound                                                                                                                   |
-|---------------------|---------------|----------------|-------------------------------------------------------------------------------------------------------------------------|
-| zvcr Prefix         | `uint8 array` |                | Must be "ZVRegion" for zvcr3, or "ZPRegion" for zvcr2                                                                   |
-| zvcr Version number | `uint8`       |                |                                                                                                                         |
-| Dimension type      | `uint8`       |                |                                                                                                                         |
-| Protocol version    | `uint16`      | ≥ zvcr 0.1.1.0 | See [protocol version numbers](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_version_numbers) |
-| Region container    |               |                |                                                                                                                         |
+| Field               | Type          | Support                           | Bound                                                                                                                   |
+|---------------------|---------------|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| zvcr Prefix         | `uint8 array` |                                   | Must be "ZVRegion" for zvcr3, or "ZPRegion" for zvcr2                                                                   |
+| zvcr Version number | `uint8`       |                                   |                                                                                                                         |
+| Dimension type      | `uint8`       |                                   |                                                                                                                         |
+| Protocol version    | `uint16`      | ≥ zvcr3 0.1.1.0 / ≥ zvcr2 0.1.1.0 | See [protocol version numbers](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_version_numbers) |
+| Region container    |               |                                   |                                                                                                                         |
 
 ### Version number encoding (zvcr3)
 | Version       | Version number | Supported |
@@ -92,6 +91,7 @@ however, zvcr does not have single value palettes implemented.
 |-------------------|------------------------------|
 | Palette length n  | `uint16`                     |
 | Palette data      | `uint16 array` with length n |
+Direct palettes are not stored in the table; See below for more info.
 
 ### Packed delta data
 | Field              | Type     |
@@ -109,20 +109,24 @@ Packed data is stored as packed `uint64 array` with `snapshot size` palette entr
 represent the largest index in the palette:
 ```cpp
 uint64_t getBitsPerIndex(size_t paletteSize) {
-    return max(int(ceil(log2(paletteSize))), 1);
+    return max(bit_width(max(paletteSize, 1UL) - 1), 1UL);
 }
 ```
+If the bits per index of a palette exceeds 8, storing the packed data + the palette results in actually storing more bytes. 
+To combat this, direct mode is used for any palette with bits per index > 8. 
+Direct mode creates a 1:1 mapping of `uint16_t` entries and avoids palette usage altogether. 
+The entries are still packed in a `uint64 array` and the bits per index is hard coded to 16 in this case.
 
 See [the implementation of paletted data storage](/zvcr_lib/zvcr/common/data_storage.cpp) for more details.
 
 Packed snapshots are formatted as such:
 
-| Field           | Type                                        |
-|-----------------|---------------------------------------------|
-| Timestamp       | `uint64`                                    |
-| Packed length n | `uint64`                                    |
-| Packed data     | `uint64 array` with length n                |
-| Palette index   | `uint32` (index in the given palette table) |
+| Field           | Type                                                                                    |
+|-----------------|-----------------------------------------------------------------------------------------|
+| Timestamp       | `uint64`                                                                                |
+| Packed length n | `uint64`                                                                                |
+| Packed data     | `uint64 array` with length n                                                            |
+| Palette index   | `uint32` (index in the given palette table, `UINT32_MAX` to encode direct palette mode) |
 
 ## Segments
 Segments describe a Minecraft chunk embedded within the region (16 blocks in sidelength). By their nature, they can be absent if they were not stored in their position.
@@ -175,12 +179,12 @@ A layer can describe block or biome information and as such has a fixed given sn
 Additional segment info is stored across both zvcr2 and zvcr3 for miscellaneous applications. These include visibly seeing which chunks on a Minecraft server
 were newly generated or not. Along with that, a more efficient tile entity counts storage to quickly filter for treasures when scanning large amounts of data.
 
-| Field                     | Type     |
-|---------------------------|----------|
-| Segment states length n   | `uint64` |
-| n Segment states          |          |
-| Tile entities length k    | `uint64` |
-| k Tile entity counts info |          |
+| Field                         | Type     | Support                                             |
+|-------------------------------|----------|-----------------------------------------------------|
+| Segment states length n       | `uint64` |                                                     |
+| n Segment states              |          |                                                     |
+| ~~Tile entities length k~~    | `uint64` | ≤ zvcr3 0.1.2.0 / ≤ zvcr2 0.1.3.0 (Support removed) |
+| ~~k Tile entity counts info~~ |          | ≤ zvcr3 0.1.2.0 / ≤ zvcr2 0.1.3.0 (Support removed) |
 
 ### Segment state
 | Field         | Type     |
