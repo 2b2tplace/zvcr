@@ -109,7 +109,10 @@ namespace zvcr {
                 + std::to_string(packedLength) + " > " + std::to_string(MAX_PACKED_LENGTH)};
             return ERR(err);
         }
-        TRY(readArray(snapshot.data.bitStorage.data, packedLength, EXPECTED_PACKED_DATA));
+        if (packedLength > snapshot.data.bitStorage.data.size())
+            snapshot.data.bitStorage.data.resize(packedLength);
+
+        TRY(readArray(snapshot.data.bitStorage.data.data(), packedLength, EXPECTED_PACKED_DATA));
         snapshot.data.bitStorage.size = snapshotLength;
 
         const auto paletteIndex = TRY(read<uint32_t>(EXPECTED_PALETTE_INDEX));
@@ -152,15 +155,17 @@ namespace zvcr {
         paletteTable.reserve(paletteTableLength);
         for (size_t i = 0; i < paletteTableLength; ++i) {
             const auto paletteLength = static_cast<size_t>(TRY(read<uint16_t>(EXPECTED_PALETTE_LENGTH)));
-
-            std::array<SegmentAtom, MAX_PALETTE_SIZE> palette{};
-            TRY(readArray(palette, std::min(MAX_PALETTE_SIZE, paletteLength), EXPECTED_PALETTE_DATA));
-
             // direct palette update; needed for backwards compat
             if (paletteLength > MAX_PALETTE_SIZE) {
+                TRY(skip<SegmentAtom>(paletteLength, EXPECTED_PALETTE_DATA));
                 paletteTable.push_back(DIRECT_PALETTE);
                 continue;
             }
+            VectorPalette palette{};
+            if (paletteLength > palette.size())
+                palette.resize(paletteLength);
+
+            TRY(readArray(palette.data(), paletteLength, EXPECTED_PALETTE_DATA));
             paletteTable.emplace_back(palette, paletteLength, Palette::getBitsPerIndex(paletteLength));
         }
         return {};

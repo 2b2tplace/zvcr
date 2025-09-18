@@ -17,6 +17,8 @@ namespace zvcr {
         const size_t magicIndex = valuesPerLong - 1;
         std::tie(divideMul, divideAdd, divideShift) = MAGIC[magicIndex];
         packedLength = (size + valuesPerLong - 1) / valuesPerLong;
+        if (packedLength > data.size())
+            data.resize(packedLength);
 
         divideMul = static_cast<uint64_t>(static_cast<uint32_t>(divideMul));
         divideAdd = static_cast<uint64_t>(static_cast<uint32_t>(divideAdd));

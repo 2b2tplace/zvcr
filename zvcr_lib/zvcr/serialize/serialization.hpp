@@ -235,13 +235,13 @@ namespace zvcr {
             return {};
         }
 
-        template<typename T, size_t BufferSize>
+        template<typename T>
         [[nodiscard]]
-        ReadResult<std::monostate> readArray(std::array<T, BufferSize>& array, const size_t length, const ReadErrorType orElseErr) {
+        ReadResult<std::monostate> readArray(T *array, const size_t length, const ReadErrorType orElseErr) {
             if (offset + length * sizeof(T) > data.size())
                 return ERR(ReadError(orElseErr, offset, "Read out of bounds"));
 
-            std::memcpy(array.data(), data.data() + offset, length * sizeof(T));
+            std::memcpy(array, data.data() + offset, length * sizeof(T));
             offset += length * sizeof(T);
             return {};
         }
