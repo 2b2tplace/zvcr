@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ranges>
 #include <utility>
 #include <zvcr/region/segment/segment_info.hpp>
 #include <zvcr/region/dim2/layer.hpp>
@@ -8,49 +7,67 @@
 
 namespace zvcr {
 
+    template<size_t snapshotLength>
     class LayerContainer2d {
     public:
-        LayerTable2d layers;
-        size_t snapshotSize;
+        LayerTable2d<snapshotLength> layers;
 
-        explicit LayerContainer2d(LayerTable2d layers):
-            layers(std::move(layers)), snapshotSize(layers.snapshotSize) {
-            for (const Layer2d& layer : layers | std::views::values)
-                assert(layer.deltas.snapshotLength == layers.snapshotSize
-                    && "Layer Table contains Layers with differing snapshot size");
+        explicit LayerContainer2d(LayerTable2d<snapshotLength> layers):
+            layers(std::move(layers)) {}
+
+        explicit LayerContainer2d():
+            layers(LayerTable2d<snapshotLength>{}) {}
+
+        [[nodiscard]]
+        result::OptionCRef<Layer2d<snapshotLength>> getLayer(LayerTypeId type) const {
+            if (!layers.contains(type)) return result::None;
+            return layers.at(type);
         }
 
-        explicit LayerContainer2d(const size_t snapshotSize):
-            layers(LayerTable2d {snapshotSize}), snapshotSize(snapshotSize) {}
+        [[nodiscard]]
+        result::OptionCRef<Layer2d<snapshotLength>> getLayer(LayerType layerType) const {
+            return getLayer(static_cast<LayerTypeId>(layerType));
+        }
 
         [[nodiscard]]
-        result::OptionCRef<Layer2d> getLayer(LayerTypeId type) const;
+        result::OptionRef<Layer2d<snapshotLength>> getLayer(LayerTypeId type) {
+            if (!layers.contains(type)) return result::None;
+            return layers.at(type);
+        }
 
         [[nodiscard]]
-        result::OptionCRef<Layer2d> getLayer(LayerType layerType) const;
+        result::OptionRef<Layer2d<snapshotLength>> getLayer(LayerType layerType) {
+            return getLayer(static_cast<LayerTypeId>(layerType));
+        }
 
-        [[nodiscard]]
-        result::OptionRef<Layer2d> getLayer(LayerTypeId type);
+        void setLayer(LayerTypeId type, const Layer2d<snapshotLength>& layer) {
+            layers[type] = layer;
+        }
 
-        [[nodiscard]]
-        result::OptionRef<Layer2d> getLayer(LayerType layerType);
+        void setLayer(LayerType layerType, const Layer2d<snapshotLength>& layer) {
+            setLayer(static_cast<LayerTypeId>(layerType), layer);
+        }
 
-        void setLayer(LayerTypeId type, const Layer2d& layer);
+        void setLayer(LayerTypeId type, const PackedSnapshot<snapshotLength>& initialState) {
+            setLayer(type, Layer2d(PackedDeltaData { initialState }, type));
+        }
 
-        void setLayer(LayerType layerType, const Layer2d& layer);
+        void setLayer(LayerType layerType, const PackedSnapshot<snapshotLength>& initialState) {
+            setLayer(static_cast<LayerTypeId>(layerType), initialState);
+        }
 
-        void setLayer(LayerTypeId type, const PackedSnapshot& initialState);
+        void setLayer(LayerTypeId type, const std::vector<PackedSnapshot<snapshotLength>>& reverseDeltas) {
+            setLayer(type, Layer2d(PackedDeltaData { reverseDeltas }, type));
+        }
 
-        void setLayer(LayerType layerType, const PackedSnapshot& initialState);
-
-        void setLayer(LayerTypeId type, const std::vector<PackedSnapshot>& reverseDeltas, size_t snapshotLength);
-
-        void setLayer(LayerType layerType, const std::vector<PackedSnapshot>& reverseDeltas, size_t snapshotLength);
+        void setLayer(LayerType layerType, const std::vector<PackedSnapshot<snapshotLength>>& reverseDeltas) {
+            setLayer(static_cast<LayerTypeId>(layerType), reverseDeltas);
+        }
     };
 
     struct Segment2d {
-        LayerContainer2d layers{SECTION_2D_SIZE_BLOCKS};
-        LayerContainer2d biomeLayers{SECTION_2D_SIZE_BIOMES};
+        LayerContainer2d<SECTION_2D_SIZE_BLOCKS> layers{};
+        LayerContainer2d<SECTION_2D_SIZE_BIOMES> biomeLayers{};
         SegmentInfo info;
         bool supportBiomes;
     };

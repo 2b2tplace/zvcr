@@ -24,34 +24,45 @@ namespace zvcr {
     [[nodiscard]]
     LayerType getHeightmapLayer(LayerType topDownLayer);
 
+    template<size_t snapshotLength>
     struct Layer2d {
-        PackedDeltaData deltas;
+        PackedDeltaData<snapshotLength> deltas;
         LayerTypeId type{};
 
-        explicit Layer2d(PackedDeltaData deltas, const LayerTypeId type):
+        explicit Layer2d(PackedDeltaData<snapshotLength> deltas, const LayerTypeId type):
             deltas(std::move(deltas)),
             type(type) {}
 
-        explicit Layer2d(const size_t snapshotSize, const LayerTypeId type):
-            deltas(snapshotSize),
+        explicit Layer2d(const LayerTypeId type):
+            deltas(),
             type(type) {}
 
-        explicit Layer2d(const size_t snapshotSize, const LayerType type):
-            deltas(snapshotSize),
+        explicit Layer2d(const LayerType type):
+            deltas(),
             type(static_cast<LayerTypeId>(type)) {}
     };
 
-    class LayerTable2d : public std::unordered_map<LayerTypeId, Layer2d> {
+    template<size_t snapshotLength>
+    class LayerTable2d : public std::unordered_map<LayerTypeId, Layer2d<snapshotLength>> {
+        using Map = std::unordered_map<LayerTypeId, Layer2d<snapshotLength>>;
     public:
-        size_t snapshotSize;
-
-        explicit LayerTable2d(const size_t snapshotSize):
-            snapshotSize(snapshotSize) {}
+        LayerTable2d() = default;
 
         [[nodiscard]]
-        Layer2d& operator[](LayerType layerType);
+        Layer2d<snapshotLength>& operator[](LayerType layerType) {
+            return operator[](static_cast<LayerTypeId>(layerType));
+        }
 
         [[nodiscard]]
-        Layer2d& operator[](LayerTypeId layerType);
+        Layer2d<snapshotLength>& operator[](LayerTypeId layerType) {
+            if (Map::contains(layerType))
+                return Map::at(layerType);
+
+            const auto deltas = PackedDeltaData{PackedSnapshotVector<snapshotLength>{}};
+            const auto emptyLayer = Layer2d{deltas, layerType};
+            Map::emplace(layerType, emptyLayer);
+
+            return Map::at(layerType);
+        }
     };
 }

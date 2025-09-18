@@ -7,40 +7,18 @@
 
 namespace zvcr {
 
-    class DeltaSections3d {
-        using Segment3dSnapshot = std::vector<PackedSnapshot>;
-        using PackedData = PackedDeltaData;
+    static constexpr size_t MAX_SECTION_COUNT = 24;
 
-        std::vector<PackedData> sections;
+    template<size_t snapshotLength>
+    class DeltaSections3d {
+        using Segment3dSnapshot = std::vector<PackedSnapshot<snapshotLength>>;
+        using PackedData = PackedDeltaData<snapshotLength>;
 
     public:
+        std::array<PackedData, MAX_SECTION_COUNT> sections{};
         size_t sectionCount;
-        size_t sectionSize;
 
-        explicit DeltaSections3d(const size_t sectionCount, const size_t sectionSize):
-            sectionCount(sectionCount), sectionSize(sectionSize) {
-            sections.resize(sectionCount, PackedData(sectionSize));
-        }
-
-        [[nodiscard]]
-        PackedData& getSection(const uint8_t y) {
-            return sections[y];
-        }
-
-        [[nodiscard]]
-        const PackedData& readSection(const uint8_t y) const {
-            return sections[y];
-        }
-
-        [[nodiscard]]
-        const std::vector<PackedData>& getSections() const {
-            return sections;
-        }
-
-        [[nodiscard]]
-        size_t getSectionCount() const {
-            return sectionCount;
-        }
+        explicit DeltaSections3d(const size_t sectionCount): sectionCount(sectionCount) {}
 
         [[nodiscard]]
         Segment3dSnapshot snapshotFrom(const time_t timestamp) const {
@@ -82,8 +60,8 @@ namespace zvcr {
 
     struct Segment3d {
         size_t sectionCount;
-        DeltaSections3d blockSections;
-        DeltaSections3d biomeSections;
+        DeltaSections3d<SECTION_3D_SIZE_BLOCKS> blockSections;
+        DeltaSections3d<SECTION_3D_SIZE_BIOMES> biomeSections;
         SegmentInfo info;
         bool supportBiomes;
 
@@ -95,10 +73,17 @@ namespace zvcr {
 
         explicit Segment3d(const size_t sectionCount, const bool supportBiomes):
             sectionCount(sectionCount),
-            blockSections(DeltaSections3d{sectionCount, SECTION_3D_SIZE_BLOCKS}),
-            biomeSections(DeltaSections3d{sectionCount, SECTION_3D_SIZE_BIOMES}),
-            info({}),
+            blockSections(sectionCount),
+            biomeSections(sectionCount),
+            info(SegmentStates{}),
             supportBiomes(supportBiomes) {}
+
+        Segment3d():
+            sectionCount(MAX_SECTION_COUNT),
+            blockSections(sectionCount),
+            biomeSections(sectionCount),
+            info(SegmentStates{}),
+            supportBiomes(true) {}
     };
 
     using Region3d = GenericRegion<Segment3d>;
