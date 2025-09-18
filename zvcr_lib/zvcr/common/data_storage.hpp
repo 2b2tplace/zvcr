@@ -12,7 +12,7 @@
 
 namespace zvcr {
 
-    using LongArray = std::array<uint64_t, 1024>;
+    using LongArray = absl::InlinedVector<uint64_t, 512>;
 
     struct BitStorage {
 
