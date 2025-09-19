@@ -68,7 +68,8 @@ namespace zvcr {
         }
 
         explicit UnpackedView(const uint8_t sidelength, const SegmentAtom fill): sidelength(sidelength) {
-            this->unpacked = UnpackedData{fill};
+            this->unpacked = UnpackedData{};
+            this->unpacked.fill(fill);
         }
 
         explicit UnpackedView(const uint8_t sidelength, const UnpackedData& unpacked): sidelength(sidelength) {
