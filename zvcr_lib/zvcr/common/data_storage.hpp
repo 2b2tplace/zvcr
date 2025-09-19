@@ -7,7 +7,9 @@
 #include <bit>
 #include <bitset>
 #include <cassert>
+#include <iostream>
 #include <tuple>
+#include <variant>
 #include <absl/container/inlined_vector.h>
 
 namespace zvcr {
@@ -180,30 +182,6 @@ namespace zvcr {
             return std::max(std::bit_width(std::max(length, 1UL) - 1), 1UL);
         }
 
-        template<size_t snapshotLength>
-        [[nodiscard]]
-        static Palette build(const std::array<SegmentAtom, snapshotLength> &data, std::array<uint8_t, UINT16_MAX + 1> &indices) {
-            static const auto DIRECT_PALETTE = Palette{.bitsPerIndex = 16};
-
-            Palette palette;
-            std::bitset<UINT16_MAX + 1> unique;
-            for (const auto atom : data) {
-                if (unique.test(atom)) continue;
-                unique.set(atom);
-
-                if (palette.length >= MAX_PALETTE_SIZE)
-                    return DIRECT_PALETTE;
-
-                if (palette.length >= palette.palette.size())
-                    palette.palette.resize(MAX_PALETTE_SIZE);
-
-                palette.palette[palette.length] = atom;
-                indices[atom] = static_cast<uint16_t>(palette.length++);
-            }
-            palette.bitsPerIndex = getBitsPerIndex(palette.length);
-            return palette;
-        }
-
         [[nodiscard]]
         bool equals(const Palette &other) const {
             if (length != other.length) return false;
@@ -220,28 +198,74 @@ namespace zvcr {
     static const auto DIRECT_PALETTE = Palette{.bitsPerIndex = 16};
 
     template<size_t snapshotLength>
+    [[nodiscard]]
+    Palette buildPalette(const std::array<SegmentAtom, snapshotLength> &data, std::array<uint8_t, UINT16_MAX + 1> &indices) {
+        Palette palette;
+        std::bitset<UINT16_MAX + 1> unique;
+        for (const auto atom : data) {
+            if (unique.test(atom)) continue;
+            unique.set(atom);
+
+            if (palette.length >= MAX_PALETTE_SIZE)
+                return DIRECT_PALETTE;
+
+            if (palette.length >= palette.palette.size())
+                palette.palette.resize(MAX_PALETTE_SIZE);
+
+            palette.palette[palette.length] = atom;
+            indices[atom] = static_cast<uint16_t>(palette.length++);
+        }
+        palette.bitsPerIndex = Palette::getBitsPerIndex(palette.length);
+        return palette;
+    }
+
+    template<size_t snapshotLength>
+    struct PalettedData {
+        explicit PalettedData(const Palette& palette):
+            bitStorage(palette.bitsPerIndex, snapshotLength) {
+            this->palette = palette;
+        }
+
+        explicit PalettedData(const Palette& palette, const LongArray &packedData):
+            PalettedData(palette) {
+            this->bitStorage.data = packedData;
+        }
+
+        PalettedData() = default;
+
+        BitStorage bitStorage;
+        Palette palette;
+    };
+
+    template<size_t snapshotLength>
+    using Data = std::variant<PalettedData<snapshotLength>, uint16_t>;
+
+    template<size_t snapshotLength>
     class PackedData {
     public:
         using UnpackedData = std::array<SegmentAtom, snapshotLength>;
 
         explicit PackedData(const Palette& palette):
-            bitStorage(palette.bitsPerIndex, snapshotLength) {
-            this->palette = palette;
-        }
+            data(PalettedData<snapshotLength>{palette}) {}
 
         explicit PackedData(const Palette& palette, const LongArray &packedData):
-            PackedData(palette) {
-            this->bitStorage.data = packedData;
-        }
+            data(PalettedData<snapshotLength>{palette, packedData}) {}
+
+        explicit PackedData(const uint16_t singleValue):
+            data(singleValue) {}
 
         PackedData() = default;
 
         [[nodiscard]]
         static PackedData pack(const UnpackedData& sectionData) {
             std::array<uint8_t, UINT16_MAX + 1> indices{};
-            const auto palette = Palette::build(sectionData, indices);
+            const auto palette = buildPalette(sectionData, indices);
+            if (palette.length == 1)
+                return PackedData{palette.palette[0]};
+
             auto packedData = PackedData{palette};
-            auto &bitStorage = packedData.bitStorage;
+            auto &palettedData = std::get<PalettedData<snapshotLength>>(packedData.data);
+            auto &bitStorage = palettedData.bitStorage;
 
             const auto shift = bitStorage.divideShift + 32;
             const uint8_t usableBits = 64 - bitStorage.bits;
@@ -265,7 +289,15 @@ namespace zvcr {
 
         [[nodiscard]]
         UnpackedData unpack() const {
+            if (std::holds_alternative<uint16_t>(data)) {
+                auto result = UnpackedData{};
+                result.fill(std::get<uint16_t>(data));
+                return result;
+            }
             UnpackedData unpacked{};
+            const auto &palettedData = std::get<PalettedData<snapshotLength>>(data);
+            const auto &bitStorage = palettedData.bitStorage;
+            const auto &palette = palettedData.palette;
 
             const auto shift = bitStorage.divideShift + 32;
             const uint8_t usableBits = 64 - bitStorage.bits;
@@ -290,8 +322,7 @@ namespace zvcr {
             return UnpackedView{sidelength, unpack()};
         }
 
-        BitStorage bitStorage;
-        Palette palette;
+        Data<snapshotLength> data;
     };
 
     template<size_t snapshotLength>
