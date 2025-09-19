@@ -4,7 +4,6 @@
 #include <fstream>
 #include <thread>
 #include <cstring>
-#include <iostream>
 #include <variant>
 #include <zstd.h>
 #include <zvcr/common/data_storage.hpp>
@@ -33,6 +32,8 @@ namespace zvcr {
         EXPECTED_TIMESTAMP,
         EXPECTED_PACKED_LENGTH,
         EXPECTED_PACKED_DATA,
+        EXPECTED_PALETTE_TYPE,
+        EXPECTED_PALETTE_SINGLE_DATA,
         EXPECTED_PALETTE_INDEX,
         EXPECTED_PALETTE_TABLE_LENGTH,
         EXPECTED_PALETTE_LENGTH,
@@ -101,12 +102,14 @@ namespace zvcr {
         bool supportBiomes{};
         bool supportDynamicVersioning{};
         bool supportTileEntities{};
+        bool supportSingleValuePalette{};
         uint16_t protocolVersion{};
 
         void initialize(const ZVCR3Version version) {
             supportBiomes = version >= ZVCR3Version::ZVCR3_0_1_0_0;
             supportDynamicVersioning = version >= ZVCR3Version::ZVCR3_0_1_1_0;
             supportTileEntities = version <= ZVCR3Version::ZVCR3_0_1_1_0; // support removed in future versions
+            supportSingleValuePalette = version >= ZVCR3Version::ZVCR3_0_1_3_0;
 
             if (protocolVersion == 0 && version == ZVCR3Version::ZVCR3_0_0_0_1)
                 protocolVersion = PROTOCOL_VERSION_ZVCR_0_0_0_X;
@@ -116,6 +119,7 @@ namespace zvcr {
             supportBiomes = version >= ZVCR2Version::ZVCR2_0_1_0_0;
             supportDynamicVersioning = version >= ZVCR2Version::ZVCR2_0_1_1_0;
             supportTileEntities = version <= ZVCR2Version::ZVCR2_0_1_2_0; // support removed in future versions
+            supportSingleValuePalette = version >= ZVCR2Version::ZVCR2_0_1_4_0;
 
             if (protocolVersion == 0 && version == ZVCR2Version::ZVCR2_0_0_0_0)
                 protocolVersion = PROTOCOL_VERSION_ZVCR_0_0_0_X;

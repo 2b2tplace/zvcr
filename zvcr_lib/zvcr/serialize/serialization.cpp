@@ -74,14 +74,23 @@ namespace zvcr {
     void WriteHandle::serializePackedSnapshot(const PackedSnapshot<snapshotLength>& snapshot) {
         write<uint64_t>(snapshot.timestamp);
 
-        const auto& packedData = snapshot.data.bitStorage.data;
-        const auto packedLength = snapshot.data.bitStorage.packedLength;
+        const auto &anyData = snapshot.data.data;
+        if (std::holds_alternative<uint16_t>(anyData)) { // single value palette update; 0 = single value
+            write<uint8_t>(0);
+            write<uint16_t>(std::get<uint16_t>(anyData));
+            return;
+        }
+        write<uint8_t>(1); // single value palette update; 1 = section palette
+
+        const auto &palettedData = std::get<PalettedData<snapshotLength>>(anyData);
+        const auto& packedData = palettedData.bitStorage.data;
+        const auto packedLength = palettedData.bitStorage.packedLength;
 
         write<uint64_t>(packedLength);
         writeArray(packedData.data(), packedLength);
 
         const auto paletteTableLength = paletteTableStorage.size();
-        const auto& palette = snapshot.data.palette;
+        const auto& palette = palettedData.palette;
         if (palette.direct()) {
             // direct palette update; don't store direct palettes, use uint32 max to encode direct palette
             write<uint32_t>(UINT32_MAX);
@@ -103,24 +112,34 @@ namespace zvcr {
     template<size_t snapshotLength>
     ReadResult<std::monostate> ReadHandle::deserializePackedSnapshot(PackedSnapshot<snapshotLength> &snapshot) {
         snapshot.timestamp = static_cast<time_t>(TRY(read<uint64_t>(EXPECTED_TIMESTAMP)));
+
+        if (ctx.supportSingleValuePalette) {
+            const auto dataType = TRY(read<uint8_t>(EXPECTED_PALETTE_TYPE));
+            if (dataType == 0) {
+                const auto singleValue = TRY(read<uint16_t>(EXPECTED_PALETTE_SINGLE_DATA));
+                snapshot.data.data = singleValue;
+                return {};
+            }
+        }
         const auto packedLength = TRY(read<uint64_t>(EXPECTED_PACKED_LENGTH));
         if (packedLength > MAX_PACKED_LENGTH) {
             const auto err = ReadError{INVALID_PACKED_LENGTH, offset, "Invalid packed length: "
                 + std::to_string(packedLength) + " > " + std::to_string(MAX_PACKED_LENGTH)};
             return ERR(err);
         }
-        if (packedLength > snapshot.data.bitStorage.data.size())
-            snapshot.data.bitStorage.data.resize(packedLength);
+        auto palettedData = PalettedData<snapshotLength>{};
+        if (packedLength > palettedData.bitStorage.data.size())
+            palettedData.bitStorage.data.resize(packedLength);
 
-        TRY(readArray(snapshot.data.bitStorage.data.data(), packedLength, EXPECTED_PACKED_DATA));
-        snapshot.data.bitStorage.size = snapshotLength;
+        TRY(readArray(palettedData.bitStorage.data.data(), packedLength, EXPECTED_PACKED_DATA));
+        palettedData.bitStorage.size = snapshotLength;
 
         const auto paletteIndex = TRY(read<uint32_t>(EXPECTED_PALETTE_INDEX));
         if (paletteIndex == UINT32_MAX) {
             // direct palette update; use uint32 max to encode direct palette
-            snapshot.data.palette = DIRECT_PALETTE;
-            snapshot.data.bitStorage.bits = snapshot.data.palette.bitsPerIndex;
-            snapshot.data.bitStorage.init();
+            palettedData.palette = DIRECT_PALETTE;
+            palettedData.bitStorage.bits = palettedData.palette.bitsPerIndex;
+            palettedData.bitStorage.init();
             return {};
         }
         if (paletteIndex >= paletteTable.size()) {
@@ -128,9 +147,15 @@ namespace zvcr {
                 + std::to_string(paletteIndex) + " >= " + std::to_string(paletteTable.size())};
             return ERR(err);
         }
-        snapshot.data.palette = paletteTable[paletteIndex];
-        snapshot.data.bitStorage.bits = snapshot.data.palette.bitsPerIndex;
-        snapshot.data.bitStorage.init();
+        const auto &palette = paletteTable[paletteIndex];
+        if (palette.length == 1) {
+            snapshot.data.data = palette.palette[0]; // single value palette update; backwards compatibility
+            return {};
+        }
+        palettedData.palette = palette;
+        palettedData.bitStorage.bits = palettedData.palette.bitsPerIndex;
+        palettedData.bitStorage.init();
+        snapshot.data.data = palettedData;
         return {};
     }
 
@@ -140,6 +165,7 @@ namespace zvcr {
         for (const auto& palette : paletteTable) {
             if (palette.direct()) continue;  // direct palette update; don't store direct palettes
             const auto paletteLength = palette.length;
+            if (paletteLength == 1) continue; // section palette update; don't store single value palettes
 
             write<uint16_t>(paletteLength);
             writeArray(palette.palette.data(), paletteLength);
@@ -335,10 +361,10 @@ namespace zvcr {
         const std::string prefix = ZVCR3_FILE_PREFIX;
 
         handle.writeBytes(prefix);
-        handle.writeByte(static_cast<uint8_t>(file.version));
+        handle.writeByte(static_cast<uint8_t>(ZVCR3_VER_LATEST));
         handle.writeByte(static_cast<uint8_t>(file.dimensionType));
 
-        handle.ctx.initialize(file.version);
+        handle.ctx.initialize(ZVCR3_VER_LATEST);
         handle.serializeRegion3d(file.region);
     }
 
@@ -458,10 +484,10 @@ namespace zvcr {
     void serializeZVCR2File(const ZVCR2File& file, WriteHandle& handle) {
         const std::string prefix = ZVCR2_FILE_PREFIX;
         handle.writeBytes(prefix);
-        handle.writeByte(static_cast<uint8_t>(file.version));
+        handle.writeByte(static_cast<uint8_t>(ZVCR2_VER_LATEST));
         handle.writeByte(static_cast<uint8_t>(file.dimensionType));
 
-        handle.ctx.initialize(file.version);
+        handle.ctx.initialize(ZVCR2_VER_LATEST);
         handle.serializeRegion2d(file.region);
     }
 

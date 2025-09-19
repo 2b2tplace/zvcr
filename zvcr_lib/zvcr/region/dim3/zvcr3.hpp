@@ -9,14 +9,15 @@ namespace zvcr {
         ZVCR3_0_0_0_1 = 1,
         ZVCR3_0_1_0_0,
         ZVCR3_0_1_1_0,
-        ZVCR3_0_1_2_0
+        ZVCR3_0_1_2_0,
+        ZVCR3_0_1_3_0
     };
 
-    static constexpr auto ZVCR3_VER_LATEST = ZVCR3Version::ZVCR3_0_1_2_0;
+    static constexpr auto ZVCR3_VER_LATEST = ZVCR3Version::ZVCR3_0_1_3_0;
     static constexpr auto ZVCR3_FILE_PREFIX = "ZVRegion";
 
     struct ZVCR3File {
-        ZVCR3Version version{ZVCR3_VER_LATEST};
+        ZVCR3Version version{ZVCR3_VER_LATEST}; // changing this has no effect during serialization (backwards compatibility only for deserialization)
         DimensionType dimensionType;
         Region3d region;
 
