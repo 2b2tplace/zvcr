@@ -4,7 +4,6 @@
 #include <fstream>
 #include <thread>
 #include <cstring>
-#include <iostream>
 #include <variant>
 #include <zstd.h>
 #include <zvcr/common/data_storage.hpp>
