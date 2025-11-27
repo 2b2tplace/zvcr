@@ -179,7 +179,7 @@ namespace zvcr {
 
         [[nodiscard]]
         static uint64_t getBitsPerIndex(const size_t length) {
-            return std::max(std::bit_width(std::max(length, 1UL) - 1), 1UL);
+            return std::max<uint64_t>(std::bit_width(std::max(length, 1UL) - 1), 1UL);
         }
 
         [[nodiscard]]
