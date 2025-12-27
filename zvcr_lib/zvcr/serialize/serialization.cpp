@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <ranges>
 #include <cstring>
+#include <iostream>
 #include <zvcr/common/definitions.hpp>
 
 namespace zvcr {
@@ -54,7 +55,7 @@ namespace zvcr {
             return ERR(err);
         }
         const auto dimensionType = static_cast<DimensionType>(dimensionTypeId);
-        sectionCount = getProperties(dimensionType).height / SEGMENT_SIDELENGTH_BLOCKS;
+        ctx.initializeSectionCount(dimensionType);
 
         return dimensionType;
     }
@@ -240,6 +241,11 @@ namespace zvcr {
 
     ReadResult<SegmentState> ReadHandle::deserializeSegmentState() {
         const auto stateTypeId = TRY(readByte(EXPECTED_SEGMENT_STATE_TYPE));
+        if (stateTypeId > 2) {
+            const auto err = ReadError{INVALID_SEGMENT_STATE_ID, offset, "Invalid segment state id: "
+                + std::to_string(stateTypeId) + " > 2"};
+            return ERR(err);
+        }
         const auto stateType = static_cast<SegmentStateType>(stateTypeId);
         const auto timestamp = static_cast<time_t>(TRY(read<uint64_t>(EXPECTED_SEGMENT_STATE_TIMESTAMP)));
 
@@ -300,24 +306,27 @@ namespace zvcr {
     }
 
     void WriteHandle::serializeSegment3d(const Segment3d& segment3d) {
-        for (const PackedDeltaData<SECTION_3D_SIZE_BLOCKS>& section : segment3d.blockSections.sections)
+        for (size_t i = 0; i < ctx.sectionCount; i++) {
+            const auto &section = segment3d.blockSections.sections.at(i);
             serializePackedDeltaData(section);
-
+        }
         if (ctx.supportBiomes) {
-            for (const PackedDeltaData<SECTION_3D_SIZE_BIOMES>& section : segment3d.biomeSections.sections)
+            for (size_t i = 0; i < ctx.sectionCount; i++) {
+                const auto &section = segment3d.biomeSections.sections.at(i);
                 serializePackedDeltaData(section);
+            }
         }
         serializeSegmentInfo(segment3d.info);
     }
 
     ReadResult<std::shared_ptr<Segment3d>> ReadHandle::deserializeSegment3d() {
-        auto segment = std::make_shared<Segment3d>(sectionCount, ctx.supportBiomes);
+        auto segment = std::make_shared<Segment3d>(ctx.sectionCount, ctx.supportBiomes);
 
-        for (size_t sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex)
+        for (size_t sectionIndex = 0; sectionIndex < ctx.sectionCount; ++sectionIndex)
             TRY(deserializePackedDeltaData<SECTION_3D_SIZE_BLOCKS>(segment->blockSections.sections[sectionIndex]));
 
         if (ctx.supportBiomes) {
-            for (size_t sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex)
+            for (size_t sectionIndex = 0; sectionIndex < ctx.sectionCount; ++sectionIndex)
                 TRY(deserializePackedDeltaData<SECTION_3D_SIZE_BIOMES>(segment->biomeSections.sections[sectionIndex]));
         }
         segment->info = TRY(deserializeSegmentInfo());
@@ -365,6 +374,7 @@ namespace zvcr {
         handle.writeByte(static_cast<uint8_t>(file.dimensionType));
 
         handle.ctx.initialize(ZVCR3_VER_LATEST);
+        handle.ctx.initializeSectionCount(file.dimensionType);
         handle.serializeRegion3d(file.region);
     }
 
@@ -488,6 +498,7 @@ namespace zvcr {
         handle.writeByte(static_cast<uint8_t>(file.dimensionType));
 
         handle.ctx.initialize(ZVCR2_VER_LATEST);
+        handle.ctx.initializeSectionCount(file.dimensionType);
         handle.serializeRegion2d(file.region);
     }
 

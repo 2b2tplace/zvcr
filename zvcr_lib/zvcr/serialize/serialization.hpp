@@ -60,6 +60,7 @@ namespace zvcr {
         INVALID_PALETTE_TABLE_LENGTH,
         INVALID_SEGMENT_STATES_LENGTH,
         INVALID_TILE_ENTITIES_LENGTH,
+        INVALID_SEGMENT_STATE_ID,
     };
 
     class ReadHandle;
@@ -99,11 +100,17 @@ namespace zvcr {
     static constexpr uint16_t PROTOCOL_VERSION_ZVCR_0_0_0_X = 765; // 1.20.4
 
     struct Context {
+        uint16_t sectionCount{};
+
         bool supportBiomes{};
         bool supportDynamicVersioning{};
         bool supportTileEntities{};
         bool supportSingleValuePalette{};
         uint16_t protocolVersion{};
+
+        void initializeSectionCount(const DimensionType dimensionType) {
+            sectionCount = getProperties(dimensionType).height / SEGMENT_SIDELENGTH_BLOCKS;
+        }
 
         void initialize(const ZVCR3Version version) {
             supportBiomes = version >= ZVCR3Version::ZVCR3_0_1_0_0;
@@ -193,7 +200,6 @@ namespace zvcr {
         size_t maxDeltas;
 
     public:
-        uint32_t sectionCount{};
         Context ctx{};
         const std::vector<uint8_t>& data;
 
