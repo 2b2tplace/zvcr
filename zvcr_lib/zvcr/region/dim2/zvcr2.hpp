@@ -16,6 +16,21 @@ namespace zvcr {
         ZVCR2_0_1_4_0
     };
 
+    static constexpr std::array<std::string_view, 7> versionNames2 {
+        "0.0.0.0",
+        "0.1.0.0",
+        "0.1.1.0",
+        "0.1.1.1",
+        "0.1.2.0",
+        "0.1.3.0",
+        "0.1.4.0"
+    };
+
+    [[nodiscard]]
+    constexpr std::string_view versionName2(const ZVCR2Version version) {
+        return versionNames2[static_cast<size_t>(version)];
+    }
+
     static constexpr auto ZVCR2_VER_LATEST = ZVCR2Version::ZVCR2_0_1_4_0;
     static constexpr auto ZVCR2_FILE_PREFIX = "ZPRegion";
 

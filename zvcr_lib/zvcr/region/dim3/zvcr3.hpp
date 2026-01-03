@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <zvcr/region/dimension.hpp>
 #include <zvcr/region/dim3/segment3.hpp>
 
@@ -15,6 +16,20 @@ namespace zvcr {
 
     static constexpr auto ZVCR3_VER_LATEST = ZVCR3Version::ZVCR3_0_1_3_0;
     static constexpr auto ZVCR3_FILE_PREFIX = "ZVRegion";
+
+    static constexpr std::array<std::string_view, 6> versionNames3 {
+        "0.0.0.0",
+        "0.0.0.1",
+        "0.1.0.0",
+        "0.1.1.0",
+        "0.1.2.0",
+        "0.1.3.0"
+    };
+
+    [[nodiscard]]
+    constexpr std::string_view versionName3(const ZVCR3Version version) {
+        return versionNames3[static_cast<size_t>(version)];
+    }
 
     struct ZVCR3File {
         ZVCR3Version version{ZVCR3_VER_LATEST}; // changing this has no effect during serialization (backwards compatibility only for deserialization)
