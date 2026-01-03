@@ -21,6 +21,12 @@ namespace zvcr {
         DimensionProperties properties;
     };
 
+    static constexpr std::array<std::string_view, 3> dimensionNames {
+        "overworld",
+        "nether",
+        "end"
+    };
+
     static const std::unordered_map<DimensionType, DimensionProperties> DimensionTypePropertyRegistry = {
         {DimensionType::OVERWORLD, DimensionProperties {true, -64, 384}},
         {DimensionType::NETHER, DimensionProperties {false, 0, 256}},
@@ -30,6 +36,11 @@ namespace zvcr {
     [[nodiscard]]
     inline const DimensionProperties& getProperties(const DimensionType type) {
         return DimensionTypePropertyRegistry.at(type);
+    }
+
+    [[nodiscard]]
+    constexpr std::string_view dimensionName(const DimensionType type) {
+        return dimensionNames[std::to_underlying(type)];
     }
 
 }
