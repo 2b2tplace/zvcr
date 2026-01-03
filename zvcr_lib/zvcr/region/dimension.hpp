@@ -41,7 +41,7 @@ namespace zvcr {
 
     [[nodiscard]]
     constexpr std::string_view dimensionName(const DimensionType type) {
-        return dimensionNames[std::to_underlying(type)];
+        return dimensionNames[static_cast<size_t>(type)];
     }
 
 }
