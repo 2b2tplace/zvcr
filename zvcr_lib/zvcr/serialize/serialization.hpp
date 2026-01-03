@@ -352,7 +352,7 @@ namespace zvcr {
     template<typename R>
     struct DefaultSerialization {
         static_assert(std::is_same_v<R, ZVCR2File> || std::is_same_v<R, ZVCR3File>,
-            "ZVCR serialization only supports dim2::zvcr2::ZVCR2File and dim3::zvcr3::ZVCR3File");
+            "ZVCR serialization only supports ZVCR2File and ZVCR3File");
     };
 
     template<>
