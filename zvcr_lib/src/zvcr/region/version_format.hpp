@@ -14,6 +14,7 @@ namespace zvcr {
     template<>
     struct VersionToString<ZVCR2File> {
         using Version = ZVCR2Version;
+        using File = ZVCR2File;
         static constexpr auto versionName = versionName2;
         static constexpr auto extension = "zvcr2";
     };
@@ -21,6 +22,7 @@ namespace zvcr {
     template<>
     struct VersionToString<ZVCR3File> {
         using Version = ZVCR3Version;
+        using File = ZVCR3File;
         static constexpr auto versionName = versionName3;
         static constexpr auto extension = "zvcr3";
     };
