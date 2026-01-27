@@ -438,20 +438,25 @@ namespace zvcr {
 
         [[nodiscard]]
         result::Option<PackedSnapshot<snapshotLength>> snapshotFrom(const time_t timestamp) const {
-            auto latestSnapshot = REQUIRE(this->latestSnapshot()).get().data.unpack();
+            const auto &latestPackedOpt = this->latestSnapshot();
+            if (!latestPackedOpt) return result::None;
+
+            const auto &latestPacked = REQUIRE(latestPackedOpt).get();
+            if (timestamp >= latestPacked.timestamp) return latestPacked;
+
+            auto latestSnapshot = latestPacked.data.unpack();
             bool first = true;
             for (const auto& [sectionData, deltaTimestamp] : reverseDeltas) {
                 if (first) {
                     first = false;
                     continue;
                 }
-                if (timestamp > deltaTimestamp) break;
-
                 const auto unpacked = sectionData.unpack();
                 for (size_t j = 0; j < snapshotLength; ++j) {
                     if (const auto state = unpacked[j]; state != STATE_UNCHANGED)
                         latestSnapshot[j] = state;
                 }
+                if (timestamp >= deltaTimestamp) break;
             }
             return PackedSnapshot{PackedData<snapshotLength>::pack(latestSnapshot), timestamp};
         }
