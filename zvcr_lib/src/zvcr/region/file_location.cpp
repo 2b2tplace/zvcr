@@ -45,7 +45,7 @@ namespace zvcr {
         return RegionLocation{regionX, regionZ, dimension};
     }
 
-    fs::path RegionLocation::getDirectory(const std::string& parentDirectory) const {
+    fs::path RegionLocation::getDirectory(const fs::path& parentDirectory) const {
         const auto sectorX = std::to_string(rx / SECTOR_SIDELENGTH);
         const auto sectorZ = std::to_string(rz / SECTOR_SIDELENGTH);
         const auto dimID = std::to_string(static_cast<int32_t>(dimensionType));
@@ -56,7 +56,7 @@ namespace zvcr {
     std::string RegionLocation::getFileName(const RegionFormat format) const {
         return ZVCR_REGION_PREFIX + std::to_string(rx)
              + ZVCR_REGION_DELIMITER + std::to_string(rz)
-             + ZVCR_EXTENSION + std::to_string(static_cast<uint>(format));
+             + ZVCR_EXTENSION + std::to_string(static_cast<uint32_t>(format));
     }
 
     fs::path RegionLocation::getFilePath(const fs::path& parentDirectory, const RegionFormat format) const {

@@ -35,7 +35,7 @@ namespace zvcr {
         static result::Option<RegionLocation> fromFileName(DimensionType dimension, const fs::path& file);
 
         [[nodiscard]]
-        fs::path getDirectory(const std::string& parentDirectory) const;
+        fs::path getDirectory(const fs::path& parentDirectory) const;
 
         [[nodiscard]]
         std::string getFileName(RegionFormat format) const;
