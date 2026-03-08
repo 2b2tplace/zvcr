@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cassert>
-#include <result.hpp>
+#include <memory>
 #include <zvcr/common/definitions.hpp>
 
 namespace zvcr {
