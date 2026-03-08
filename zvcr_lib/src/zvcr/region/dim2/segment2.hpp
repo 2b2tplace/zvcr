@@ -1,6 +1,5 @@
 #pragma once
 
-#include <utility>
 #include <zvcr/region/segment/segment_info.hpp>
 #include <zvcr/region/dim2/layer.hpp>
 #include <zvcr/common/generic_region.hpp>
@@ -70,6 +69,10 @@ namespace zvcr {
         LayerContainer2d<SECTION_2D_SIZE_BIOMES> biomeLayers{};
         SegmentInfo info;
         bool supportBiomes;
+
+        explicit Segment2d(const bool supportBiomes = true):
+            info(SegmentStates{}),
+            supportBiomes(supportBiomes) {}
     };
 
     using Region2d = GenericRegion<Segment2d>;
