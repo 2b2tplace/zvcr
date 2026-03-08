@@ -77,13 +77,6 @@ namespace zvcr {
             biomeSections(sectionCount),
             info(SegmentStates{}),
             supportBiomes(supportBiomes) {}
-
-        Segment3d():
-            sectionCount(MAX_SECTION_COUNT),
-            blockSections(sectionCount),
-            biomeSections(sectionCount),
-            info(SegmentStates{}),
-            supportBiomes(true) {}
     };
 
     using Region3d = GenericRegion<Segment3d>;
