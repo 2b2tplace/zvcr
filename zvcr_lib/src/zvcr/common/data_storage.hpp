@@ -53,20 +53,18 @@ namespace zvcr {
     template<size_t snapshotLength>
     class UnpackedView {
     public:
-        using UnpackedData = UnpackedData<snapshotLength>;
-
-        UnpackedData unpacked;
+        UnpackedData<snapshotLength> unpacked;
 
         explicit UnpackedView(const uint8_t sidelength): sidelength(sidelength) {
-            this->unpacked = UnpackedData{};
+            this->unpacked = UnpackedData<snapshotLength>{};
         }
 
         explicit UnpackedView(const uint8_t sidelength, const SegmentAtom fill): sidelength(sidelength) {
-            this->unpacked = UnpackedData{};
+            this->unpacked = UnpackedData<snapshotLength>{};
             this->unpacked.fill(fill);
         }
 
-        explicit UnpackedView(const uint8_t sidelength, const UnpackedData& unpacked): sidelength(sidelength) {
+        explicit UnpackedView(const uint8_t sidelength, const UnpackedData<snapshotLength>& unpacked): sidelength(sidelength) {
             this->unpacked = unpacked;
         }
 
@@ -237,8 +235,6 @@ namespace zvcr {
     template<size_t snapshotLength>
     class PackedData {
     public:
-        using UnpackedData = UnpackedData<snapshotLength>;
-
         explicit PackedData(const Palette& palette):
             data(PalettedData<snapshotLength>{palette}) {}
 
@@ -254,7 +250,7 @@ namespace zvcr {
         PackedData() = default;
 
         [[nodiscard]]
-        static PackedData pack(const UnpackedData& sectionData) {
+        static PackedData pack(const UnpackedData<snapshotLength>& sectionData) {
             std::array<uint8_t, UINT16_MAX + 1> indices{};
             const auto palette = buildPalette(sectionData, indices);
             if (palette.length == 1)
@@ -285,13 +281,13 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        UnpackedData unpack() const {
+        UnpackedData<snapshotLength> unpack() const {
             if (std::holds_alternative<uint16_t>(data)) {
-                auto result = UnpackedData{};
+                auto result = UnpackedData<snapshotLength>{};
                 result.fill(std::get<uint16_t>(data));
                 return result;
             }
-            UnpackedData unpacked{};
+            UnpackedData<snapshotLength> unpacked{};
             const auto &palettedData = std::get<PalettedData<snapshotLength>>(data);
             const auto &bitStorage = palettedData.bitStorage;
             const auto &palette = palettedData.palette;
@@ -412,7 +408,6 @@ namespace zvcr {
     template<size_t snapshotLength>
     class PackedDeltaData {
     public:
-        using UnpackedData = UnpackedData<snapshotLength>;
         PackedSnapshotVector<snapshotLength> reverseDeltas;
 
         explicit PackedDeltaData(const PackedSnapshot<snapshotLength>& initialState) {
@@ -435,7 +430,7 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        result::Option<UnpackedData> snapshotFrom(const time_t timestamp) const {
+        result::Option<UnpackedData<snapshotLength>> snapshotFrom(const time_t timestamp) const {
             const auto &latestPackedOpt = this->latestSnapshot();
             if (!latestPackedOpt) return result::None;
 
@@ -471,7 +466,7 @@ namespace zvcr {
             if (newSnapshot.timestamp <= timestamp)
                 return ERR(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
 
-            UnpackedData deltaSnapshotBuilder;
+            UnpackedData<snapshotLength> deltaSnapshotBuilder;
             const auto previousUnpacked = sectionData.unpack();
             const auto newUnpacked = newSnapshot.data.unpack();
 
