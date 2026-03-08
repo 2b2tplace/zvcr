@@ -12,6 +12,7 @@ namespace zvcr {
     template<size_t snapshotLength>
     class DeltaSections3d {
         using Segment3dSnapshot = std::vector<UnpackedData<snapshotLength>>;
+        using Segment3dPackedSnapshot = std::vector<PackedSnapshot<snapshotLength>>;
         using PackedData = PackedDeltaData<snapshotLength>;
 
     public:
@@ -49,7 +50,7 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        size_t updateSections(const Segment3dSnapshot& sectionUpdates) {
+        size_t updateSections(const Segment3dPackedSnapshot& sectionUpdates) {
             size_t changes = 0;
             for (size_t section = 0; section < sectionUpdates.size(); ++section)
                 changes += sections[section].insertSnapshot(sectionUpdates[section]).value_or(0);
