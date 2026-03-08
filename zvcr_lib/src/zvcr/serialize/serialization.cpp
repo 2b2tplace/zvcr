@@ -141,6 +141,7 @@ namespace zvcr {
             palettedData.palette = DIRECT_PALETTE;
             palettedData.bitStorage.bits = palettedData.palette.bitsPerIndex;
             palettedData.bitStorage.init();
+            snapshot.data.data = palettedData;
             return {};
         }
         if (paletteIndex >= paletteTable.size()) {
@@ -200,8 +201,20 @@ namespace zvcr {
 
     ReadResult<std::monostate> ReadHandle::skipPackedSnapshot() {
         TRY(skip<uint64_t>(EXPECTED_TIMESTAMP));
-        const auto packedLength = TRY(read<uint64_t>(EXPECTED_PACKED_LENGTH));
 
+        if (ctx.supportSingleValuePalette) {
+            const auto dataType = TRY(read<uint8_t>(EXPECTED_PALETTE_TYPE));
+            if (dataType == 0) {
+                TRY(skip<uint16_t>(EXPECTED_PALETTE_SINGLE_DATA));
+                return {};
+            }
+        }
+        const auto packedLength = TRY(read<uint64_t>(EXPECTED_PACKED_LENGTH));
+        if (packedLength > MAX_PACKED_LENGTH) {
+            const auto err = ReadError{INVALID_PACKED_LENGTH, offset, "Invalid packed length: "
+                + std::to_string(packedLength) + " > " + std::to_string(MAX_PACKED_LENGTH)};
+            return ERR(err);
+        }
         TRY(skip<uint64_t>(packedLength, EXPECTED_PACKED_DATA));
         TRY(skip<uint32_t>(EXPECTED_PALETTE_INDEX));
         return {};
@@ -389,10 +402,9 @@ namespace zvcr {
         if (handle.ctx.supportDynamicVersioning)
             handle.ctx.protocolVersion = TRY(handle.read<uint16_t>(EXPECTED_PROTOCOL_VERSION));
 
-        Region3d region3d{handle.ctx.protocolVersion};
-        TRY(handle.deserializeRegion3d(region3d));
-
-        return ZVCR3File{version, dimensionType, std::move(region3d)};
+        ZVCR3File file{version, dimensionType, handle.ctx.protocolVersion};
+        TRY(handle.deserializeRegion3d(file.region));
+        return file;
     }
 
     template<size_t snapshotLength>
@@ -450,8 +462,7 @@ namespace zvcr {
     }
 
     ReadResult<std::shared_ptr<Segment2d>> ReadHandle::deserializeSegment2d() {
-        auto segment = std::make_shared<Segment2d>();
-        segment->supportBiomes = ctx.supportBiomes;
+        auto segment = std::make_shared<Segment2d>(ctx.supportBiomes);
         TRY(deserializeBlockLayers(*segment));
         TRY(deserializeBiomeLayers(*segment));
         segment->info = TRY(deserializeSegmentInfo());
@@ -513,10 +524,9 @@ namespace zvcr {
         if (handle.ctx.supportDynamicVersioning)
             handle.ctx.protocolVersion = TRY(handle.read<uint16_t>(EXPECTED_PROTOCOL_VERSION));
 
-        Region2d region2d{handle.ctx.protocolVersion};
-        TRY(handle.deserializeRegion2d(region2d));
-
-        return ZVCR2File{version, dimensionType, std::move(region2d)};
+        ZVCR2File file{version, dimensionType, handle.ctx.protocolVersion};
+        TRY(handle.deserializeRegion2d(file.region));
+        return file;
     }
 
 }
