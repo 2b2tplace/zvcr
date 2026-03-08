@@ -44,13 +44,16 @@ namespace zvcr {
     template<size_t>
     class PackedData;
 
+    template<size_t snapshotLength>
+    using UnpackedData = std::array<SegmentAtom, snapshotLength>;
+
     template<size_t>
     struct PackedSnapshot;
 
     template<size_t snapshotLength>
     class UnpackedView {
     public:
-        using UnpackedData = std::array<SegmentAtom, snapshotLength>;
+        using UnpackedData = UnpackedData<snapshotLength>;
 
         UnpackedData unpacked;
 
@@ -190,7 +193,7 @@ namespace zvcr {
 
     template<size_t snapshotLength>
     [[nodiscard]]
-    Palette buildPalette(const std::array<SegmentAtom, snapshotLength> &data, std::array<uint8_t, UINT16_MAX + 1> &indices) {
+    Palette buildPalette(const UnpackedData<snapshotLength> &data, std::array<uint8_t, UINT16_MAX + 1> &indices) {
         Palette palette;
         std::bitset<UINT16_MAX + 1> unique;
         for (const auto atom : data) {
@@ -234,7 +237,7 @@ namespace zvcr {
     template<size_t snapshotLength>
     class PackedData {
     public:
-        using UnpackedData = std::array<SegmentAtom, snapshotLength>;
+        using UnpackedData = UnpackedData<snapshotLength>;
 
         explicit PackedData(const Palette& palette):
             data(PalettedData<snapshotLength>{palette}) {}
@@ -409,7 +412,7 @@ namespace zvcr {
     template<size_t snapshotLength>
     class PackedDeltaData {
     public:
-        using UnpackedData = std::array<SegmentAtom, snapshotLength>;
+        using UnpackedData = UnpackedData<snapshotLength>;
         PackedSnapshotVector<snapshotLength> reverseDeltas;
 
         explicit PackedDeltaData(const PackedSnapshot<snapshotLength>& initialState) {
@@ -468,8 +471,7 @@ namespace zvcr {
             if (newSnapshot.timestamp <= timestamp)
                 return ERR(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
 
-            std::array<SegmentAtom, snapshotLength> deltaSnapshotBuilder;
-
+            UnpackedData deltaSnapshotBuilder;
             const auto previousUnpacked = sectionData.unpack();
             const auto newUnpacked = newSnapshot.data.unpack();
 
