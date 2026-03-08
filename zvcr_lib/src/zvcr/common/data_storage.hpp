@@ -9,19 +9,10 @@
 #include <cassert>
 #include <tuple>
 #include <variant>
-#include <absl/container/inlined_vector.h>
 
 namespace zvcr {
 
-    // constants measured in real world contexts for the best ram <-> compute tradeoff
-
-    // usually 342 but vanilla world generation CAN frequently make chunk sections complicated enough, so this is the default upper bound
-    static constexpr auto INITIAL_PACKED_LENGTH = 410;
-
-    // usually 48 (we could fit up to 64 before exceeding a packed length > 410; rarely, if ever, happens in vanilla world generation, so we save ram)
-    static constexpr auto INITIAL_PALETTE_LENGTH = 48;
-
-    using LongArray = absl::InlinedVector<uint64_t, INITIAL_PACKED_LENGTH>;
+    using LongArray = std::vector<uint64_t>;
 
     struct BitStorage {
 
@@ -170,7 +161,7 @@ namespace zvcr {
 
     static constexpr size_t MAX_PALETTE_SIZE = UINT8_MAX + 1;
 
-    using VectorPalette = absl::InlinedVector<SegmentAtom, INITIAL_PALETTE_LENGTH>;
+    using VectorPalette = std::vector<SegmentAtom>;
 
     struct Palette {
         VectorPalette palette{};
@@ -186,7 +177,7 @@ namespace zvcr {
         bool equals(const Palette &other) const {
             if (length != other.length) return false;
 
-            return std::equal(palette.begin(), palette.begin() + length, other.palette.begin());
+            return std::equal(palette.begin(), palette.begin() + static_cast<ssize_t>(length), other.palette.begin());
         }
 
         [[nodiscard]]
@@ -250,6 +241,9 @@ namespace zvcr {
 
         explicit PackedData(const Palette& palette, const LongArray &packedData):
             data(PalettedData<snapshotLength>{palette, packedData}) {}
+
+        explicit PackedData(const PalettedData<snapshotLength> &palettedData):
+            data(palettedData) {}
 
         explicit PackedData(const uint16_t singleValue):
             data(singleValue) {}
@@ -410,11 +404,12 @@ namespace zvcr {
     using DeltaInsertionResult = result::Result<size_t, DeltaInsertionStatus>;
 
     template<size_t snapshotLength>
-    using PackedSnapshotVector = absl::InlinedVector<PackedSnapshot<snapshotLength>, 1>;
+    using PackedSnapshotVector = std::vector<PackedSnapshot<snapshotLength>>;
 
     template<size_t snapshotLength>
     class PackedDeltaData {
     public:
+        using UnpackedData = std::array<SegmentAtom, snapshotLength>;
         PackedSnapshotVector<snapshotLength> reverseDeltas;
 
         explicit PackedDeltaData(const PackedSnapshot<snapshotLength>& initialState) {
@@ -437,14 +432,14 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        result::Option<PackedSnapshot<snapshotLength>> snapshotFrom(const time_t timestamp) const {
+        result::Option<UnpackedData> snapshotFrom(const time_t timestamp) const {
             const auto &latestPackedOpt = this->latestSnapshot();
             if (!latestPackedOpt) return result::None;
 
             const auto &latestPacked = REQUIRE(latestPackedOpt).get();
-            if (timestamp >= latestPacked.timestamp) return latestPacked;
-
             auto latestSnapshot = latestPacked.data.unpack();
+            if (timestamp >= latestPacked.timestamp) return latestSnapshot;
+
             bool first = true;
             for (const auto& [sectionData, deltaTimestamp] : reverseDeltas) {
                 if (first) {
@@ -458,7 +453,7 @@ namespace zvcr {
                 }
                 if (timestamp >= deltaTimestamp) break;
             }
-            return PackedSnapshot{PackedData<snapshotLength>::pack(latestSnapshot), timestamp};
+            return latestSnapshot;
         }
 
         [[nodiscard]]
