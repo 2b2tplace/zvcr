@@ -39,13 +39,13 @@ namespace zvcr {
         DimensionType dimensionType;
         Region2d region;
 
-        explicit ZVCR2File(const ZVCR2Version version, const DimensionType dimensionType, Region2d region):
+        explicit ZVCR2File(const ZVCR2Version version, const DimensionType dimensionType, const uint16_t protocolVersion):
             version(version),
             dimensionType(dimensionType),
-            region(std::move(region)) {}
+            region(protocolVersion) {}
 
-        explicit ZVCR2File(const DimensionType dimensionType, Region2d region):
-            ZVCR2File(ZVCR2_VER_LATEST, dimensionType, std::move(region)) {}
+        explicit ZVCR2File(const DimensionType dimensionType, const uint16_t protocolVersion):
+            ZVCR2File(ZVCR2_VER_LATEST, dimensionType, protocolVersion) {}
 
         ZVCR2File(ZVCR2File &&other) noexcept:
             version(other.version),
