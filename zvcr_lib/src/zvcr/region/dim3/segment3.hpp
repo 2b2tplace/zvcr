@@ -11,7 +11,7 @@ namespace zvcr {
 
     template<size_t snapshotLength>
     class DeltaSections3d {
-        using Segment3dSnapshot = std::vector<PackedSnapshot<snapshotLength>>;
+        using Segment3dSnapshot = std::vector<UnpackedData<snapshotLength>>;
         using PackedData = PackedDeltaData<snapshotLength>;
 
     public:
@@ -42,7 +42,7 @@ namespace zvcr {
                     if (const auto timestamp = snapshot->get().timestamp; getEarliestTimestamp && timestamp < *getEarliestTimestamp)
                         *getEarliestTimestamp = timestamp;
 
-                    snapshots.push_back(snapshot.value());
+                    snapshots.push_back(snapshot->get().data.unpack());
                 }
             }
             return snapshots;
