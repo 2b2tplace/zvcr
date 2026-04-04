@@ -22,29 +22,32 @@ namespace zvcr {
         explicit DeltaSections3d(const size_t sectionCount): sectionCount(sectionCount) {}
 
         [[nodiscard]]
-        Segment3dSnapshot snapshotFrom(const time_t timestamp) const {
+        result::Option<Segment3dSnapshot> snapshotFrom(const time_t timestamp) const {
             Segment3dSnapshot snapshots;
             snapshots.reserve(sectionCount);
 
             for (const auto& section : this->sections) {
-                if (const auto snapshot = section.snapshotFrom(timestamp); snapshot.has_value())
-                    snapshots.push_back(snapshot.value());
+                const auto snapshot = section.snapshotFrom(timestamp);
+                if (!snapshot) return result::None;
+
+                snapshots.push_back(*snapshot);
             }
             return snapshots;
         }
 
         [[nodiscard]]
-        Segment3dSnapshot latestSnapshot(time_t *getEarliestTimestamp = nullptr) const {
+        result::Option<Segment3dSnapshot> latestSnapshot(time_t *getEarliestTimestamp = nullptr) const {
             Segment3dSnapshot snapshots;
             snapshots.reserve(sectionCount);
 
             for (const auto& section : this->sections) {
-                if (const auto snapshot = section.latestSnapshot(); snapshot.has_value()) {
-                    if (const auto timestamp = snapshot->get().timestamp; getEarliestTimestamp && timestamp < *getEarliestTimestamp)
-                        *getEarliestTimestamp = timestamp;
+                const auto snapshot = section.latestSnapshot();
+                if (!snapshot) return result::None;
 
-                    snapshots.push_back(snapshot->get().data.unpack());
-                }
+                if (const auto timestamp = snapshot->get().timestamp; getEarliestTimestamp && timestamp < *getEarliestTimestamp)
+                    *getEarliestTimestamp = timestamp;
+
+                snapshots.push_back(snapshot->get().data.unpack());
             }
             return snapshots;
         }
