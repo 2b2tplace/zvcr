@@ -277,8 +277,8 @@ namespace zvcr {
     ReadResult<std::monostate> ReadHandle::deserializeTileEntityCountInfo() {
         const auto totalTileEntities = getTotalTileEntities(ctx.protocolVersion);
 
-        TRY(skip<uint16_t>(totalTileEntities, EXPECTED_TILE_ENTITY_COUNTS));
-        TRY(read<uint64_t>(EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP));
+        TRY(skip<uint16_t>(totalTileEntities, EXPECTED_LEGACY_TILE_ENTITY_COUNTS));
+        TRY(read<uint64_t>(EXPECTED_LEGACY_TILE_ENTITY_COUNTS_TIMESTAMP));
 
         return {};
     }
@@ -306,10 +306,10 @@ namespace zvcr {
         for (size_t i = 0; i < statesLength; ++i)
             states[i] = TRY(deserializeSegmentState());
 
-        const auto tileEntitiesLength = TRY(read<uint64_t>(EXPECTED_TILE_ENTITIES_LENGTH));
-        if (tileEntitiesLength > MAX_TILE_ENTITIES_LENGTH) {
-            const auto err = ReadError{INVALID_TILE_ENTITIES_LENGTH, offset, "Invalid tile entities length: "
-                + std::to_string(tileEntitiesLength) + " > " + std::to_string(MAX_TILE_ENTITIES_LENGTH)};
+        const auto tileEntitiesLength = TRY(read<uint64_t>(EXPECTED_LEGACY_TILE_ENTITIES_LENGTH));
+        if (tileEntitiesLength > MAX_LEGACY_TILE_ENTITIES_LENGTH) {
+            const auto err = ReadError{INVALID_LEGACY_TILE_ENTITIES_LENGTH, offset, "Invalid tile entities length: "
+                + std::to_string(tileEntitiesLength) + " > " + std::to_string(MAX_LEGACY_TILE_ENTITIES_LENGTH)};
             return ERR(err);
         }
         for (size_t i = 0; i < tileEntitiesLength; ++i)
@@ -318,7 +318,69 @@ namespace zvcr {
         return SegmentInfo{states};
     }
 
-    void WriteHandle::serializeSegment3d(const Segment3d& segment3d) {
+    ReadResult<DeltaTileEntityData> ReadHandle::deserializeTileEntities() {
+        const auto tileEntityDeltasLength = TRY(read<uint64_t>(EXPECTED_TILE_ENTITY_LIST_DELTAS_LENGTH));
+        if (tileEntityDeltasLength > MAX_DELTA_LENGTH) {
+            const auto err = ReadError{INVALID_TILE_ENTITY_LIST_DELTAS_LENGTH, offset, "Invalid tile entity list deltas length: "
+                + std::to_string(tileEntityDeltasLength) + " > " + std::to_string(MAX_DELTA_LENGTH)};
+            return ERR(err);
+        }
+        DeltaTileEntityData tileEntities;
+        tileEntities.reverseDeltas.reserve(tileEntityDeltasLength);
+
+        for (size_t i = 0; i < tileEntityDeltasLength; ++i) {
+            const auto timestamp = TRY(read<uint64_t>(EXPECTED_TILE_ENTITY_LIST_TIMESTAMP));
+            const auto tileEntityListLength = TRY(read<uint64_t>(EXPECTED_TILE_ENTITY_LIST_LENGTH));
+
+            if (tileEntityListLength > MAX_TILE_ENTITY_LIST_LENGTH) {
+                const auto err = ReadError{INVALID_TILE_ENTITY_LIST_LENGTH, offset, "Invalid tile entity list length: "
+                    + std::to_string(tileEntityListLength) + " > " + std::to_string(MAX_TILE_ENTITY_LIST_LENGTH)};
+                return ERR(err);
+            }
+            auto &[_, deltas] = tileEntities.reverseDeltas.emplace_back(static_cast<time_t>(timestamp));
+            for (size_t j = 0; j < tileEntityListLength; ++j) {
+                const auto pos = TileEntityPosition::unpack(TRY(read<uint32_t>(EXPECTED_TILE_ENTITY_PACKED_POSITION)));
+                if (const auto put = TRY(read<uint8_t>(EXPECTED_TILE_ENTITY_DELTA_OPERATION)); !put) {
+                    deltas[pos] = std::monostate{};
+                    continue;
+                }
+                const auto type = TRY(read<uint32_t>(EXPECTED_TILE_ENTITY_TYPE));
+                const auto nbtLength = TRY(read<uint64_t>(EXPECTED_TILE_ENTITY_NBT_LENGTH));
+                if (nbtLength > MAX_TILE_ENTITY_NBT_LENGTH) {
+                    const auto err = ReadError{INVALID_TILE_ENTITY_NBT_LENGTH, offset, "Invalid tile entity nbt length: "
+                        + std::to_string(nbtLength) + " > " + std::to_string(MAX_TILE_ENTITY_NBT_LENGTH)};
+                    return ERR(err);
+                }
+                TileEntity tileEntity{.type = type, .pos = pos};
+                tileEntity.nbt.resize(nbtLength);
+                TRY(readArray<uint8_t>(tileEntity.nbt, EXPECTED_TILE_ENTITY_NBT));
+                deltas[pos] = tileEntity;
+            }
+        }
+        return tileEntities;
+    }
+
+    void WriteHandle::serializeTileEntities(const DeltaTileEntityData& tileEntities) {
+        write<uint64_t>(tileEntities.reverseDeltas.size());
+        for (const auto &[timestamp, deltas] : tileEntities.reverseDeltas) {
+            write<uint64_t>(timestamp);
+            write<uint64_t>(deltas.size());
+            for (const auto &[pos, delta] : deltas) {
+                write<uint32_t>(pos.packedPosition());
+                if (!std::holds_alternative<TileEntity>(delta)) {
+                    write<uint8_t>(0);
+                    continue;
+                }
+                write<uint8_t>(1);
+                const auto &tileEntity = std::get<TileEntity>(delta);
+                write<uint32_t>(tileEntity.type);
+                write<uint64_t>(tileEntity.nbt.size());
+                writeBytes(tileEntity.nbt);
+            }
+        }
+    }
+
+    void WriteHandle::serializeSegment3d(const Segment3d &segment3d) {
         for (size_t i = 0; i < ctx.sectionCount; i++) {
             const auto &section = segment3d.blockSections.sections.at(i);
             serializePackedDeltaData(section);
@@ -330,6 +392,9 @@ namespace zvcr {
             }
         }
         serializeSegmentInfo(segment3d.info);
+
+        if (ctx.supportTileEntities)
+            serializeTileEntities(segment3d.tileEntities);
     }
 
     ReadResult<std::shared_ptr<Segment3d>> ReadHandle::deserializeSegment3d() {
@@ -343,6 +408,9 @@ namespace zvcr {
                 TRY(deserializePackedDeltaData<SECTION_3D_SIZE_BIOMES>(segment->biomeSections.sections[sectionIndex]));
         }
         segment->info = TRY(deserializeSegmentInfo());
+        if (ctx.supportTileEntities)
+            segment->tileEntities = TRY(deserializeTileEntities());
+
         return segment;
     }
 

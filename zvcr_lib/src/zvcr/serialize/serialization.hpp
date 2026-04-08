@@ -20,8 +20,9 @@ namespace zvcr {
 
     static constexpr auto MAX_DELTA_LENGTH = 65536;
     static constexpr auto MAX_SEGMENT_STATES_LENGTH = 65536;
-    static constexpr auto MAX_TILE_ENTITIES_LENGTH = 65536;
-
+    static constexpr auto MAX_LEGACY_TILE_ENTITIES_LENGTH = 65536;
+    static constexpr auto MAX_TILE_ENTITY_LIST_LENGTH = 98304;
+    static constexpr auto MAX_TILE_ENTITY_NBT_LENGTH = 65536;
     static constexpr auto MAX_PACKED_LENGTH = 1024;
     static constexpr auto MAX_PALETTE_TABLE_LENGTH = 262144;
 
@@ -45,11 +46,19 @@ namespace zvcr {
         EXPECTED_SEGMENT_STATE_TYPE,
         EXPECTED_SEGMENT_STATE_TIMESTAMP,
         EXPECTED_PROTOCOL_VERSION,
-        EXPECTED_TILE_ENTITIES_LENGTH,
-        EXPECTED_TILE_ENTITY_COUNTS,
-        EXPECTED_TILE_ENTITY_COUNTS_TIMESTAMP,
+        EXPECTED_LEGACY_TILE_ENTITIES_LENGTH,
+        EXPECTED_LEGACY_TILE_ENTITY_COUNTS,
+        EXPECTED_LEGACY_TILE_ENTITY_COUNTS_TIMESTAMP,
         EXPECTED_LAYER_TYPE,
         EXPECTED_LAYERS_LENGTH,
+        EXPECTED_TILE_ENTITY_LIST_DELTAS_LENGTH,
+        EXPECTED_TILE_ENTITY_LIST_TIMESTAMP,
+        EXPECTED_TILE_ENTITY_LIST_LENGTH,
+        EXPECTED_TILE_ENTITY_PACKED_POSITION,
+        EXPECTED_TILE_ENTITY_DELTA_OPERATION,
+        EXPECTED_TILE_ENTITY_TYPE,
+        EXPECTED_TILE_ENTITY_NBT_LENGTH,
+        EXPECTED_TILE_ENTITY_NBT,
         MISSING_HEADER,
         INVALID_HEADER_PREFIX,
         INVALID_VERSION,
@@ -59,8 +68,11 @@ namespace zvcr {
         INVALID_PACKED_LENGTH,
         INVALID_PALETTE_TABLE_LENGTH,
         INVALID_SEGMENT_STATES_LENGTH,
-        INVALID_TILE_ENTITIES_LENGTH,
+        INVALID_LEGACY_TILE_ENTITIES_LENGTH,
         INVALID_SEGMENT_STATE_ID,
+        INVALID_TILE_ENTITY_LIST_DELTAS_LENGTH,
+        INVALID_TILE_ENTITY_LIST_LENGTH,
+        INVALID_TILE_ENTITY_NBT_LENGTH,
     };
 
     class ReadHandle;
@@ -104,8 +116,9 @@ namespace zvcr {
 
         bool supportBiomes{};
         bool supportDynamicVersioning{};
-        bool supportTileEntities{};
+        bool supportLegacyTileEntityCounts{};
         bool supportSingleValuePalette{};
+        bool supportTileEntities{};
         uint16_t protocolVersion{};
 
         void initializeSectionCount(const DimensionType dimensionType) {
@@ -115,8 +128,9 @@ namespace zvcr {
         void initialize(const ZVCR3Version version) {
             supportBiomes = version >= ZVCR3Version::ZVCR3_0_1_0_0;
             supportDynamicVersioning = version >= ZVCR3Version::ZVCR3_0_1_1_0;
-            supportTileEntities = version <= ZVCR3Version::ZVCR3_0_1_1_0; // support removed in future versions
+            supportLegacyTileEntityCounts = version <= ZVCR3Version::ZVCR3_0_1_1_0; // support removed in future versions
             supportSingleValuePalette = version >= ZVCR3Version::ZVCR3_0_1_3_0;
+            supportTileEntities = version >= ZVCR3Version::ZVCR3_0_1_4_0;
 
             if (protocolVersion == 0 && version == ZVCR3Version::ZVCR3_0_0_0_1)
                 protocolVersion = PROTOCOL_VERSION_ZVCR_0_0_0_X;
@@ -125,8 +139,9 @@ namespace zvcr {
         void initialize(const ZVCR2Version version) {
             supportBiomes = version >= ZVCR2Version::ZVCR2_0_1_0_0;
             supportDynamicVersioning = version >= ZVCR2Version::ZVCR2_0_1_1_0;
-            supportTileEntities = version <= ZVCR2Version::ZVCR2_0_1_2_0; // support removed in future versions
+            supportLegacyTileEntityCounts = version <= ZVCR2Version::ZVCR2_0_1_2_0; // support removed in future versions
             supportSingleValuePalette = version >= ZVCR2Version::ZVCR2_0_1_4_0;
+            supportTileEntities = version >= ZVCR2Version::ZVCR2_0_1_5_0;
 
             if (protocolVersion == 0 && version == ZVCR2Version::ZVCR2_0_0_0_0)
                 protocolVersion = PROTOCOL_VERSION_ZVCR_0_0_0_X;
@@ -173,6 +188,8 @@ namespace zvcr {
         void serializeSegmentState(const SegmentState& segmentState);
 
         void serializeSegmentInfo(const SegmentInfo& segmentInfo);
+
+        void serializeTileEntities(const DeltaTileEntityData& tileEntities);
 
         void serializeSegment3d(const Segment3d& segment3d);
 
@@ -313,6 +330,9 @@ namespace zvcr {
 
         [[nodiscard]]
         ReadResult<SegmentInfo> deserializeSegmentInfo();
+
+        [[nodiscard]]
+        ReadResult<DeltaTileEntityData> deserializeTileEntities();
 
         [[nodiscard]]
         ReadResult<std::shared_ptr<Segment3d>> deserializeSegment3d();

@@ -2,6 +2,7 @@
 
 #include <zvcr/common/data_storage.hpp>
 #include <zvcr/region/segment/segment_info.hpp>
+#include <zvcr/region/segment/tile_entities.hpp>
 #include <zvcr/common/generic_region.hpp>
 #include <zvcr/region/dimension.hpp>
 
@@ -67,6 +68,7 @@ namespace zvcr {
         DeltaSections3d<SECTION_3D_SIZE_BLOCKS> blockSections;
         DeltaSections3d<SECTION_3D_SIZE_BIOMES> biomeSections;
         SegmentInfo info;
+        DeltaTileEntityData tileEntities;
         bool supportBiomes;
 
         explicit Segment3d(const DimensionType dimension, const bool supportBiomes):
@@ -80,6 +82,7 @@ namespace zvcr {
             blockSections(sectionCount),
             biomeSections(sectionCount),
             info(SegmentStates{}),
+            tileEntities({}),
             supportBiomes(supportBiomes) {}
     };
 

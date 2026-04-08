@@ -11,19 +11,21 @@ namespace zvcr {
         ZVCR3_0_1_0_0,
         ZVCR3_0_1_1_0,
         ZVCR3_0_1_2_0,
-        ZVCR3_0_1_3_0
+        ZVCR3_0_1_3_0,
+        ZVCR3_0_1_4_0
     };
 
-    static constexpr auto ZVCR3_VER_LATEST = ZVCR3Version::ZVCR3_0_1_3_0;
+    static constexpr auto ZVCR3_VER_LATEST = ZVCR3Version::ZVCR3_0_1_4_0;
     static constexpr auto ZVCR3_FILE_PREFIX = "ZVRegion";
 
-    static constexpr std::array<std::string_view, 6> versionNames3 {
+    static constexpr std::array<std::string_view, 7> versionNames3 {
         "0.0.0.0",
         "0.0.0.1",
         "0.1.0.0",
         "0.1.1.0",
         "0.1.2.0",
-        "0.1.3.0"
+        "0.1.3.0",
+        "0.1.4.0"
     };
 
     [[nodiscard]]
