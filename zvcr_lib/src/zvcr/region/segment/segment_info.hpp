@@ -33,6 +33,9 @@ namespace zvcr {
         result::OptionCRef<SegmentState> latestState() const;
 
         [[nodiscard]]
+        result::OptionCRef<SegmentState> delta(size_t deltaIndex) const;
+
+        [[nodiscard]]
         result::Option<SegmentState> stateFrom(time_t timestamp) const;
 
         [[nodiscard]]

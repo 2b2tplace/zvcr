@@ -11,7 +11,11 @@ namespace zvcr {
     }
 
     result::OptionCRef<SegmentState> SegmentInfo::latestState() const {
-        return segmentStates.empty() ? result::None : result::OptionCRef<SegmentState>{segmentStates[0]};
+        return delta(0);
+    }
+
+    result::OptionCRef<SegmentState> SegmentInfo::delta(const size_t deltaIndex) const {
+        return deltaIndex >= segmentStates.size() ? result::None : result::OptionCRef<SegmentState>{segmentStates[deltaIndex]};
     }
 
     result::Option<SegmentState> SegmentInfo::stateFrom(const time_t timestamp) const {
