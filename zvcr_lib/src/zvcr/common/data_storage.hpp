@@ -426,7 +426,7 @@ namespace zvcr {
 
         [[nodiscard]]
         result::OptionCRef<PackedSnapshot<snapshotLength>> delta(const size_t deltaIndex) const {
-            return reverseDeltas.empty() ? result::None : result::OptionCRef<PackedSnapshot<snapshotLength>>{reverseDeltas[deltaIndex]};
+            return deltaIndex >= reverseDeltas.size() ? result::None : result::OptionCRef<PackedSnapshot<snapshotLength>>{reverseDeltas[deltaIndex]};
         }
 
         [[nodiscard]]
@@ -434,7 +434,7 @@ namespace zvcr {
             const auto &latestPackedOpt = this->latestSnapshot();
             if (!latestPackedOpt) return result::None;
 
-            const auto &latestPacked = REQUIRE(latestPackedOpt).get();
+            const auto &latestPacked = latestPackedOpt->get();
             auto latestSnapshot = latestPacked.data.unpack();
             if (timestamp >= latestPacked.timestamp) return latestSnapshot;
 
