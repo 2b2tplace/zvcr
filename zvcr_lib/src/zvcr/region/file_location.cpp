@@ -2,7 +2,7 @@
 
 namespace zvcr {
 
-    RegionID RegionLocation::toRegionID() const {
+    auto RegionLocation::toRegionID() const -> RegionID {
         const auto ux = static_cast<uint64_t>(static_cast<uint32_t>(rx) & 0x1FFFFF);
         const auto uz = static_cast<uint64_t>(static_cast<uint32_t>(rz) & 0x1FFFFF);
         const auto ud = static_cast<uint64_t>(dimensionType);
@@ -10,7 +10,7 @@ namespace zvcr {
         return ud << 42 | ux << 21 | uz;
     }
 
-    RegionLocation RegionLocation::fromRegionID(const RegionID regionID) {
+    auto RegionLocation::fromRegionID(const RegionID regionID) -> RegionLocation {
         const auto ux = static_cast<int32_t>(regionID >> 21 & 0x1FFFFF);
         const auto uz = static_cast<int32_t>(regionID & 0x1FFFFF);
         const auto ud = static_cast<int32_t>(regionID >> 42 & 0xFFFFF);
@@ -22,7 +22,7 @@ namespace zvcr {
         return RegionLocation{recoveredX, recoveredZ, recoveredDim};
     }
 
-    result::Option<RegionLocation> RegionLocation::fromFileName(const DimensionType dimension, const fs::path& file) {
+    auto RegionLocation::fromFileName(const DimensionType dimension, const fs::path& file) -> result::Option<RegionLocation> {
         const auto filename = file.filename().string();
         if (!filename.starts_with("r.")) return result::None;
 
@@ -45,7 +45,7 @@ namespace zvcr {
         return RegionLocation{regionX, regionZ, dimension};
     }
 
-    fs::path RegionLocation::getDirectory(const fs::path& parentDirectory) const {
+    auto RegionLocation::getDirectory(const fs::path& parentDirectory) const -> fs::path {
         const auto sectorX = std::to_string(rx / SECTOR_SIDELENGTH);
         const auto sectorZ = std::to_string(rz / SECTOR_SIDELENGTH);
         const auto dimID = std::to_string(static_cast<int32_t>(dimensionType));
@@ -53,13 +53,13 @@ namespace zvcr {
         return fs::path(parentDirectory) / dimID / sectorX / sectorZ;
     }
 
-    std::string RegionLocation::getFileName(const RegionFormat format) const {
+    auto RegionLocation::getFileName(const RegionFormat format) const -> std::string {
         return ZVCR_REGION_PREFIX + std::to_string(rx)
              + ZVCR_REGION_DELIMITER + std::to_string(rz)
              + ZVCR_EXTENSION + std::to_string(static_cast<uint32_t>(format));
     }
 
-    fs::path RegionLocation::getFilePath(const fs::path& parentDirectory, const RegionFormat format) const {
+    auto RegionLocation::getFilePath(const fs::path& parentDirectory, const RegionFormat format) const -> fs::path {
         return fs::path(getDirectory(parentDirectory)) / getFileName(format);
     }
 

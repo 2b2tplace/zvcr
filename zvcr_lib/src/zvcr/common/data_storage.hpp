@@ -20,15 +20,15 @@ namespace zvcr {
 
         BitStorage(size_t bits, size_t size);
 
-        void init();
+        auto init() -> void;
 
         [[nodiscard]]
-        size_t cellIndex(uint64_t index) const;
+        auto cellIndex(uint64_t index) const -> size_t;
 
         [[nodiscard]]
-        uint64_t get(size_t index) const;
+        auto get(size_t index) const -> uint64_t;
 
-        void set(size_t index, uint64_t value);
+        auto set(size_t index, uint64_t value) -> void;
 
         LongArray data{};
         uint16_t packedLength{};
@@ -69,35 +69,35 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        SegmentAtom getVoxel(const uint8_t x, const uint8_t y, const uint8_t z) const {
+        auto getVoxel(const uint8_t x, const uint8_t y, const uint8_t z) const -> SegmentAtom {
             return unpacked[unpackedIndex(x, y, z)];
         }
 
-        void setVoxel(const uint8_t x, const uint8_t y, const uint8_t z, const SegmentAtom voxel) {
+        auto setVoxel(const uint8_t x, const uint8_t y, const uint8_t z, const SegmentAtom voxel) -> void {
             unpacked[unpackedIndex(x, y, z)] = voxel;
         }
 
         [[nodiscard]]
-        SegmentAtom getPixel(const uint8_t x, const uint8_t z) const {
+        auto getPixel(const uint8_t x, const uint8_t z) const -> SegmentAtom {
             return unpacked[unpackedIndex(x, z)];
         }
 
-        void setPixel(const uint8_t x, const uint8_t z, const SegmentAtom pixel) {
+        auto setPixel(const uint8_t x, const uint8_t z, const SegmentAtom pixel) -> void {
             unpacked[unpackedIndex(x, z)] = pixel;
         }
 
         [[nodiscard]]
-        PackedData<snapshotLength> pack() const {
+        auto pack() const -> PackedData<snapshotLength> {
             return PackedData<snapshotLength>::pack(unpacked);
         }
 
         [[nodiscard]]
-        PackedSnapshot<snapshotLength> packSnapshot(time_t timestamp) const {
+        auto packSnapshot(time_t timestamp) const -> PackedSnapshot<snapshotLength> {
             return PackedSnapshot{pack(), timestamp};
         }
 
         [[nodiscard]]
-        size_t unpackedIndex(const uint8_t x, const uint8_t y, const uint8_t z) const {
+        auto unpackedIndex(const uint8_t x, const uint8_t y, const uint8_t z) const -> size_t {
             assert(x < sidelength && "X coordinate out of bounds");
             assert(y < sidelength && "Y coordinate out of bounds");
             assert(z < sidelength && "Z coordinate out of bounds");
@@ -108,12 +108,12 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        uint8_t getSidelength() const {
+        auto getSidelength() const -> uint8_t {
             return sidelength;
         }
 
         [[nodiscard]]
-        size_t unpackedIndex(const uint8_t x, const uint8_t z) const {
+        auto unpackedIndex(const uint8_t x, const uint8_t z) const -> size_t {
             return unpackedIndex(x, 0, z);
         }
     private:
@@ -121,43 +121,23 @@ namespace zvcr {
     };
 
     [[nodiscard]]
-    inline UnpackedView<SECTION_2D_SIZE_BLOCKS> create2DBlockView(const SegmentAtom fill) {
+    inline auto create2DBlockView(const SegmentAtom fill = 0) -> UnpackedView<SECTION_2D_SIZE_BLOCKS> {
         return UnpackedView<SECTION_2D_SIZE_BLOCKS>{SEGMENT_SIDELENGTH_BLOCKS, fill};
     }
 
     [[nodiscard]]
-    inline UnpackedView<SECTION_3D_SIZE_BLOCKS> create3DBlockView(const SegmentAtom fill) {
+    inline auto create3DBlockView(const SegmentAtom fill = 0) -> UnpackedView<SECTION_3D_SIZE_BLOCKS> {
         return UnpackedView<SECTION_3D_SIZE_BLOCKS>{SEGMENT_SIDELENGTH_BLOCKS, fill};
     }
 
     [[nodiscard]]
-    inline UnpackedView<SECTION_2D_SIZE_BIOMES> create2DBiomeView(const SegmentAtom fill) {
+    inline auto create2DBiomeView(const SegmentAtom fill = 0) -> UnpackedView<SECTION_2D_SIZE_BIOMES> {
         return UnpackedView<SECTION_2D_SIZE_BIOMES>{SEGMENT_SIDELENGTH_BIOMES, fill};
     }
 
     [[nodiscard]]
-    inline UnpackedView<SECTION_3D_SIZE_BIOMES> create3DBiomeView(const SegmentAtom fill) {
+    inline auto create3DBiomeView(const SegmentAtom fill = 0) -> UnpackedView<SECTION_3D_SIZE_BIOMES> {
         return UnpackedView<SECTION_3D_SIZE_BIOMES>{SEGMENT_SIDELENGTH_BIOMES, fill};
-    }
-
-    [[nodiscard]]
-    inline UnpackedView<SECTION_2D_SIZE_BLOCKS> create2DBlockView() {
-        return create2DBlockView(0);
-    }
-
-    [[nodiscard]]
-    inline UnpackedView<SECTION_3D_SIZE_BLOCKS> create3DBlockView() {
-        return create3DBlockView(0);
-    }
-
-    [[nodiscard]]
-    inline UnpackedView<SECTION_2D_SIZE_BIOMES> create2DBiomeView() {
-        return create2DBiomeView(0);
-    }
-
-    [[nodiscard]]
-    inline UnpackedView<SECTION_3D_SIZE_BIOMES> create3DBiomeView() {
-        return create3DBiomeView(0);
     }
 
     static constexpr size_t MAX_PALETTE_SIZE = UINT8_MAX + 1;
@@ -170,19 +150,24 @@ namespace zvcr {
         uint64_t bitsPerIndex{};
 
         [[nodiscard]]
-        static uint64_t getBitsPerIndex(const size_t length) {
+        static auto getBitsPerIndex(const size_t length) -> uint64_t {
             return std::max<uint64_t>(std::bit_width(std::max(static_cast<uint64_t>(length), static_cast<uint64_t>(1)) - 1), 1UL);
         }
 
         [[nodiscard]]
-        bool equals(const Palette &other) const {
+        auto equals(const Palette &other) const -> bool {
             if (length != other.length) return false;
 
             return std::equal(palette.begin(), palette.begin() + static_cast<ssize_t>(length), other.palette.begin());
         }
 
         [[nodiscard]]
-        bool direct() const {
+        auto operator==(const Palette &other) const -> bool {
+            return equals(other);
+        }
+
+        [[nodiscard]]
+        auto direct() const -> bool {
             return length == 0;
         }
     };
@@ -191,7 +176,7 @@ namespace zvcr {
 
     template<size_t snapshotLength>
     [[nodiscard]]
-    Palette buildPalette(const UnpackedData<snapshotLength> &data, std::array<uint8_t, UINT16_MAX + 1> &indices) {
+    auto buildPalette(const UnpackedData<snapshotLength> &data, std::array<uint8_t, UINT16_MAX + 1> &indices) -> Palette  {
         Palette palette;
         std::bitset<UINT16_MAX + 1> unique;
         for (const auto atom : data) {
@@ -250,7 +235,7 @@ namespace zvcr {
         PackedData() = default;
 
         [[nodiscard]]
-        static PackedData pack(const UnpackedData<snapshotLength>& sectionData) {
+        static auto pack(const UnpackedData<snapshotLength> &sectionData) -> PackedData {
             std::array<uint8_t, UINT16_MAX + 1> indices{};
             const auto palette = buildPalette(sectionData, indices);
             if (palette.length == 1)
@@ -281,7 +266,7 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        UnpackedData<snapshotLength> unpack() const {
+        auto unpack() const -> UnpackedData<snapshotLength> {
             if (std::holds_alternative<uint16_t>(data)) {
                 auto result = UnpackedData<snapshotLength>{};
                 result.fill(std::get<uint16_t>(data));
@@ -311,7 +296,7 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        UnpackedView<snapshotLength> view(const uint8_t sidelength) const {
+        auto view(const uint8_t sidelength) const -> UnpackedView<snapshotLength> {
             return UnpackedView{sidelength, unpack()};
         }
 
@@ -410,7 +395,7 @@ namespace zvcr {
     public:
         PackedSnapshotVector<snapshotLength> reverseDeltas;
 
-        explicit PackedDeltaData(const PackedSnapshot<snapshotLength>& initialState) {
+        explicit PackedDeltaData(const PackedSnapshot<snapshotLength> &initialState) {
             this->reverseDeltas.push_back(initialState);
         }
 
@@ -420,17 +405,17 @@ namespace zvcr {
         PackedDeltaData(): reverseDeltas() {}
 
         [[nodiscard]]
-        result::OptionCRef<PackedSnapshot<snapshotLength>> latestSnapshot() const {
+        auto latestSnapshot() const -> result::OptionCRef<PackedSnapshot<snapshotLength>> {
             return delta(0);
         }
 
         [[nodiscard]]
-        result::OptionCRef<PackedSnapshot<snapshotLength>> delta(const size_t deltaIndex) const {
+        auto delta(const size_t deltaIndex) const -> result::OptionCRef<PackedSnapshot<snapshotLength>> {
             return deltaIndex >= reverseDeltas.size() ? result::None : result::OptionCRef<PackedSnapshot<snapshotLength>>{reverseDeltas[deltaIndex]};
         }
 
         [[nodiscard]]
-        result::Option<UnpackedData<snapshotLength>> snapshotFrom(const time_t timestamp) const {
+        auto snapshotFrom(const time_t timestamp) const -> result::Option<UnpackedData<snapshotLength>> {
             const auto &latestPackedOpt = this->latestSnapshot();
             if (!latestPackedOpt) return result::None;
 
@@ -455,7 +440,7 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        DeltaInsertionResult insertSnapshot(const PackedSnapshot<snapshotLength>& newSnapshot) {
+        auto insertSnapshot(const PackedSnapshot<snapshotLength> &newSnapshot) -> DeltaInsertionResult {
             const auto latest = latestSnapshot();
             if (!latest.has_value()) {
                 reverseDeltas.push_back(newSnapshot);

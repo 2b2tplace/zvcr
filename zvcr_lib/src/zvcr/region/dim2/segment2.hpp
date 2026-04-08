@@ -18,48 +18,48 @@ namespace zvcr {
             layers(LayerTable2d<snapshotLength>{}) {}
 
         [[nodiscard]]
-        result::OptionCRef<Layer2d<snapshotLength>> getLayer(LayerTypeId type) const {
+        auto getLayer(LayerTypeId type) const -> result::OptionCRef<Layer2d<snapshotLength>> {
             if (!layers.contains(type)) return result::None;
             return layers.at(type);
         }
 
         [[nodiscard]]
-        result::OptionCRef<Layer2d<snapshotLength>> getLayer(LayerType layerType) const {
+        auto getLayer(LayerType layerType) const -> result::OptionCRef<Layer2d<snapshotLength>> {
             return getLayer(static_cast<LayerTypeId>(layerType));
         }
 
         [[nodiscard]]
-        result::OptionRef<Layer2d<snapshotLength>> getLayer(LayerTypeId type) {
+        auto getLayer(LayerTypeId type) -> result::OptionRef<Layer2d<snapshotLength>> {
             if (!layers.contains(type)) return result::None;
             return layers.at(type);
         }
 
         [[nodiscard]]
-        result::OptionRef<Layer2d<snapshotLength>> getLayer(LayerType layerType) {
+        auto getLayer(LayerType layerType) -> result::OptionRef<Layer2d<snapshotLength>> {
             return getLayer(static_cast<LayerTypeId>(layerType));
         }
 
-        void setLayer(LayerTypeId type, const Layer2d<snapshotLength>& layer) {
+        auto setLayer(LayerTypeId type, const Layer2d<snapshotLength>& layer) -> void {
             layers[type] = layer;
         }
 
-        void setLayer(LayerType layerType, const Layer2d<snapshotLength>& layer) {
+        auto setLayer(LayerType layerType, const Layer2d<snapshotLength>& layer) -> void {
             setLayer(static_cast<LayerTypeId>(layerType), layer);
         }
 
-        void setLayer(LayerTypeId type, const PackedSnapshot<snapshotLength>& initialState) {
+        auto setLayer(LayerTypeId type, const PackedSnapshot<snapshotLength>& initialState) -> void {
             setLayer(type, Layer2d(PackedDeltaData { initialState }, type));
         }
 
-        void setLayer(LayerType layerType, const PackedSnapshot<snapshotLength>& initialState) {
+        auto setLayer(LayerType layerType, const PackedSnapshot<snapshotLength>& initialState) -> void {
             setLayer(static_cast<LayerTypeId>(layerType), initialState);
         }
 
-        void setLayer(LayerTypeId type, const std::vector<PackedSnapshot<snapshotLength>>& reverseDeltas) {
+        auto setLayer(LayerTypeId type, const std::vector<PackedSnapshot<snapshotLength>>& reverseDeltas) -> void {
             setLayer(type, Layer2d(PackedDeltaData { reverseDeltas }, type));
         }
 
-        void setLayer(LayerType layerType, const std::vector<PackedSnapshot<snapshotLength>>& reverseDeltas) {
+        auto setLayer(LayerType layerType, const std::vector<PackedSnapshot<snapshotLength>>& reverseDeltas) -> void {
             setLayer(static_cast<LayerTypeId>(layerType), reverseDeltas);
         }
     };

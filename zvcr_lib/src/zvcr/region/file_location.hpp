@@ -26,22 +26,22 @@ namespace zvcr {
         DimensionType dimensionType;
 
         [[nodiscard]]
-        RegionID toRegionID() const;
+        auto toRegionID() const -> RegionID;
 
         [[nodiscard]]
-        static RegionLocation fromRegionID(RegionID regionID);
+        static auto fromRegionID(RegionID regionID) -> RegionLocation;
 
         [[nodiscard]]
-        static result::Option<RegionLocation> fromFileName(DimensionType dimension, const fs::path& file);
+        static auto fromFileName(DimensionType dimension, const fs::path& file) -> result::Option<RegionLocation>;
 
         [[nodiscard]]
-        fs::path getDirectory(const fs::path& parentDirectory) const;
+        auto getDirectory(const fs::path& parentDirectory) const -> fs::path;
 
         [[nodiscard]]
-        std::string getFileName(RegionFormat format) const;
+        auto getFileName(RegionFormat format) const -> std::string;
 
         [[nodiscard]]
-        fs::path getFilePath(const fs::path& parentDirectory, RegionFormat format) const;
+        auto getFilePath(const fs::path& parentDirectory, RegionFormat format) const -> fs::path;
     };
 
 }

@@ -23,7 +23,7 @@ namespace zvcr {
         explicit DeltaSections3d(const size_t sectionCount): sectionCount(sectionCount) {}
 
         [[nodiscard]]
-        result::Option<Segment3dSnapshot> snapshotFrom(const time_t timestamp) const {
+        auto snapshotFrom(const time_t timestamp) const -> result::Option<Segment3dSnapshot> {
             Segment3dSnapshot snapshots;
             snapshots.reserve(sectionCount);
 
@@ -37,7 +37,7 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        result::Option<Segment3dSnapshot> latestSnapshot(time_t *getEarliestTimestamp = nullptr) const {
+        auto latestSnapshot(time_t *getEarliestTimestamp = nullptr) const -> result::Option<Segment3dSnapshot> {
             Segment3dSnapshot snapshots;
             snapshots.reserve(sectionCount);
 
@@ -54,7 +54,7 @@ namespace zvcr {
         }
 
         [[nodiscard]]
-        size_t updateSections(const Segment3dPackedSnapshot& sectionUpdates) {
+        auto updateSections(const Segment3dPackedSnapshot& sectionUpdates) -> size_t {
             size_t changes = 0;
             for (size_t section = 0; section < sectionUpdates.size(); ++section)
                 changes += sections[section].insertSnapshot(sectionUpdates[section]).value_or(0);

@@ -35,12 +35,12 @@ namespace zvcr {
     };
 
     [[nodiscard]]
-    inline const DimensionProperties& getProperties(const DimensionType type) {
+    inline auto getProperties(const DimensionType type) -> const DimensionProperties& {
         return DimensionTypePropertyRegistry.at(type);
     }
 
     [[nodiscard]]
-    constexpr std::string_view dimensionName(const DimensionType type) {
+    constexpr auto dimensionName(const DimensionType type) -> std::string_view {
         return dimensionNames[static_cast<size_t>(type)];
     }
 

@@ -33,16 +33,16 @@ namespace zvcr {
         GenericRegion(): GenericRegion(0) {}
 
         [[nodiscard]]
-        const SegmentMaybe& get(const uint8_t x, const uint8_t z) const {
+        auto get(const uint8_t x, const uint8_t z) const -> SegmentMaybe {
             return segments[unpackedIndex(x, z)];
         }
 
-        void set(const uint8_t x, const uint8_t z, const SegmentMaybe& segment) {
+        auto set(const uint8_t x, const uint8_t z, const SegmentMaybe& segment) -> void {
             segments[unpackedIndex(x, z)] = segment;
         }
 
         [[nodiscard]]
-        static size_t unpackedIndex(const uint8_t x, const uint8_t z) {
+        static auto unpackedIndex(const uint8_t x, const uint8_t z) -> size_t {
             assert(x < REGION_SIDELENGTH_SEGMENTS);
             assert(z < REGION_SIDELENGTH_SEGMENTS);
             return static_cast<size_t>(x) * REGION_SIDELENGTH_SEGMENTS + static_cast<size_t>(z);

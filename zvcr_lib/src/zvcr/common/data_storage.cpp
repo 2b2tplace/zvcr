@@ -10,7 +10,7 @@ namespace zvcr {
         init();
     }
 
-    void BitStorage::init() {
+    auto BitStorage::init() -> void {
         assert(bits >= 1 && bits <= 32);
 
         valuesPerLong = 64 / bits;
@@ -25,11 +25,11 @@ namespace zvcr {
         mask = (1ULL << bits) - 1;
     }
 
-    size_t BitStorage::cellIndex(const uint64_t index) const {
+    auto BitStorage::cellIndex(const uint64_t index) const -> size_t {
         return (index * divideMul + divideAdd) >> 32 >> divideShift;
     }
 
-    uint64_t BitStorage::get(const size_t index) const {
+    auto BitStorage::get(const size_t index) const -> uint64_t {
         assert(index < size && "Index out of bounds");
 
         const size_t cellIdx = cellIndex(index);
@@ -38,7 +38,7 @@ namespace zvcr {
         return cell >> bitIndex & mask;
     }
 
-    void BitStorage::set(const size_t index, const uint64_t value) {
+    auto BitStorage::set(const size_t index, const uint64_t value) -> void {
         assert(index < size);
         assert(value <= mask);
 

@@ -30,16 +30,16 @@ namespace zvcr {
         SegmentInfo() = default;
 
         [[nodiscard]]
-        result::OptionCRef<SegmentState> latestState() const;
+        auto latestState() const -> result::OptionCRef<SegmentState>;
 
         [[nodiscard]]
-        result::OptionCRef<SegmentState> delta(size_t deltaIndex) const;
+        auto delta(size_t deltaIndex) const -> result::OptionCRef<SegmentState>;
 
         [[nodiscard]]
-        result::Option<SegmentState> stateFrom(time_t timestamp) const;
+        auto stateFrom(time_t timestamp) const -> result::Option<SegmentState>;
 
         [[nodiscard]]
-        bool updateState(const SegmentState& newState);
+        auto updateState(const SegmentState& newState) -> bool;
     };
 
 }

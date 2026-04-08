@@ -21,7 +21,7 @@ namespace zvcr {
     using LayerTypeId = uint8_t;
 
     [[nodiscard]]
-    LayerType getHeightmapLayer(LayerType topDownLayer);
+    auto getHeightmapLayer(LayerType topDownLayer) -> LayerType;
 
     template<size_t snapshotLength>
     struct Layer2d {
@@ -48,12 +48,12 @@ namespace zvcr {
         LayerTable2d() = default;
 
         [[nodiscard]]
-        Layer2d<snapshotLength>& operator[](LayerType layerType) {
+        auto operator[](LayerType layerType) -> Layer2d<snapshotLength>& {
             return operator[](static_cast<LayerTypeId>(layerType));
         }
 
         [[nodiscard]]
-        Layer2d<snapshotLength>& operator[](LayerTypeId layerType) {
+        auto operator[](LayerTypeId layerType) -> Layer2d<snapshotLength>& {
             if (Map::contains(layerType))
                 return Map::at(layerType);
 

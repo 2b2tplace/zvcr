@@ -2,7 +2,7 @@
 
 namespace zvcr {
 
-    LayerType getHeightmapLayer(const LayerType topDownLayer) {
+    auto getHeightmapLayer(const LayerType topDownLayer) -> LayerType {
         switch (topDownLayer) {
             case LayerType::NORMAL:
                 return LayerType::HEIGHTMAP;

@@ -8,7 +8,7 @@
 
 namespace zvcr {
 
-    std::string ReadError::what() const {
+    auto ReadError::what() const -> std::string {
         std::ostringstream oss;
         oss << "Read error code " << std::hex << type << std::dec << ": " << message;
 
@@ -34,7 +34,7 @@ namespace zvcr {
         return oss.str();
     }
 
-    void ReadError::attach(const ReadHandle& handle) {
+    auto ReadError::attach(const ReadHandle &handle) -> void {
         if (handle.data.empty()) return;
 
         dataLength = handle.data.size();
@@ -44,7 +44,7 @@ namespace zvcr {
         dumpSlice = std::vector(handle.data.begin() + static_cast<int64_t>(sliceStart), handle.data.begin() + static_cast<int64_t>(sliceEnd));
     }
 
-    ReadResult<DimensionType> ReadHandle::deserializeDimensionType() {
+    auto ReadHandle::deserializeDimensionType() -> ReadResult<DimensionType> {
         const auto dimensionTypeId = TRY(readByte(EXPECTED_DIMENSION_TYPE));
         static constexpr auto maxDimensionTypeId = static_cast<uint8_t>(DimensionType::THE_END);
 
@@ -60,7 +60,7 @@ namespace zvcr {
         return dimensionType;
     }
 
-    ReadResult<std::monostate> ReadHandle::validateZVCRFilePrefix(const std::string& prefix) {
+    auto ReadHandle::validateZVCRFilePrefix(const std::string &prefix) -> ReadResult<std::monostate> {
         TRY(skip<uint8_t>(prefix.size(), MISSING_HEADER));
 
         for (size_t i = 0; i < prefix.size(); ++i) {
@@ -72,7 +72,7 @@ namespace zvcr {
     }
 
     template<size_t snapshotLength>
-    void WriteHandle::serializePackedSnapshot(const PackedSnapshot<snapshotLength>& snapshot) {
+    auto WriteHandle::serializePackedSnapshot(const PackedSnapshot<snapshotLength> &snapshot) -> void {
         write<uint64_t>(snapshot.timestamp);
 
         const auto &anyData = snapshot.data.data;
@@ -111,7 +111,7 @@ namespace zvcr {
     }
 
     template<size_t snapshotLength>
-    ReadResult<std::monostate> ReadHandle::deserializePackedSnapshot(PackedSnapshot<snapshotLength> &snapshot) {
+    auto ReadHandle::deserializePackedSnapshot(PackedSnapshot<snapshotLength> &snapshot) -> ReadResult<std::monostate> {
         snapshot.timestamp = static_cast<time_t>(TRY(read<uint64_t>(EXPECTED_TIMESTAMP)));
 
         if (ctx.supportSingleValuePalette) {
@@ -161,7 +161,7 @@ namespace zvcr {
         return {};
     }
 
-    void WriteHandle::serializePaletteTable(const std::vector<Palette>& paletteTable) {
+    auto WriteHandle::serializePaletteTable(const std::vector<Palette> &paletteTable) -> void {
         write(static_cast<uint32_t>(paletteTable.size()));
 
         for (const auto& palette : paletteTable) {
@@ -174,7 +174,7 @@ namespace zvcr {
         }
     }
 
-    ReadResult<std::monostate> ReadHandle::deserializePaletteTable() {
+    auto ReadHandle::deserializePaletteTable() -> ReadResult<std::monostate> {
         const auto paletteTableLength = TRY(read<uint32_t>(EXPECTED_PALETTE_TABLE_LENGTH));
         if (paletteTableLength > MAX_PALETTE_TABLE_LENGTH)
             return ERR(ReadError(INVALID_PALETTE_TABLE_LENGTH, offset, "Invalid palette table length: "
@@ -199,7 +199,7 @@ namespace zvcr {
         return {};
     }
 
-    ReadResult<std::monostate> ReadHandle::skipPackedSnapshot() {
+    auto ReadHandle::skipPackedSnapshot() -> ReadResult<std::monostate> {
         TRY(skip<uint64_t>(EXPECTED_TIMESTAMP));
 
         if (ctx.supportSingleValuePalette) {
@@ -221,7 +221,7 @@ namespace zvcr {
     }
 
     template<size_t snapshotLength>
-    void WriteHandle::serializePackedDeltaData(const PackedDeltaData<snapshotLength>& section3d) {
+    auto WriteHandle::serializePackedDeltaData(const PackedDeltaData<snapshotLength> &section3d) -> void {
         write<uint64_t>(section3d.reverseDeltas.size());
 
         for (const PackedSnapshot<snapshotLength>& snapshot : section3d.reverseDeltas)
@@ -229,7 +229,7 @@ namespace zvcr {
     }
 
     template<size_t snapshotLength>
-    ReadResult<std::monostate> ReadHandle::deserializePackedDeltaData(PackedDeltaData<snapshotLength> &reverseDeltas) {
+    auto ReadHandle::deserializePackedDeltaData(PackedDeltaData<snapshotLength> &reverseDeltas) -> ReadResult<std::monostate> {
         const auto deltaLength = TRY(read<uint64_t>(EXPECTED_DELTA_LENGTH));
         if (deltaLength > MAX_DELTA_LENGTH) {
             const auto err = ReadError{INVALID_DELTA_LENGTH, offset, "Invalid delta length: "
@@ -247,12 +247,12 @@ namespace zvcr {
         return {};
     }
 
-    void WriteHandle::serializeSegmentState(const SegmentState& segmentState) {
+    auto WriteHandle::serializeSegmentState(const SegmentState &segmentState) -> void {
         writeByte(static_cast<uint8_t>(segmentState.type));
         write<uint64_t>(segmentState.timestamp);
     }
 
-    ReadResult<SegmentState> ReadHandle::deserializeSegmentState() {
+    auto ReadHandle::deserializeSegmentState() -> ReadResult<SegmentState> {
         const auto stateTypeId = TRY(readByte(EXPECTED_SEGMENT_STATE_TYPE));
         if (stateTypeId > 2) {
             const auto err = ReadError{INVALID_SEGMENT_STATE_ID, offset, "Invalid segment state id: "
@@ -266,7 +266,7 @@ namespace zvcr {
     }
 
     [[nodiscard]]
-    static constexpr size_t getTotalTileEntities(const uint16_t protocolVersion) {
+    static constexpr auto getTotalTileEntities(const uint16_t protocolVersion) -> size_t {
         if (protocolVersion >= 768) return 45;
         if (protocolVersion >= 766) return 44;
         if (protocolVersion >= 765) return 41;
@@ -274,7 +274,7 @@ namespace zvcr {
         return -1; // versions pre 1.20.4 are not supported
     }
 
-    ReadResult<std::monostate> ReadHandle::deserializeTileEntityCountInfo() {
+    auto ReadHandle::deserializeTileEntityCountInfo() -> ReadResult<std::monostate> {
         const auto totalTileEntities = getTotalTileEntities(ctx.protocolVersion);
 
         TRY(skip<uint16_t>(totalTileEntities, EXPECTED_LEGACY_TILE_ENTITY_COUNTS));
@@ -283,7 +283,7 @@ namespace zvcr {
         return {};
     }
 
-    void WriteHandle::serializeSegmentInfo(const SegmentInfo& segmentInfo) {
+    auto WriteHandle::serializeSegmentInfo(const SegmentInfo &segmentInfo) -> void {
         write<uint64_t>(segmentInfo.segmentStates.size());
 
         for (const SegmentState& state : segmentInfo.segmentStates)
@@ -292,7 +292,7 @@ namespace zvcr {
         write<uint64_t>(0);
     }
 
-    ReadResult<SegmentInfo> ReadHandle::deserializeSegmentInfo() {
+    auto ReadHandle::deserializeSegmentInfo() -> ReadResult<SegmentInfo> {
         const auto statesLength = TRY(read<uint64_t>(EXPECTED_SEGMENT_STATES_LENGTH));
         if (statesLength > MAX_SEGMENT_STATES_LENGTH) {
             const auto err = ReadError{INVALID_SEGMENT_STATES_LENGTH, offset, "Invalid segment states length: "
@@ -318,7 +318,7 @@ namespace zvcr {
         return SegmentInfo{states};
     }
 
-    ReadResult<DeltaTileEntityData> ReadHandle::deserializeTileEntities() {
+    auto ReadHandle::deserializeTileEntities() -> ReadResult<DeltaTileEntityData> {
         const auto tileEntityDeltasLength = TRY(read<uint64_t>(EXPECTED_TILE_ENTITY_LIST_DELTAS_LENGTH));
         if (tileEntityDeltasLength > MAX_DELTA_LENGTH) {
             const auto err = ReadError{INVALID_TILE_ENTITY_LIST_DELTAS_LENGTH, offset, "Invalid tile entity list deltas length: "
@@ -360,7 +360,7 @@ namespace zvcr {
         return tileEntities;
     }
 
-    void WriteHandle::serializeTileEntities(const DeltaTileEntityData& tileEntities) {
+    auto WriteHandle::serializeTileEntities(const DeltaTileEntityData &tileEntities) -> void {
         write<uint64_t>(tileEntities.reverseDeltas.size());
         for (const auto &[timestamp, deltas] : tileEntities.reverseDeltas) {
             write<uint64_t>(timestamp);
@@ -380,7 +380,7 @@ namespace zvcr {
         }
     }
 
-    void WriteHandle::serializeSegment3d(const Segment3d &segment3d) {
+    auto WriteHandle::serializeSegment3d(const Segment3d &segment3d) -> void {
         for (size_t i = 0; i < ctx.sectionCount; i++) {
             const auto &section = segment3d.blockSections.sections.at(i);
             serializePackedDeltaData(section);
@@ -397,7 +397,7 @@ namespace zvcr {
             serializeTileEntities(segment3d.tileEntities);
     }
 
-    ReadResult<std::shared_ptr<Segment3d>> ReadHandle::deserializeSegment3d() {
+    auto ReadHandle::deserializeSegment3d() -> ReadResult<std::shared_ptr<Segment3d>> {
         auto segment = std::make_shared<Segment3d>(ctx.sectionCount, ctx.supportBiomes);
 
         for (size_t sectionIndex = 0; sectionIndex < ctx.sectionCount; ++sectionIndex)
@@ -414,7 +414,7 @@ namespace zvcr {
         return segment;
     }
 
-    void WriteHandle::serializeOptSegment3d(const Segment3d *segment3dOpt) {
+    auto WriteHandle::serializeOptSegment3d(const Segment3d *segment3dOpt) -> void {
         if (!segment3dOpt) {
             writeByte(0);
             return;
@@ -423,7 +423,7 @@ namespace zvcr {
         serializeSegment3d(*segment3dOpt);
     }
 
-    void WriteHandle::serializeRegion3d(const Region3d& region) {
+    auto WriteHandle::serializeRegion3d(const Region3d &region) -> void {
         WriteHandle regionDataHandle{};
         regionDataHandle.ctx = ctx;
 
@@ -437,7 +437,7 @@ namespace zvcr {
         writeBytes(regionDataHandle.data);
     }
 
-    ReadResult<std::monostate> ReadHandle::deserializeRegion3d(Region3d &region3d) {
+    auto ReadHandle::deserializeRegion3d(Region3d &region3d) -> ReadResult<std::monostate> {
         TRY(deserializePaletteTable());
         for (size_t segment3dIndex = 0; segment3dIndex < SEGMENTS_PER_REGION; ++segment3dIndex) {
             if (const auto hasOption = TRY(readByte(EXPECTED_SEGMENT_INDICATOR)); hasOption) {
@@ -447,7 +447,7 @@ namespace zvcr {
         return {};
     }
 
-    void serializeZVCR3File(const ZVCR3File& file, WriteHandle& handle) {
+    auto serializeZVCR3File(const ZVCR3File &file, WriteHandle &handle) -> void {
         const std::string prefix = ZVCR3_FILE_PREFIX;
 
         handle.writeBytes(prefix);
@@ -459,7 +459,7 @@ namespace zvcr {
         handle.serializeRegion3d(file.region);
     }
 
-    ReadResult<ZVCR3File> deserializeZVCR3File(ReadHandle& handle) {
+    auto deserializeZVCR3File(ReadHandle &handle) -> ReadResult<ZVCR3File> {
         TRY(handle.validateZVCRFilePrefix(ZVCR3_FILE_PREFIX));
 
         const auto version = TRY(handle.deserializeVersion(ZVCR3_VER_LATEST));
@@ -476,13 +476,13 @@ namespace zvcr {
     }
 
     template<size_t snapshotLength>
-    void WriteHandle::serializeLayer(const Layer2d<snapshotLength>& layer) {
+    auto WriteHandle::serializeLayer(const Layer2d<snapshotLength> &layer) -> void {
         writeByte(layer.type);
         serializePackedDeltaData<snapshotLength>(layer.deltas);
     }
 
     template<size_t snapshotLength>
-    ReadResult<Layer2d<snapshotLength>> ReadHandle::deserializeLayer() {
+    auto ReadHandle::deserializeLayer() -> ReadResult<Layer2d<snapshotLength>> {
         const auto type = TRY(readByte(EXPECTED_LAYER_TYPE));
         auto layer = Layer2d<snapshotLength>{type};
         TRY(deserializePackedDeltaData<snapshotLength>(layer.deltas));
@@ -491,7 +491,7 @@ namespace zvcr {
     }
 
     template<size_t snapshotLength>
-    void WriteHandle::serializeLayers(const LayerContainer2d<snapshotLength>& layers) {
+    auto WriteHandle::serializeLayers(const LayerContainer2d<snapshotLength> &layers) -> void {
         write<uint64_t>(layers.layers.size());
 
         for (const auto& layer: layers.layers | std::views::values)
@@ -499,7 +499,7 @@ namespace zvcr {
     }
 
     template<size_t snapshotLength>
-    ReadResult<std::monostate> ReadHandle::deserializeLayers(LayerContainer2d<snapshotLength> &layers) {
+    auto ReadHandle::deserializeLayers(LayerContainer2d<snapshotLength> &layers) -> ReadResult<std::monostate> {
         const auto layersLength = TRY(read<uint64_t>(EXPECTED_LAYERS_LENGTH));
 
         for (size_t layerIndex = 0; layerIndex < layersLength; ++layerIndex) {
@@ -509,18 +509,18 @@ namespace zvcr {
         return {};
     }
 
-    ReadResult<std::monostate> ReadHandle::deserializeBlockLayers(Segment2d &segment2d) {
+    auto ReadHandle::deserializeBlockLayers(Segment2d &segment2d) -> ReadResult<std::monostate> {
         return deserializeLayers<SECTION_2D_SIZE_BLOCKS>(segment2d.layers);
     }
 
-    ReadResult<std::monostate> ReadHandle::deserializeBiomeLayers(Segment2d &segment2d) {
+    auto ReadHandle::deserializeBiomeLayers(Segment2d &segment2d) -> ReadResult<std::monostate> {
         if (ctx.supportBiomes)
             return deserializeLayers<SECTION_2D_SIZE_BIOMES>(segment2d.biomeLayers);
 
         return {};
     }
 
-    void WriteHandle::serializeSegment2d(const Segment2d& segment) {
+    auto WriteHandle::serializeSegment2d(const Segment2d &segment) -> void {
         serializeLayers(segment.layers);
 
         if (ctx.supportBiomes)
@@ -529,7 +529,7 @@ namespace zvcr {
         serializeSegmentInfo(segment.info);
     }
 
-    ReadResult<std::shared_ptr<Segment2d>> ReadHandle::deserializeSegment2d() {
+    auto ReadHandle::deserializeSegment2d() -> ReadResult<std::shared_ptr<Segment2d>> {
         auto segment = std::make_shared<Segment2d>(ctx.supportBiomes);
         TRY(deserializeBlockLayers(*segment));
         TRY(deserializeBiomeLayers(*segment));
@@ -537,7 +537,7 @@ namespace zvcr {
         return segment;
     }
 
-    void WriteHandle::serializeOptSegment2d(const Segment2d *segment) {
+    auto WriteHandle::serializeOptSegment2d(const Segment2d *segment) -> void {
         if (!segment) {
             writeByte(0);
             return;
@@ -546,7 +546,7 @@ namespace zvcr {
         serializeSegment2d(*segment);
     }
 
-    void WriteHandle::serializeRegion2d(const Region2d& region) {
+    auto WriteHandle::serializeRegion2d(const Region2d &region) -> void {
         WriteHandle regionDataHandle{};
         regionDataHandle.ctx = ctx;
 
@@ -560,7 +560,7 @@ namespace zvcr {
         writeBytes(regionDataHandle.data);
     }
 
-    ReadResult<std::monostate> ReadHandle::deserializeRegion2d(Region2d &region2d) {
+    auto ReadHandle::deserializeRegion2d(Region2d &region2d) -> ReadResult<std::monostate> {
         TRY(deserializePaletteTable());
         for (size_t segmentIndex = 0; segmentIndex < SEGMENTS_PER_REGION; ++segmentIndex) {
             if (const auto hasOption = TRY(readByte(EXPECTED_SEGMENT_INDICATOR)); hasOption) {
@@ -570,7 +570,7 @@ namespace zvcr {
         return {};
     }
 
-    void serializeZVCR2File(const ZVCR2File& file, WriteHandle& handle) {
+    auto serializeZVCR2File(const ZVCR2File &file, WriteHandle &handle) -> void {
         const std::string prefix = ZVCR2_FILE_PREFIX;
         handle.writeBytes(prefix);
         handle.writeByte(static_cast<uint8_t>(ZVCR2_VER_LATEST));
@@ -581,7 +581,7 @@ namespace zvcr {
         handle.serializeRegion2d(file.region);
     }
 
-    ReadResult<ZVCR2File> deserializeZVCR2File(ReadHandle& handle) {
+    auto deserializeZVCR2File(ReadHandle &handle) -> ReadResult<ZVCR2File> {
         TRY(handle.validateZVCRFilePrefix(ZVCR2_FILE_PREFIX));
 
         const auto version = TRY(handle.deserializeVersion(ZVCR2_VER_LATEST));
