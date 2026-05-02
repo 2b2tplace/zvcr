@@ -3,7 +3,7 @@
 namespace zvcr {
 
     auto TileEntityPosition::packedPosition() const -> uint32_t {
-        return static_cast<uint32_t>(static_cast<uint16_t>(y)) << 16
+        return static_cast<uint32_t>(y) << 16
             | static_cast<uint32_t>(z) << 8
             | static_cast<uint32_t>(x);
     }
@@ -12,7 +12,7 @@ namespace zvcr {
         return TileEntityPosition {
             .x = static_cast<uint8_t>(packedPosition & 0xFF),
             .z = static_cast<uint8_t>(packedPosition >> 8 & 0xFF),
-            .y = static_cast<int16_t>(packedPosition >> 16)
+            .y = static_cast<uint16_t>(packedPosition >> 16)
         };
     }
 

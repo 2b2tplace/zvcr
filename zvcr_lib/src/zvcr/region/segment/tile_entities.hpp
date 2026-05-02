@@ -11,7 +11,7 @@ namespace zvcr {
     struct TileEntityPosition {
         uint8_t x{};
         uint8_t z{};
-        int16_t y{};
+        uint16_t y{};
 
         [[nodiscard]]
         auto packedPosition() const -> uint32_t;
