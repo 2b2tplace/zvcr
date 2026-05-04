@@ -68,6 +68,8 @@ namespace zvcr {
             if (!newLatest.deltas.contains(pos) && std::holds_alternative<TileEntity>(delta))
                 deltas.deltas[pos] = delta;
         }
+        if (deltas.deltas.empty()) return ERR(DeltaInsertionStatus::NO_CHANGES_MADE);
+
         reverseDeltas.erase(reverseDeltas.begin());
         reverseDeltas.emplace(reverseDeltas.begin(), deltas);
         reverseDeltas.emplace(reverseDeltas.begin(), newLatest);
