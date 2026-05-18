@@ -118,7 +118,7 @@ To combat this, direct mode is used for any palette with bits per index > 8.
 Direct mode creates a 1:1 mapping of `uint16_t` entries and avoids palette usage altogether. 
 The entries are still packed in a `uint64 array` and the bits per index is hard coded to 16 in this case.
 
-See [the implementation of paletted data storage](/zvcr_lib/zvcr/common/data_storage.cpp) for more details.
+See [the implementation of paletted data storage](/zvcr_lib/src/zvcr/common/data_storage.cpp) for more details.
 
 Packed snapshots are formatted as such:
 
