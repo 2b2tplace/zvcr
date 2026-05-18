@@ -1,5 +1,5 @@
 # Zstd-compressed Version Controlled Region (zvcr)
-A C++ library for handling the zvcr2 and zvcr3 fileformats, enabling a more feature-rich and efficient storage of Minecraft region files and top-down map data.
+A C++ library for handling the zvcr2 and zvcr3 file formats, enabling a more feature-rich and efficient storage of Minecraft region files and top-down map data.
 
 # What does zvcr have that mca doesn't?
 The most important difference is a form of version control for region files. The zvcr3 file format stores older snapshots of data within the same region using
@@ -14,16 +14,17 @@ and it also includes chunk states (old/new) and tile entity counts. Any zvcr3 fi
 
 The zvcr file formats officially support Minecraft versions 1.20.4 and above.
 
+# Why?
+We wanted a long-term solution to keep adding new features and ideas to compress world data even more. One of those ideas was delta storage, but this won't be the
+only benefit of this file format. We are open to ideas to make this even more efficient and feature-rich.
+
 ## Include it in your project
 Add the following to your CMakeLists.txt:
 ```cmake
 include(FetchContent)
 
-# uncomment if this repo is still private
-# set(DEPLOY_KEY_PATH "~/.ssh/zvcr_repo")
-# set(ENV{GIT_SSH_COMMAND} "ssh -i ${DEPLOY_KEY_PATH}")
 FetchContent_Declare(zvcr
-        GIT_REPOSITORY git@github.com:ESRDC/zvcr.git
+        GIT_REPOSITORY git@github.com:2b2tplace/zvcr.git
         GIT_TAG        main
         GIT_PROGRESS TRUE
         GIT_SHALLOW TRUE
