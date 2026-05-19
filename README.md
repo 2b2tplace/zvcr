@@ -10,7 +10,7 @@ Other differences include:
 - Zstd compression, achieving more than a 50% reduction in filesize, or a 95% reduction in the end dimension, at Zstd compression level 22.
 
 Additionally, the zvcr2 file format was created to only store top-down information (also with reverse deltas) about a region (for map rendering or similar)
-and it also includes chunk states (old/new) and tile entity counts. Any zvcr3 file can be easily converted into a zvcr2 file.
+and it also includes chunk states (old/new). Any zvcr3 file can be easily converted into a zvcr2 file.
 
 The zvcr file formats officially support Minecraft versions 1.20.4 and above.
 
@@ -82,23 +82,23 @@ Block state and biome data is compressed per snapshot by packing the data using 
 however, zvcr does not have single value palettes implemented.
 
 ### Palette table
-| Field                  | Type     |
-|------------------------|----------|
-| Palette table length n | `uint32` |
-| n Palettes             |          |
+| Field                  | Type                        |
+|------------------------|-----------------------------|
+| Palette table length n | `uint32`                    |
+| n Palettes             | Palette `array` of length n |
 
 ### Palette
-| Field             | Type                         |
-|-------------------|------------------------------|
-| Palette length n  | `uint16`                     |
-| Palette data      | `uint16 array` with length n |
+| Field             | Type                       |
+|-------------------|----------------------------|
+| Palette length n  | `uint16`                   |
+| Palette data      | `uint16 array` of length n |
 Direct palettes are not stored in the table; See below for more info.
 
 ### Packed delta data
-| Field              | Type     |
-|--------------------|----------|
-| Delta length n     | `uint64` |
-| n Packed snapshots |          |
+| Field              | Type                                |
+|--------------------|-------------------------------------|
+| Delta length n     | `uint64`                            |
+| n Packed snapshots | Packed snapshot `array` of length n |
 
 ### Packed snapshot
 A snapshot represents a batch of a palette packed delta data snapshot with a given fixed `snapshot size` when unpacked.
@@ -126,18 +126,19 @@ Packed snapshots are formatted as such:
 |-----------------|-----------------------------------------------------------------------------------------|
 | Timestamp       | `uint64`                                                                                |
 | Packed length n | `uint64`                                                                                |
-| Packed data     | `uint64 array` with length n                                                            |
+| Packed data     | `uint64 array` of length n                                                              |
 | Palette index   | `uint32` (index in the given palette table, `UINT32_MAX` to encode direct palette mode) |
 
 ## Segments
 Segments describe a Minecraft chunk embedded within the region (16 blocks in sidelength). By their nature, they can be absent if they were not stored in their position.
 
 ### Optional Segment
-| Field             | Type      | Note                                              |
-|-------------------|-----------|---------------------------------------------------|
-| Segment indicator | `boolean` | `uint8`, zero representing false                  |
-| Segment           |           | Only present if the segment indicator was nonzero |
-| Segment info      |           | Only present if the segment indicator was nonzero |
+| Field             | Type                | Note                                                                 | Support         |
+|-------------------|---------------------|----------------------------------------------------------------------|-----------------|
+| Segment indicator | `boolean`           | `uint8`, zero representing false                                     |                 |
+| Segment           | Segment             | Only present if the segment indicator was nonzero                    |                 |
+| Segment info      | Segment Info        | Only present if the segment indicator was nonzero                    |                 |
+| Tile entities     | Tile entity history | Only present in zvcr3, and only if the segment indicator was nonzero | ≥ zvcr3 0.1.4.0 |
 
 ### Segment (zvcr3)
 A segment in zvcr3 extends vertically and consists of n block and biome sections (n depending on the dimension type).
@@ -200,7 +201,69 @@ were newly generated or not. Along with that, a more efficient tile entity count
 | New             | 1  |
 | Old             | 2  |
 
-### Tile entity counts info
+### Tile entity history
+| Field                  | Type                                            |
+|------------------------|-------------------------------------------------|
+| Delta length n         | `uint64`                                        |
+| n Tile entity snapshot | Tile entity snapshot `array` of length n (\*\*) |
+
+### Tile entity snapshot
+| Field                     | Type                            |
+|---------------------------|---------------------------------|
+| Timestamp                 | `uint64`                        |
+| Tile entity list length n | `uint64`                        |
+| n Tile entities           | Tile entity `array` of length n |
+
+### Tile entity
+| Field             | Type                      | Note                                                |
+|-------------------|---------------------------|-----------------------------------------------------|
+| Packed position   | `uint32`                  | Calculated as below (\*)                            |
+| Operation         | `uint8`                   | 1 indicating "put", 0 indicating "erase" (\*\*)     |
+| Tile entity type  | `uint32`                  | Only present if Operation was nonzero               |
+| NBT data length n | `uint64`                  | Only present if Operation was nonzero               |
+| NBT data buffer   | `uint8 array` of length n | Only present if Operation was nonzero. See (\*\*\*) |
+
+(\*) The packed position consists out of the local x/z coordinates (both internally stored as `uint8`) of the tile 
+entity block within the chunk, and the y coordinate (internally as `uint16`) ranging from 0 to full world block height.
+These coordinates can be packed and unpacked as such:
+```cpp
+    struct TileEntityPosition {
+        uint8_t x;
+        uint8_t z;
+        uint16_t y;
+    };
+
+    uint32_t getPackedPosition(TileEntityPosition pos) {
+        return static_cast<uint32_t>(pos.y) << 16
+            | static_cast<uint32_t>(pos.z) << 8
+            | static_cast<uint32_t>(pos.x);
+    }
+
+    TileEntityPosition unpack(uint32_t packedPosition) {
+        return TileEntityPosition {
+            .x = static_cast<uint8_t>(packedPosition & 0xFF),
+            .z = static_cast<uint8_t>(packedPosition >> 8 & 0xFF),
+            .y = static_cast<uint16_t>(packedPosition >> 16)
+        };
+    }
+```
+
+(\*\*) As tile entities are also stored as a history of delta snapshots, similar to block and biome data, there is a distinction 
+between inserting and erasing tile entities in snapshots. As confusing as it may be, this also happens in reverse.
+The latest snapshot includes all tile entities listed out using the 'put' Operation. If a given tile entity did not exist 
+yet at an earlier point in time, the tile entity in that older snapshot will be assigned the 'erase' Operation. The
+naming convention here may be subject to change, as it requires thinking in reverse time. If a tile entity did not change
+(NBT data buffer is the same), the tile entity is excluded from the delta snapshot.
+
+More Operations are planned, where individual NBT tags could be modified, to save on storage.
+
+(\*\*\*) NBT data is stored as a raw byte buffer following the
+[NBT specification, as seen on the Minecraft wiki](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/NBT#Specification).
+NBT tags are always sorted alphabetically by their keys when found in NBT tag compounds, as deltas are created by directly
+comparing NBT byte buffers against each other.
+The NBT data buffer also remains uncompressed (may change in the future, signaling this by using a different Operation number).
+
+### Tile entity counts info (deprecated, only exists for ≤ zvcr3 0.1.2.0 / ≤ zvcr2 0.1.3.0)
 | Field              | Type           |
 |--------------------|----------------|
 | Tile entity counts | `uint16 array` |
