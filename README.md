@@ -38,7 +38,7 @@ target_link_libraries(my_project
 
 # The zvcr file structure
 ## Compression
-Files as shown below are compressed with [Zstd](https://github.com/facebook/zstd). The entire file is compressed, with a
+Files as shown below are compressed with [Zstd](https://github.com/facebook/zstd). The entire file\* is compressed, with a
 Zstd level of 10 by default (compared to the Anvil region format traditionally compressing individual chunks). The decision
 to compress the entire file instead of individual chunks was made specifically to benefit the compression ratio. Higher 
 levels of Zstd can still bring down the file size of zvcr region files by a significant amount, however these will come 
@@ -51,6 +51,9 @@ in a world downloader server, or in the PlaceViewer server are minimal.
 Testing of region-level Zstd compression has also proven successful in the [Linear region format](https://github.com/xymb-endcrystalme/LinearRegionFileFormatTools), 
 seeing similar benefits, even though that file format was created for use in running actual Minecraft servers.
 
+\*There are plans to exclude the header from compression, and only compressing the Region container. This change will be
+implemented before release 1.0.0.0 of zvcr.
+
 ## File content
 | Field               | Type          | Support                           | Bound                                                                                                                   |
 |---------------------|---------------|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------|
@@ -59,6 +62,11 @@ seeing similar benefits, even though that file format was created for use in run
 | Dimension type      | `uint8`       |                                   |                                                                                                                         |
 | Protocol version    | `uint16`      | ≥ zvcr3 0.1.1.0 / ≥ zvcr2 0.1.1.0 | See [protocol version numbers](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_version_numbers) |
 | Region container    |               |                                   |                                                                                                                         |
+
+## Version numbers
+This implementation has gone through multiple iterations of zvcr. When version 1.0.0.0 of zvcr releases, support for
+older zvcr files will be fully dropped (as they have only seen use internally, with files of such old versions never 
+distributed to the public).
 
 ### Version number encoding (zvcr3)
 | Version       | Version number | Supported |
