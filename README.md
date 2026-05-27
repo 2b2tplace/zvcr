@@ -37,7 +37,19 @@ target_link_libraries(my_project
 ```
 
 # The zvcr file structure
-Files as shown below are compressed with Zstd (the entire file, with a compression level of 12 by default).
+## Compression
+Files as shown below are compressed with [Zstd](https://github.com/facebook/zstd). The entire file is compressed, with a
+Zstd level of 10 by default (compared to the Anvil region format traditionally compressing individual chunks). The decision
+to compress the entire file instead of individual chunks was made specifically to benefit the compression ratio. Higher 
+levels of Zstd can still bring down the file size of zvcr region files by a significant amount, however these will come 
+with greater performance losses.
+
+The zvcr file format was never intended for use in a full Minecraft server, which actively reads and writes chunks on 
+demand, and was instead created purely for long term data archival. The side effects of this (in memory usage) when used
+in a world downloader server, or in the PlaceViewer server are minimal.
+
+Testing of region-level Zstd compression has also proven successful in the [Linear region format](https://github.com/xymb-endcrystalme/LinearRegionFileFormatTools), 
+seeing similar benefits, even though that file format was created for use in running actual Minecraft servers.
 
 ## File content
 | Field               | Type          | Support                           | Bound                                                                                                                   |
