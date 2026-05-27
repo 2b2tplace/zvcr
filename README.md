@@ -259,8 +259,46 @@ More Operations are planned, where individual NBT tags could be modified, to sav
 
 (\*\*\*) NBT data is stored as a raw byte buffer following the
 [NBT specification, as seen on the Minecraft wiki](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/NBT#Specification).
-NBT tags are always sorted alphabetically by their keys when found in NBT tag compounds, as deltas are created by directly
-comparing NBT byte buffers against each other.
+Specifically, the NBT dialect from the Java Edition of Minecraft (1.20.4+) is used, where data is stored in big endian.
+An important distinction here is the use of [modified UTF-8](https://docs.oracle.com/javase/8/docs/api/java/io/DataInput.html#modified-utf-8)
+for strings, as simply writing out strings in regular UTF-8 is not supported by the Java Edition of Minecraft. Using
+modified UTF-8 is especially necessary when encountering Unicode codepoints in the range U+10000 to U+10FFFF which are 
+traditionally stored in 4 bytes in UTF-8, but are stored using 6 bytes in modified UTF-8. Disregarding this requirement
+will result in Java Edition clients disconnecting from the server, when receiving NBT data with strings wrongly encoded 
+in UTF-8 instead of modified UTF-8. See below for the code snippet where this would become an obvious issue.
+
+The NBT format used for tile entities in particular follows the same structure as when sent over the network. To be more
+specific, tile entity NBT in zvcr does not contain the `id`, `keepPacked`, `x`, `y`, and `z` NBT tags that are found in
+tile entity NBT used in Anvil region files. Instead of NBT tags, the `Tile entity type` (replacing `id`) and `Packed position`
+(replacing `x`, `y`, `z`) fields are used here. `keepPacked` is a special NBT tag used in the base game to differentiate 
+invalid tile entities in Anvil region files, and is not present in zvcr. Serialized NBT in zvcr files can be directly used
+during the construction of packets, without the need to (de)serialize an of the NBT data. This is a consequence of storing
+tile entities as-is when received from a Java Edition Minecraft server.
+
+Example from PlaceViewer, where tile entities are read directly from a zvcr region file and then sent in a Chunk Data 
+and Update Light packet (`buffer` in this code snippet is the packet buffer, which is being written into):
+```cpp
+const auto &tileEntities = segment->tileEntities.snapshotFrom(timestamp).value_or(zvcr::TileEntityList{});
+pc::WriteData<pc::VarInt>(static_cast<int32_t>(tileEntities.size()), buffer);
+for (const auto &[pos, tileEntity] : tileEntities) {
+    pc::WriteData<uint8_t>(static_cast<uint8_t>((pos.x & 15) << 4 | pos.z & 15), buffer);
+    pc::WriteData<int16_t>(static_cast<int16_t>(pos.y + minY), buffer);
+    pc::WriteData<pc::VarInt>(static_cast<int32_t>(tileEntity.type), buffer);
+    
+    // Directly insert the NBT data from zvcr into the Data field of the tile entity.
+    buffer.insert(buffer.end(), tileEntity.nbt.begin(), tileEntity.nbt.end());
+}
+```
+
+In zvcr, NBT tags are always sorted alphabetically by their keys when found in NBT tag compounds. This alphabetical 
+sorting should occur before serializing NBT to a byte buffer, when passed into a 
+[zvcr::TileEntity](zvcr_lib/src/zvcr/region/segment/tile_entities.hpp) structure. Sorting NBT keys this way is currently a requirement, as this zvcr implementation does
+not include NBT (de)serialization, and adding NBT comparisons that ignore key order would be more expensive, compared to
+directly checking NBT byte buffers for equality. Disregarding this requirement will result in tile entity deltas being 
+wrongly created, due to serialized NBT byte buffers being different, despite the underlying NBT data still being the same.
+This is not necessarily a big issue, but it will inflate the filesize. This is a temporary fix in the current 
+implementation of zvcr, and will likely be fixed by including an NBT library and doing proper NBT compound comparisons. 
+
 The NBT data buffer also remains uncompressed (may change in the future, signaling this by using a different Operation number).
 
 ### Tile entity counts info (deprecated, only exists for ≤ zvcr3 0.1.2.0 / ≤ zvcr2 0.1.3.0)
