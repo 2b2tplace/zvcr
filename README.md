@@ -77,11 +77,22 @@ seeing similar benefits, even though that file format was created for use in run
 | zvcr2 0.1.1.1 | 3              | Yes       |
 
 ### Dimension type encoding
-| Dimension type | Number | Section count |
-|----------------|--------|---------------|
-| Overworld      | 0      | 24            |
-| Nether         | 1      | 16            |
-| The End        | 2      | 16            |
+The world height, and consequently the number of chunk sections, depends on the dimension type. This is currently 
+hard-coded for each of the vanilla Minecraft dimension types, but support for modded dimensions is planned. 
+
+Importantly, Y levels defined all throughout zvcr are unsigned, with Y = 0 always being the bottom of the world. 
+Converting Y levels between the base game and zvcr is trivial (zvcr_y + min_y = minecraft_y). This was an intentional
+design choice to make handling zvcr files alone a little easier. The potential for confusion only appears in the
+event when writing code that handles converting zvcr and Minecraft Y levels.
+
+| Dimension type | Number | Section count | Minimum Block Y (Minecraft) | World Block Height\* |
+|----------------|--------|---------------|-----------------------------|----------------------|
+| Overworld      | 0      | 24            | -64                         | 384                  |
+| Nether         | 1      | 16            | 0                           | 256                  |
+| The End        | 2      | 16            | 0                           | 256                  |
+
+\*World Block Height here refers to the actual height of the world in blocks (section count \* 16), and not the maximum 
+block Y level in Minecraft (which is 320 = 384 + (-64) in the Overworld for instance).
 
 ### Region container
 | Field                  |
