@@ -102,6 +102,9 @@ distributed to the public).
 | zvcr3 0.0.0.1 | 1              | Yes       |
 | zvcr3 0.1.0.0 | 2              | Yes       |
 | zvcr3 0.1.1.0 | 3              | Yes       |
+| zvcr3 0.1.2.0 | 4              | Yes       |
+| zvcr3 0.1.3.0 | 5              | Yes       |
+| zvcr3 0.1.4.0 | 6              | Yes       |
 
 ### Version Number Encoding (zvcr2)
 | Version       | Version number | Supported |
@@ -110,6 +113,9 @@ distributed to the public).
 | zvcr2 0.1.0.0 | 1              | Yes       |
 | zvcr2 0.1.1.0 | 2              | Yes       |
 | zvcr2 0.1.1.1 | 3              | Yes       |
+| zvcr2 0.1.2.0 | 4              | Yes       |
+| zvcr2 0.1.3.0 | 5              | Yes       |
+| zvcr2 0.1.4.0 | 6              | Yes       |
 
 ### Dimension Type Encoding
 The world height, and consequently the number of chunk sections, depends on the dimension type. This is currently 
