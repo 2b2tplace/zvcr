@@ -250,12 +250,12 @@ A layer can describe block or biome information and as such has a fixed given `s
 Additional segment info is stored across both zvcr2 and zvcr3 for miscellaneous applications. These include visibly seeing which chunks on a Minecraft server
 were newly generated or not. Along with that, a more efficient tile entity counts storage to quickly filter for treasures when scanning large amounts of data.
 
-| Field                         | Type                                                     | Support                                             |
-|-------------------------------|----------------------------------------------------------|-----------------------------------------------------|
-| Segment States Length n       | `uint64`                                                 |                                                     |
-| n Segment States              | `array` of [Segment State](#segment-state) with length n |                                                     |
-| ~~Tile Entities Length k~~    | `uint64`                                                 | ≤ zvcr3 0.1.2.0 / ≤ zvcr2 0.1.3.0 (Support removed) |
-| ~~k Tile Entity Counts Info~~ |                                                          | ≤ zvcr3 0.1.2.0 / ≤ zvcr2 0.1.3.0 (Support removed) |
+| Field                         | Type                                                     | Notes                                                                                                   |
+|-------------------------------|----------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| Segment States Length n       | `uint64`                                                 |                                                                                                         |
+| n Segment States              | `array` of [Segment State](#segment-state) with length n |                                                                                                         |
+| ~~Tile Entities Length k~~    | `uint64`                                                 | Deprecated, marked for removal. Up to zvcr3 and zvcr2 0.1.4.0, this length is always written as zero.   |
+| ~~k Tile Entity Counts Info~~ |                                                          | Deprecated, marked for removal. Up to zvcr3 and zvcr2 0.1.4.0, these values are skipped and never used. |
 
 ### Segment state
 | Field         | Type                                                                           |
