@@ -228,6 +228,16 @@ event when writing code that handles converting ZVCR and Minecraft Y levels.
 block Y level in Minecraft (which is 320 = 384 + (-64) in the Overworld for instance).
 
 ### Region container
+A ZVCR region consists out of 32 * 32 = 1024 Segments, or "Chunks" in common terminology, similar to Minecraft Anvil
+regions. For a given segment with local coordinates `segment{X|Z}` in the range of `0..32`, the index of this segment in
+the segment array can be calculated using the following:
+```cpp
+size_t unpackedIndex(const uint8_t x, const uint8_t z) {
+    assert(x < 32 && z < 32);
+    return static_cast<size_t>(x) * 32 + static_cast<size_t>(z);
+}
+```
+
 | Field                  | Type                                                              |
 |------------------------|-------------------------------------------------------------------|
 | Palette Table          | [Palette Table](#palette-table)                                   |
