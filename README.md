@@ -36,7 +36,6 @@ FetchContent_Declare(zvcr
 )
 FetchContent_MakeAvailable(zvcr)
 target_link_libraries(my_project
-        PRIVATE absl::flat_hash_map
         PRIVATE zvcr_lib
 )
 ```
