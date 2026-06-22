@@ -115,13 +115,15 @@ the expected behavior for this calculation. For example, `-1 / 32 = -0.03125` be
 toward zero. The expected value, however, is `floorDiv(-1, 32) = floor(-1.0 / -32.0) = -1`.
 
 # ZVCR File Format Specification
-| Field               | Type                                                                                                                              | Support                               | Bound                                                 |
-|---------------------|-----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------|-------------------------------------------------------|
-| ZVCR Magic Prefix   | `uint8 array` with length 8 (fixed-size `string` without a length prefix)                                                         |                                       | Must be "zvcr3d" for ZVCR-3D, or "zvcr2d" for ZVCR-2D |
-| ZVCR Version Number | `uint8`, see [Version Numbers](#zvcr-versions-and-version-numbers)                                                                |                                       |                                                       |
-| Dimension Type      | `uint8`, see [Dimension Type Encoding](#dimension-type-encoding)                                                                  |                                       |                                                       |
-| Protocol Version\*  | `uint16`, see [Protocol Version Numbers](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_version_numbers) | ≥ ZVCR-3D 0.1.1.0 / ≥ ZVCR-2D 0.1.1.0 |                                                       |
-| Region Container    | [Region Container](#region-container), Zstd-compressed at level 8 by default                                                      |                                       |                                                       |
+| Field                 | Type                                                                                                                              |
+|-----------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| ZVCR Magic Prefix     | `uint8 array` with length 8 (fixed-size `string` without a length prefix)                                                         |
+| ZVCR Version Number   | `uint8`, see [Version Numbers](#zvcr-versions-and-version-numbers)                                                                |
+| Dimension Type        | `uint8`, see [Dimension Type Encoding](#dimension-type-encoding)                                                                  |
+| Protocol Version (\*) | `uint16`, see [Protocol Version Numbers](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_version_numbers) |
+| Region Container      | [Region Container](#region-container), Zstd-compressed at level 8 by default                                                      |
+
+The ZVCR Magic Prefix is "zvcr3d" for ZVCR-3D, or "zvcr2d" for ZVCR-2D.
 
 ### Registries
 (\*) The Protocol Version is used to determine which registries of the game are used. This importantly dictates which block
@@ -334,12 +336,12 @@ Segments describe a Minecraft chunk embedded within the region (16 blocks or 4 b
 different data depending on which format it was stored in.
 
 ### Optional Segment
-| Field               | Type                                        | Note                                                                   | Support           |
-|---------------------|---------------------------------------------|------------------------------------------------------------------------|-------------------|
-| Segment Indicator   | `boolean`                                   | `uint8`, zero indicating the absence of this segment                   |                   |
-| Segment             | [Segment](#segment)                         | Only present if the segment indicator was nonzero                      |                   |
-| Segment Info        | [Segment Info](#segment-info)               | Only present if the segment indicator was nonzero                      |                   |
-| Tile Entity History | [Tile Entity History](#tile-entity-history) | Only present in ZVCR-3D, and only if the segment indicator was nonzero | ≥ ZVCR-3D 0.1.4.0 |
+| Field               | Type                                        | Note                                                                        |
+|---------------------|---------------------------------------------|-----------------------------------------------------------------------------|
+| Segment Indicator   | `uint8`                                     | Boolean, zero indicating the absence of this segment                        |
+| Segment             | [Segment](#segment)                         | Only present if the segment indicator was nonzero                           |
+| Segment Info        | [Segment Info](#segment-info)               | Only present if the segment indicator was nonzero                           |
+| Tile Entity History | [Tile Entity History](#tile-entity-history) | Only present if the segment indicator was nonzero. Only present in ZVCR-3D. |
 
 ## Segment
 ### Segment (ZVCR-3D)
@@ -349,52 +351,30 @@ ascending order, such that section index = `0` corresponds to the lowest section
 (e.g. section Y = -4 in overworld), and section index = `n - 1` corresponds to the highest section Y in the given
 dimension (e.g. section Y = 19 in overworld).
 
-| Field            | Type                                                                           | Support           |
-|------------------|--------------------------------------------------------------------------------|-------------------|
-| n Block Sections | [Packed Delta Data](#packed-delta-data) with `unpacked size` = 16x16x16 = 4096 |                   |
-| n Biome Sections | [Packed Delta Data](#packed-delta-data) with `unpacked size` = 4x4x4 = 64      | ≥ ZVCR-3D 0.1.0.0 |
+| Field            | Type                                                                           |
+|------------------|--------------------------------------------------------------------------------|
+| n Block Sections | [Packed Delta Data](#packed-delta-data) with `unpacked size` = 16x16x16 = 4096 |
+| n Biome Sections | [Packed Delta Data](#packed-delta-data) with `unpacked size` = 4x4x4 = 64      |
 
 ### Segment (ZVCR-2D)
 A Segment in ZVCR-2D describes several layers of top-down block and biome data.
 
-| Field           | Type                                               | Support           |
-|-----------------|----------------------------------------------------|-------------------|
-| Layers Length n | `uint64`                                           |                   |
-| n Block Layers  | [Layer](#layer) with `unpacked size` = 16x16 = 256 |                   |
-| n Biome Layers  | [Layer](#layer) with `unpacked size` = 4x4 = 16    | ≥ ZVCR-2D 0.1.0.0 |
-
-### Layer
-A layer can describe block or biome information and as such has a fixed given `unpacked size`.
-
-| Field             | Type                                                               |
-|-------------------|--------------------------------------------------------------------|
-| Layer Type ID     | `uint8` (See [Layer Type ID Encoding](#layer-type-id-encoding))    |
-| Packed Delta Data | [Packed Delta Data](#packed-delta-data) with given `unpacked size` |
-
-### Layer Type ID Encoding
-| Layer type name   | ID      | Note                                                                                                                                             |
-|-------------------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| Normal            | 0       | Top down view of all blocks                                                                                                                      |
-| Terrain           | 1       | Top down view of terrain                                                                                                                         |
-| Heightmap         | 2       | Y levels of each block within the Normal layer                                                                                                   |
-| Terrain Heightmap | 3       | Y levels of each block within the Terrain layer                                                                                                  |
-| Drained           | 4       | Top down view of blocks, excluding liquids                                                                                                       |
-| Drained Heightmap | 5       | Y levels of each block within the Drained layer                                                                                                  |
-| ~~Predicted~~     | ~~6~~   | ~~Used for post-addition of biomes in older ZVCR files before biomes were implemented~~ Deprecated, will be removed upon release 1.0.0.0 of ZVCR |
-| Custom            | 7...255 | Custom layer ids used should start at high numbers, as new reserved layers are incrementally added                                               |
+| Field           | Type                                               |
+|-----------------|----------------------------------------------------|
+| Layers Length n | `uint64`                                           |
+| n Block Layers  | [Layer](#layer) with `unpacked size` = 16x16 = 256 |
+| n Biome Layers  | [Layer](#layer) with `unpacked size` = 4x4 = 16    |
 
 ### Segment Info
-Additional segment info is stored across both ZVCR-2D and ZVCR-3D for miscellaneous applications. These include visibly seeing which chunks on a Minecraft server
-were newly generated or not. Along with that, a more efficient tile entity counts storage to quickly filter for treasures when scanning large amounts of data.
+Additional segment info is stored across both ZVCR-2D and ZVCR-3D for miscellaneous applications. This currently includes
+seeing whether chunks on a Minecraft server have been newly generated or if they were loaded from disk.
 
-| Field                         | Type                                                     | Notes                                                                                                       |
-|-------------------------------|----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| Segment States Length n       | `uint64`                                                 |                                                                                                             |
-| n Segment States              | `array` of [Segment State](#segment-state) with length n |                                                                                                             |
-| ~~Tile Entities Length k~~    | `uint64`                                                 | Deprecated, marked for removal. Up to ZVCR-3D and ZVCR-2D 0.1.4.0, this length is always written as zero.   |
-| ~~k Tile Entity Counts Info~~ |                                                          | Deprecated, marked for removal. Up to ZVCR-3D and ZVCR-2D 0.1.4.0, these values are skipped and never used. |
+| Field                         | Type                                                     |
+|-------------------------------|----------------------------------------------------------|
+| Segment States Length n       | `uint64`                                                 |
+| n Segment States              | `array` of [Segment State](#segment-state) with length n |
 
-### Segment state
+### Segment State
 | Field         | Type                                                                           |
 |---------------|--------------------------------------------------------------------------------|
 | State Type ID | `uint8` (See [Segment State Type ID Encoding](#segment-state-type-id-encoding) |
@@ -507,3 +487,22 @@ filesize. This is a temporary fix in the current implementation of ZVCR, and wil
 library and doing proper NBT compound comparisons. 
 
 The NBT data buffer also remains uncompressed (may change in the future, signaling this by using a different Operation number).
+
+### Layer
+A Layer can describe top-down Block, Biome, as well as Heightmap information.
+
+| Field             | Type                                                               |
+|-------------------|--------------------------------------------------------------------|
+| Layer Type ID     | `uint8` (See [Layer Type ID Encoding](#layer-type-id-encoding))    |
+| Packed Delta Data | [Packed Delta Data](#packed-delta-data) with given `unpacked size` |
+
+### Layer Type ID Encoding
+| Layer type name   | ID      | Note                                                                                                 |
+|-------------------|---------|------------------------------------------------------------------------------------------------------|
+| Normal            | 0       | Top down view of blocks or biomes                                                                    |
+| Terrain           | 1       | Top down view of blocks, excluding obsidian (commonly used for sky art on anarchy Minecraft servers) |
+| Heightmap         | 2       | Y levels of each block within the Normal layer                                                       |
+| Terrain Heightmap | 3       | Y levels of each block within the Terrain layer                                                      |
+| Drained           | 4       | Top down view of blocks, excluding liquids                                                           |
+| Drained Heightmap | 5       | Y levels of each block within the Drained layer                                                      |
+| Custom            | 6...255 | Custom layer ids used should start at high numbers, as new reserved layers are incrementally added   |
