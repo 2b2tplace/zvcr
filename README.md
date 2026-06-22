@@ -128,8 +128,8 @@ toward zero. The expected value, however, is `floorDiv(-1, 32) = floor(-1.0 / -3
 ## File Content
 | Field               | Type                                                                                                                              | Support                               | Bound                                                     |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------|-----------------------------------------------------------|
-| ZVCR Prefix         | `uint8 array` with length 8 (fixed-size `string` without a length prefix)                                                         |                                       | Must be "ZVRegion" for ZVCR-3D, or "ZPRegion" for ZVCR-2D |
-| ZVCR Version number | `uint8`, see [Version Numbers](#version-numbers)                                                                                  |                                       |                                                           |
+| ZVCR Magic Prefix   | `uint8 array` with length 8 (fixed-size `string` without a length prefix)                                                         |                                       | Must be "ZVRegion" for ZVCR-3D, or "ZPRegion" for ZVCR-2D |
+| ZVCR Version Number | `uint8`, see [Version Numbers](#zvcr-versions-and-version-numbers)                                                                |                                       |                                                           |
 | Dimension Type      | `uint8`, see [Dimension Type Encoding](#dimension-type-encoding)                                                                  |                                       |                                                           |
 | Protocol Version\*  | `uint16`, see [Protocol Version Numbers](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_version_numbers) | ≥ ZVCR-3D 0.1.1.0 / ≥ ZVCR-2D 0.1.1.0 |                                                           |
 | Region Container    | [Region Container](#region-container)                                                                                             |                                       |                                                           |
@@ -153,32 +153,60 @@ the entire world must be upgraded to a newer Minecraft version. A one-time upgra
 consistency and performance, compared to upgrading on an as-needed basis, especially when handling ZVCR files in a 
 read-only context.
 
-## Version Numbers
-This implementation has gone through multiple iterations of ZVCR. When version 1.0.0.0 of ZVCR releases, support for
-older ZVCR files will be fully dropped (as they have only seen use internally, with files of such old versions never 
-distributed to the public).
+## ZVCR Versions and Version Numbers
+ZVCR versions follow an extended form of Semantic Versioning ([SemVer](https://github.com/semver/semver/blob/master/semver.md)), 
+represented as `RELEASE.MAJOR.MINOR.PATCH`. The `RELEASE` component is incremented only in rare cases involving
+fundamental changes to the format that affect the entire specification. Note that ZVCR-3D and ZVCR-2D versions are
+incremented individually as two separate specifications.
+
+The Git tags for this sample implementation follow the versioning scheme. These versions apply to the implementation 
+itself and should not be interpreted as versions of the ZVCR file format.
+
+The `RELEASE` number was increased to `1` upon finalization of the first public release of ZVCR. Versions preceding
+`1.X.X.X` were experimental and used exclusively for internal development, and they are no longer supported.
+
+Support for older versions is limited to be read-only. Any files written using this implementation will always use 
+the latest ZVCR version.
 
 ### Version Number Encoding (ZVCR-3D)
-| Version         | Version number | Supported |
-|-----------------|----------------|-----------|
-| ZVCR-3D 0.0.0.0 | 0              | No        |
-| ZVCR-3D 0.0.0.1 | 1              | Yes       |
-| ZVCR-3D 0.1.0.0 | 2              | Yes       |
-| ZVCR-3D 0.1.1.0 | 3              | Yes       |
-| ZVCR-3D 0.1.2.0 | 4              | Yes       |
-| ZVCR-3D 0.1.3.0 | 5              | Yes       |
-| ZVCR-3D 0.1.4.0 | 6              | Yes       |
+| Version number | Version | Changes                                         | Supported |
+|----------------|---------|-------------------------------------------------|-----------|
+| 7              | 1.0.0.0 | See [Release 1 Changelog](#release-1-changelog) | Yes       |
+| 6              | 0.1.4.0 |                                                 | No        |
+| 5              | 0.1.3.0 |                                                 | No        |
+| 4              | 0.1.2.0 |                                                 | No        |
+| 3              | 0.1.1.0 |                                                 | No        |
+| 2              | 0.1.0.0 |                                                 | No        |
+| 1              | 0.0.0.1 |                                                 | No        |
+| 0              | 0.0.0.0 |                                                 | No        |
 
 ### Version Number Encoding (ZVCR-2D)
-| Version         | Version number | Supported |
-|-----------------|----------------|-----------|
-| ZVCR-2D 0.0.0.0 | 0              | Yes       |
-| ZVCR-2D 0.1.0.0 | 1              | Yes       |
-| ZVCR-2D 0.1.1.0 | 2              | Yes       |
-| ZVCR-2D 0.1.1.1 | 3              | Yes       |
-| ZVCR-2D 0.1.2.0 | 4              | Yes       |
-| ZVCR-2D 0.1.3.0 | 5              | Yes       |
-| ZVCR-2D 0.1.4.0 | 6              | Yes       |
+| Version number | Version | Changes                                         | Supported |
+|----------------|---------|-------------------------------------------------|-----------|
+| 7              | 1.0.0.0 | See [Release 1 Changelog](#release-1-changelog) | Yes       |
+| 6              | 0.1.4.0 |                                                 | No        |
+| 5              | 0.1.3.0 |                                                 | No        |
+| 4              | 0.1.2.0 |                                                 | No        |
+| 3              | 0.1.1.1 |                                                 | No        |
+| 2              | 0.1.1.0 |                                                 | No        |
+| 1              | 0.1.0.0 |                                                 | No        |
+| 0              | 0.0.0.0 |                                                 | No        |
+
+### Release 1 Changelog
+- The ZVCR file headers are no longer compressed. ZVCR Magic Prefix, ZVCR Version Number, Dimension Type and Protocol 
+Version are written directly. The Palette Table + all Segments are compressed into one Zstd buffer.
+- The ZVCR Magic Prefix in ZVCR headers was changed from ZVRegion/ZPRegion to zvcr3d/zvcr2d respectively.
+- Bits per index is now rounded up to the nearest multiple of 4. Use 4 bits if the palette has 1..=16 unique values, 
+8 bits if it has 17..=256 unique values. For palettes requiring more than 8 bits to represent, bits per index is still
+rounded up to 16 bits, switching to direct palette mode as before.
+- There are now 2 distinct Palette Tables for Blocks and Biomes, instead of being one combined Palette Table.
+- The default Zstd level was changed from 10 to 8. Levels above 8 are substantially lower for write operations, with
+negligible gains to compression ratio. This is especially true for the changed bits per index rounding.
+
+Changes have also been made to the ZVCR file extensions and directory structure:
+- File extensions were previously `.zvcr3` and `.zvcr2` respectively, now they have been renamed to `.zvcr3d` and `.zvcr2d`.
+- The old directory structure code used integer division by 32 to calculate sector coordinates (`regionCoordinate / 32`).
+This has been updated to the intended logic of using `floorDiv32(regionCoordinate)` instead.
 
 ### Dimension Type Encoding
 The world height, and consequently the number of chunk sections, depends on the dimension type. This is currently 
@@ -449,18 +477,3 @@ filesize. This is a temporary fix in the current implementation of ZVCR, and wil
 library and doing proper NBT compound comparisons. 
 
 The NBT data buffer also remains uncompressed (may change in the future, signaling this by using a different Operation number).
-
-### ~~Tile Entity Counts Info~~ (deprecated, only exists for ≤ ZVCR-3D 0.1.2.0 / ≤ ZVCR-2D 0.1.3.0)
-| Field              | Type                           |
-|--------------------|--------------------------------|
-| Tile Entity Counts | `uint16 array`                 |
-| Timestamp          | `uint64` (Unix time, seconds)  |
-
-~~No length is specified in the tile entity counts info, since the length is entirely dictated by the used protocol~~
-~~version and how many tile entity types exist in that Minecraft version. The array is ordered by tile entity type id and each entry~~ 
-~~represents the number of that tile entity present here.~~
-
-# ~~What are zvr and zpr files?~~ (deprecated, will be removed for ZVCR 1.0.0.0)
-~~The older name of this file format and library was previously `libzr` with `zvr` (Zstd-compressed Voxel Region) being the old `ZVCR-3D` and `zpr`~~
-~~(Zstd-compressed Pixel Region) being the old `ZVCR-2D`. The older file formats should remain compatible with the new library. New names for these things were~~
-~~chosen mostly for consistency both in the code and the general naming of everything. The `ZVRegion` and `ZPRegion` header prefixes are still used for backwards compatibility.~~
