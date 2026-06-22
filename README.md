@@ -240,19 +240,19 @@ ascending order, such that section index = `0` corresponds to the lowest section
 (e.g. section Y = -4 in overworld), and section index = `n - 1` corresponds to the highest section Y in the given
 dimension (e.g. section Y = 19 in overworld).
 
-| Field            | Type                                                                             | Support           |
-|------------------|----------------------------------------------------------------------------------|-------------------|
-| n Block Sections | [Packed Delta Data](#packed-delta-data) with `snapshot length` = 16x16x16 = 4096 |                   |
-| n Biome Sections | [Packed Delta Data](#packed-delta-data) with `snapshot length` = 4x4x4 = 64      | ≥ ZVCR-3D 0.1.0.0 |
+| Field            | Type                                                                           | Support           |
+|------------------|--------------------------------------------------------------------------------|-------------------|
+| n Block Sections | [Packed Delta Data](#packed-delta-data) with `unpacked size` = 16x16x16 = 4096 |                   |
+| n Biome Sections | [Packed Delta Data](#packed-delta-data) with `unpacked size` = 4x4x4 = 64      | ≥ ZVCR-3D 0.1.0.0 |
 
 ### Segment (ZVCR-2D)
 A segment in ZVCR-2D describes several layers of top-down block and biome data.
 
-| Field           | Type                                                 | Support           |
-|-----------------|------------------------------------------------------|-------------------|
-| Layers Length n | `uint64`                                             |                   |
-| n Block Layers  | [Layer](#layer) with `snapshot length` = 16x16 = 256 |                   |
-| n Biome Layers  | [Layer](#layer) with `snapshot length` = 4x4 = 16    | ≥ ZVCR-2D 0.1.0.0 |
+| Field           | Type                                               | Support           |
+|-----------------|----------------------------------------------------|-------------------|
+| Layers Length n | `uint64`                                           |                   |
+| n Block Layers  | [Layer](#layer) with `unpacked size` = 16x16 = 256 |                   |
+| n Biome Layers  | [Layer](#layer) with `unpacked size` = 4x4 = 16    | ≥ ZVCR-2D 0.1.0.0 |
 
 ### Packed Delta Data
 | Field              | Type                                                         |
@@ -261,13 +261,14 @@ A segment in ZVCR-2D describes several layers of top-down block and biome data.
 | n Packed Snapshots | `array` of [Packed Snapshot](#packed-snapshot) with length n |
 
 ### Packed Snapshot
-A snapshot represents a batch of a palette packed delta data snapshot with a given fixed `snapshot length` when unpacked.
-The latest snapshot (the first one read in delta data) contains all data in this snapshot. All snapshots after it are represented with reverse deltas, which allows
-for the full recreation of older data by applying deltas on top of the latest snapshot.
+A snapshot represents a batch of a palette packed delta data snapshot with a given fixed `unpacked size` when unpacked.
+The latest snapshot (the first one read in delta data) contains all data in this snapshot. All snapshots after it are 
+represented with reverse deltas, which allows for the full recreation of older data by applying deltas on top of the
+latest snapshot.
 
 Unpacked data is stored as a `uint16 array`. Unchanged entries, when unpacked, are represented with `0xFFFF`.
-Packed data is stored as packed `uint64 array` with `snapshot length` palette entry indices, all being the same length; the minimum number of bits required to
-represent the largest index in the palette:
+Packed data is stored as packed `uint64 array` with `unpacked size` palette entry indices, all being the same length; 
+the minimum number of bits required to represent the largest index in the palette:
 ```cpp
 uint64_t getBitsPerIndex(size_t paletteSize) {
     return max(bit_width(max(paletteSize, 1UL) - 1), 1UL);
@@ -294,12 +295,12 @@ Packed snapshots are formatted as such:
 | Palette Index   | `uint32`, only present if section palette was used, index in the given palette table, `UINT32_MAX` to encode direct palette mode |
 
 ### Layer
-A layer can describe block or biome information and as such has a fixed given `snapshot length`.
+A layer can describe block or biome information and as such has a fixed given `unpacked size`.
 
-| Field             | Type                                                                 |
-|-------------------|----------------------------------------------------------------------|
-| Layer Type ID     | `uint8` (See [Layer Type ID Encoding](#layer-type-id-encoding))      |
-| Packed Delta Data | [Packed Delta Data](#packed-delta-data) with given `snapshot length` |
+| Field             | Type                                                               |
+|-------------------|--------------------------------------------------------------------|
+| Layer Type ID     | `uint8` (See [Layer Type ID Encoding](#layer-type-id-encoding))    |
+| Packed Delta Data | [Packed Delta Data](#packed-delta-data) with given `unpacked size` |
 
 ### Layer Type ID Encoding
 | Layer type name   | ID      | Note                                                                                                                                             |
