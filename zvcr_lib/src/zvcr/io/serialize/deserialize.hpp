@@ -14,7 +14,6 @@ namespace zvcr {
 
     inline constexpr auto MAX_DELTA_LENGTH = 65536;
     inline constexpr auto MAX_SEGMENT_STATES_LENGTH = 65536;
-    inline constexpr auto MAX_LEGACY_TILE_ENTITIES_LENGTH = 65536;
     inline constexpr auto MAX_TILE_ENTITY_LIST_LENGTH = 98304;
     inline constexpr auto MAX_TILE_ENTITY_NBT_LENGTH = 65536;
     inline constexpr auto MAX_PACKED_LENGTH = 1024;
@@ -41,9 +40,6 @@ namespace zvcr {
         EXPECTED_SEGMENT_STATE_TYPE,
         EXPECTED_SEGMENT_STATE_TIMESTAMP,
         EXPECTED_PROTOCOL_VERSION,
-        EXPECTED_LEGACY_TILE_ENTITIES_LENGTH,
-        EXPECTED_LEGACY_TILE_ENTITY_COUNTS,
-        EXPECTED_LEGACY_TILE_ENTITY_COUNTS_TIMESTAMP,
         EXPECTED_LAYER_TYPE,
         EXPECTED_LAYERS_LENGTH,
         EXPECTED_TILE_ENTITY_LIST_DELTAS_LENGTH,
@@ -63,7 +59,6 @@ namespace zvcr {
         INVALID_PACKED_LENGTH,
         INVALID_PALETTE_TABLE_LENGTH,
         INVALID_SEGMENT_STATES_LENGTH,
-        INVALID_LEGACY_TILE_ENTITIES_LENGTH,
         INVALID_SEGMENT_STATE_ID,
         INVALID_TILE_ENTITY_LIST_DELTAS_LENGTH,
         INVALID_TILE_ENTITY_LIST_LENGTH,
@@ -197,13 +192,11 @@ namespace zvcr {
         auto deserializePackedSnapshot(PackedSnapshot<unpackedSize> &snapshot, const std::vector<Palette> &paletteTable) -> ReadResult<std::monostate> {
             snapshot.timestamp = static_cast<time_t>(TRY(read<uint64_t>(EXPECTED_TIMESTAMP)));
 
-            if (ctx.supportSingleValuePalette) {
-                const auto dataType = TRY(read<uint8_t>(EXPECTED_PALETTE_TYPE));
-                if (dataType == 0) {
-                    const auto singleValue = TRY(read<uint16_t>(EXPECTED_PALETTE_SINGLE_DATA));
-                    snapshot.data.data = singleValue;
-                    return {};
-                }
+            const auto dataType = TRY(read<uint8_t>(EXPECTED_PALETTE_TYPE));
+            if (dataType == 0) {
+                const auto singleValue = TRY(read<uint16_t>(EXPECTED_PALETTE_SINGLE_DATA));
+                snapshot.data.data = singleValue;
+                return {};
             }
             const auto packedLength = TRY(read<uint64_t>(EXPECTED_PACKED_LENGTH));
             if (packedLength > MAX_PACKED_LENGTH) {
@@ -217,15 +210,10 @@ namespace zvcr {
                 packedLongArray.resize(packedLength);
 
             TRY(readArray(packedLongArray.data(), packedLength, EXPECTED_PACKED_DATA));
-            palettedData.bitStorageLegacy.data = packedLongArray;
-            palettedData.bitStorageLegacy.size = unpackedSize;
 
             const auto paletteIndex = TRY(read<uint32_t>(EXPECTED_PALETTE_INDEX));
             if (paletteIndex == UINT32_MAX) {
-                // direct palette update; use uint32 max to encode direct palette
                 palettedData.palette = DIRECT_PALETTE;
-                palettedData.bitStorageLegacy.bits = palettedData.palette.bitsPerEntry;
-                palettedData.bitStorageLegacy.init();
                 snapshot.data.data = palettedData;
                 return {};
             }
@@ -234,13 +222,7 @@ namespace zvcr {
                 return ERR(err);
             }
             const auto &palette = paletteTable.at(paletteIndex);
-            if (palette.length() == 1) {
-                snapshot.data.data = palette.palette[0]; // single value palette update; backwards compatibility
-                return {};
-            }
             palettedData.palette = palette;
-            palettedData.bitStorageLegacy.bits = palettedData.palette.bitsPerEntry;
-            palettedData.bitStorageLegacy.init();
             snapshot.data.data = palettedData;
             return {};
         }
@@ -274,9 +256,6 @@ namespace zvcr {
         auto deserializeSegmentState() -> ReadResult<SegmentState>;
 
         [[nodiscard]]
-        auto deserializeTileEntityCountInfo() -> ReadResult<std::monostate>;
-
-        [[nodiscard]]
         auto deserializeSegmentInfo() -> ReadResult<SegmentInfo>;
 
         [[nodiscard]]
@@ -287,21 +266,12 @@ namespace zvcr {
 
         [[nodiscard]]
         auto deserializeRegion(Region &region) -> ReadResult<std::monostate>;
+
+        [[nodiscard]]
+        auto deserializeFile() -> ReadResult<File>;
     };
 
-    [[deprecated]]
-    auto deserializeFileLegacy(ReadHandle &handle) -> ReadResult<File>;
-
-    auto deserializeFile(ReadHandle &handle) -> ReadResult<File>;
-
-    [[deprecated]]
-    auto readFileLegacy(const fs::path &filepath, size_t maxDeltas = 0) -> ReadResult<File>;
-
     auto readFile(const fs::path &filepath, size_t maxDeltas = 0) -> ReadResult<File>;
-
-    [[deprecated]]
-    auto readFileAtLegacy(const fs::path &parentDirectory, const RegionLocation &location,
-                          size_t maxDeltas = 0) -> ReadResult<File>;
 
     auto readFileAt(const fs::path &parentDirectory, const RegionLocation &location,
                     size_t maxDeltas = 0) -> ReadResult<File>;

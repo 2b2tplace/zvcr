@@ -67,12 +67,12 @@ namespace zvcr {
             write<uint64_t>(snapshot.timestamp);
 
             const auto &anyData = snapshot.data.data;
-            if (std::holds_alternative<uint16_t>(anyData)) { // single value palette update; 0 = single value
+            if (std::holds_alternative<uint16_t>(anyData)) { // 0 = single value palette
                 write<uint8_t>(0);
                 write<uint16_t>(std::get<uint16_t>(anyData));
                 return;
             }
-            write<uint8_t>(1); // single value palette update; 1 = section palette
+            write<uint8_t>(1); // 1 = section palette
 
             const auto &palettedData = std::get<PalettedData<unpackedSize>>(anyData);
             const auto &packedLongArray = palettedData.packedLongArray;
@@ -84,7 +84,7 @@ namespace zvcr {
             const auto paletteTableLength = paletteTable.size();
             const auto &palette = palettedData.palette;
             if (palette.direct()) {
-                // direct palette update; don't store direct palettes, use uint32 max to encode direct palette
+                // don't store direct palettes, use uint32 max to encode direct palette
                 write<uint32_t>(UINT32_MAX);
                 return;
             }
@@ -127,7 +127,7 @@ namespace zvcr {
             serializeSegment(*segmentOpt);
         }
 
-        auto serializeRegion(const Region &region) -> result::Result<std::monostate, std::string> {
+        auto serializeRegion(const Region &region) -> ZstdResult {
             auto regionContainer = cloneParameters();
             {
                 auto handle = cloneParameters();
@@ -146,9 +146,9 @@ namespace zvcr {
             writeBytes(compressedRegionContainer);
             return {};
         }
-    };
 
-    auto serializeFile(const File &file, WriteHandle &handle) -> void;
+        auto serializeFile(const File &file) -> ZstdResult;
+    };
 
     using WriteResult = result::Result<size_t, std::string>;
 

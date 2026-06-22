@@ -66,21 +66,21 @@ namespace zvcr {
         }
     }
 
-    auto serializeFile(const File &file, WriteHandle &handle) -> void {
-        handle.ctx.initialize(latestVersion);
-        handle.ctx.initializeSectionCount(file.dimensionType);
+    auto WriteHandle::serializeFile(const File &file) -> ZstdResult {
+        ctx.initialize(ZVCR3D_LATEST_VERSION);
+        ctx.initializeSectionCount(file.dimensionType);
 
-        handle.writeBytes(filePrefix);
-        handle.writeByte(static_cast<uint8_t>(latestVersion));
-        handle.writeByte(static_cast<uint8_t>(file.dimensionType));
-        handle.write<uint16_t>(handle.ctx.protocolVersion);
-        handle.serializeRegion(file.region);
+        writeBytes(filePrefix);
+        writeByte(static_cast<uint8_t>(ZVCR3D_LATEST_VERSION));
+        writeByte(static_cast<uint8_t>(file.dimensionType));
+        write<uint16_t>(ctx.protocolVersion);
+        return serializeRegion(file.region);
     }
 
-    auto writeFile(const File &file, const fs::path &filepath, const int compressionLevel,
-        const uint compressionThreads) -> WriteResult {
+    auto writeFile(const File &file, const fs::path &filepath, const int compressionLevel, const uint compressionThreads) -> WriteResult {
         WriteHandle handle{file.protocolVersion, compressionLevel, compressionThreads};
-        serializeFile(file, handle);
+        if (const auto result = handle.serializeFile(file); !result)
+            return ERR(result.error());
 
         std::ofstream fileStream(filepath, std::ios::out | std::ios::binary);
         if (!fileStream)

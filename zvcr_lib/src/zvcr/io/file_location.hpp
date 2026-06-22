@@ -31,9 +31,6 @@ namespace zvcr {
         static auto fromFileName(DimensionType dimension, const fs::path &file) -> result::Option<RegionLocation>;
 
         [[nodiscard]]
-        auto directoryLegacy(const fs::path &parentDirectory) const -> fs::path;
-
-        [[nodiscard]]
         auto directory(const fs::path &parentDirectory) const -> fs::path;
 
         [[nodiscard]]
@@ -53,18 +50,6 @@ namespace zvcr {
         [[nodiscard]]
         auto filePath(const fs::path &parentDirectory) const -> fs::path {
             return filePath(parentDirectory, extension);
-        }
-
-        [[nodiscard]]
-        [[deprecated]]
-        auto fileNameLegacy() const -> std::string {
-            return fileName(legacyExtension);
-        }
-
-        [[nodiscard]]
-        [[deprecated]]
-        auto filePathLegacy(const fs::path &parentDirectory) const -> fs::path {
-            return fs::path(directoryLegacy(parentDirectory)) / fileNameLegacy();
         }
     };
 

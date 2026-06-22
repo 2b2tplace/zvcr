@@ -28,12 +28,6 @@ namespace zvcr {
         if (filename.ends_with(".zvcr3d"))
             return 7;
 
-        if (filename.ends_with(".zvcr3"))
-            return 6;
-
-        if (filename.ends_with(".zvr"))
-            return 4;
-
         return {};
     }
 
@@ -54,14 +48,6 @@ namespace zvcr {
         const auto regionZ = std::stoi(regionIdentifier.substr(delimiter + 1));
 
         return RegionLocation{regionX, regionZ, dimension};
-    }
-
-    auto RegionLocation::directoryLegacy(const fs::path &parentDirectory) const -> fs::path {
-        const auto sectorX = std::to_string(rx / SECTOR_SIDELENGTH);
-        const auto sectorZ = std::to_string(rz / SECTOR_SIDELENGTH);
-        const auto dimID = std::to_string(std::to_underlying(dimensionType));
-
-        return fs::path(parentDirectory) / dimID / sectorX / sectorZ;
     }
 
     auto RegionLocation::directory(const fs::path &parentDirectory) const -> fs::path {

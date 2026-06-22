@@ -29,7 +29,7 @@ namespace zvcr {
     };
 
     [[nodiscard]]
-    constexpr auto zvcr3dVersionName(const Version version) -> std::string_view {
+    constexpr auto versionName(const Version version) -> std::string_view {
         return ZVCR3D_VERSION_NAMES[static_cast<size_t>(version)];
     }
 

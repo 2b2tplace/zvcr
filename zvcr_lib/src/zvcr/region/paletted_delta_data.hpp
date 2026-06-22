@@ -5,7 +5,6 @@
 #include <absl/hash/hash.h>
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <bitset>
 #include <cassert>
 #include <tuple>
@@ -14,39 +13,6 @@
 namespace zvcr {
 
     using LongArray = std::vector<uint64_t>;
-
-    struct [[deprecated]] BitStorage {
-
-        [[deprecated]]
-        BitStorage() = default;
-
-        [[deprecated]]
-        BitStorage(size_t bits, size_t size);
-
-        [[deprecated]]
-        auto init() -> void;
-
-        [[nodiscard]]
-        [[deprecated]]
-        auto cellIndex(uint64_t index) const -> size_t;
-
-        [[nodiscard]]
-        [[deprecated]]
-        auto get(size_t index) const -> uint64_t;
-
-        [[deprecated]]
-        auto set(size_t index, uint64_t value) -> void;
-
-        LongArray data{};
-        uint16_t packedLength{};
-        size_t bits{};
-        size_t size{};
-        uint64_t mask{};
-        size_t valuesPerLong{};
-        uint64_t divideMul{};
-        uint64_t divideAdd{};
-        int32_t divideShift{};
-    };
 
     template<size_t>
     class PackedData;
@@ -147,11 +113,6 @@ namespace zvcr {
         return 16;
     }
 
-    [[nodiscard]]
-    inline auto bitsPerEntryLegacy(const size_t length) -> size_t {
-        return std::max<size_t>(std::bit_width(std::max(static_cast<size_t>(length), static_cast<size_t>(1)) - 1), 1UL);
-    }
-
     using VectorPalette = std::vector<SegmentAtom>;
 
     struct Palette {
@@ -213,8 +174,7 @@ namespace zvcr {
 
     template<size_t unpackedSize>
     struct PalettedData {
-        explicit PalettedData(const Palette &palette):
-            bitStorageLegacy(palette.bitsPerEntry, unpackedSize) {
+        explicit PalettedData(const Palette &palette) {
             const auto valuesPerLong = 64 / palette.bitsPerEntry;
             this->packedLongArray.resize((unpackedSize + valuesPerLong - 1) / valuesPerLong);
             this->palette = palette;
@@ -223,13 +183,10 @@ namespace zvcr {
         explicit PalettedData(const Palette &palette, const LongArray &packedLongArray):
             PalettedData(palette) {
             this->packedLongArray = packedLongArray;
-            this->bitStorageLegacy.data = packedLongArray;
         }
 
         PalettedData() = default;
 
-        [[deprecated]]
-        BitStorage bitStorageLegacy;
         LongArray packedLongArray;
         Palette palette;
     };
@@ -296,43 +253,22 @@ namespace zvcr {
             UnpackedData<unpackedSize> unpacked{};
             const auto &palettedData = std::get<PalettedData<unpackedSize>>(data);
             const auto &palette = palettedData.palette;
-            const auto legacyUnpack = palette.bitsPerEntry != 4 && palette.bitsPerEntry != 8 && palette.bitsPerEntry != 16;
-            if (legacyUnpack) {
-                const auto &bitStorage = palettedData.bitStorageLegacy;
 
-                const auto shift = bitStorage.divideShift + 32;
-                const uint8_t usableBits = 64 - bitStorage.bits;
+            const auto &packedLongArray = palettedData.packedLongArray;
+            const auto bits = static_cast<uint8_t>(palette.bitsPerEntry);
+            const auto mask = (static_cast<uint64_t>(1) << bits) - 1;
 
-                for (int64_t cellIdx = 0; cellIdx < bitStorage.packedLength; cellIdx++) {
-                    const auto cell = bitStorage.data[cellIdx];
-                    auto i = (cellIdx << shift) / bitStorage.divideMul;
-                    for (uint8_t bitIndex = 0; bitIndex <= usableBits && i < unpackedSize; bitIndex += bitStorage.bits) {
-                        auto slice = cell >> bitIndex & bitStorage.mask;
-                        if (!palette.direct()) {
-                            assert(slice < palette.length() && "Palette slice out of bounds");
-                            slice = palette.palette[slice];
-                        }
-                        unpacked[i++] = slice;
+            size_t unpackedIndex = 0;
+            for (size_t cellIndex = 0; cellIndex < packedLongArray.size(); cellIndex++) {
+                const auto cell = packedLongArray[cellIndex];
+                for (uint8_t bitIndex = 0; bitIndex < 64; bitIndex += bits) {
+                    auto slice = cell >> bitIndex & mask;
+                    if (!palette.direct()) {
+                        assert(slice < palette.length() && "Palette slice out of bounds");
+                        slice = palette.palette.at(slice);
                     }
-                }
-            } else {
-                const auto &packedLongArray = palettedData.packedLongArray;
-
-                const auto bits = static_cast<uint8_t>(palette.bitsPerEntry);
-                const auto mask = (static_cast<uint64_t>(1) << bits) - 1;
-
-                size_t unpackedIndex = 0;
-                for (size_t cellIndex = 0; cellIndex < packedLongArray.size(); cellIndex++) {
-                    const auto cell = packedLongArray[cellIndex];
-                    for (uint8_t bitIndex = 0; bitIndex < 64; bitIndex += bits) {
-                        auto slice = cell >> bitIndex & mask;
-                        if (!palette.direct()) {
-                            assert(slice < palette.length() && "Palette slice out of bounds");
-                            slice = palette.palette.at(slice);
-                        }
-                        assert(unpackedIndex < unpackedSize && "Unpacked index out of bounds");
-                        unpacked.at(unpackedIndex++) = slice;
-                    }
+                    assert(unpackedIndex < unpackedSize && "Unpacked index out of bounds");
+                    unpacked.at(unpackedIndex++) = slice;
                 }
             }
             return unpacked;
@@ -350,76 +286,6 @@ namespace zvcr {
     struct PackedSnapshot {
         PackedData<unpackedSize> data;
         time_t timestamp{};
-    };
-
-    using magic_tuple = std::tuple<int32_t, int32_t, int32_t>;
-
-    [[deprecated]]
-    static constexpr std::array MAGIC = {
-        magic_tuple{-1, -1, 0},
-        magic_tuple{-2147483648, 0, 0},
-        magic_tuple{1431655765, 1431655765, 0},
-        magic_tuple{-2147483648, 0, 1},
-        magic_tuple{858993459, 858993459, 0},
-        magic_tuple{715827882, 715827882, 0},
-        magic_tuple{613566756, 613566756, 0},
-        magic_tuple{-2147483648, 0, 2},
-        magic_tuple{477218588, 477218588, 0},
-        magic_tuple{429496729, 429496729, 0},
-        magic_tuple{390451572, 390451572, 0},
-        magic_tuple{357913941, 357913941, 0},
-        magic_tuple{330382099, 330382099, 0},
-        magic_tuple{306783378, 306783378, 0},
-        magic_tuple{286331153, 286331153, 0},
-        magic_tuple{-2147483648, 0, 3},
-        magic_tuple{252645135, 252645135, 0},
-        magic_tuple{238609294, 238609294, 0},
-        magic_tuple{226050910, 226050910, 0},
-        magic_tuple{214748364, 214748364, 0},
-        magic_tuple{204522252, 204522252, 0},
-        magic_tuple{195225786, 195225786, 0},
-        magic_tuple{186737708, 186737708, 0},
-        magic_tuple{178956970, 178956970, 0},
-        magic_tuple{171798691, 171798691, 0},
-        magic_tuple{165191049, 165191049, 0},
-        magic_tuple{159072862, 159072862, 0},
-        magic_tuple{153391689, 153391689, 0},
-        magic_tuple{148102320, 148102320, 0},
-        magic_tuple{143165576, 143165576, 0},
-        magic_tuple{138547332, 138547332, 0},
-        magic_tuple{-2147483648, 0, 4},
-        magic_tuple{130150524, 130150524, 0},
-        magic_tuple{126322567, 126322567, 0},
-        magic_tuple{122713351, 122713351, 0},
-        magic_tuple{119304647, 119304647, 0},
-        magic_tuple{116080197, 116080197, 0},
-        magic_tuple{113025455, 113025455, 0},
-        magic_tuple{110127366, 110127366, 0},
-        magic_tuple{107374182, 107374182, 0},
-        magic_tuple{104755299, 104755299, 0},
-        magic_tuple{102261126, 102261126, 0},
-        magic_tuple{99882960, 99882960, 0},
-        magic_tuple{97612893, 97612893, 0},
-        magic_tuple{95443717, 95443717, 0},
-        magic_tuple{93368854, 93368854, 0},
-        magic_tuple{91382282, 91382282, 0},
-        magic_tuple{89478485, 89478485, 0},
-        magic_tuple{87652393, 87652393, 0},
-        magic_tuple{85899345, 85899345, 0},
-        magic_tuple{84215045, 84215045, 0},
-        magic_tuple{82595524, 82595524, 0},
-        magic_tuple{81037118, 81037118, 0},
-        magic_tuple{79536431, 79536431, 0},
-        magic_tuple{78090314, 78090314, 0},
-        magic_tuple{76695844, 76695844, 0},
-        magic_tuple{75350303, 75350303, 0},
-        magic_tuple{74051160, 74051160, 0},
-        magic_tuple{72796055, 72796055, 0},
-        magic_tuple{71582788, 71582788, 0},
-        magic_tuple{70409299, 70409299, 0},
-        magic_tuple{69273666, 69273666, 0},
-        magic_tuple{68174084, 68174084, 0},
-        magic_tuple{-2147483648, 0, 5}
     };
 
     template<size_t unpackedSize>

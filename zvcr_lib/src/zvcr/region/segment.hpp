@@ -68,18 +68,16 @@ namespace zvcr {
         DeltaSections<SECTION_SIZE_BIOMES> biomeSections;
         SegmentInfo info;
         DeltaTileEntityData tileEntities;
-        bool supportBiomes;
 
-        explicit Segment(const DimensionType dimension, const bool supportBiomes):
-            Segment(dimensionSectionCount(dimension), supportBiomes) {}
+        explicit Segment(const DimensionType dimension):
+            Segment(dimensionSectionCount(dimension)) {}
 
-        explicit Segment(const size_t sectionCount, const bool supportBiomes):
+        explicit Segment(const size_t sectionCount):
             sectionCount(sectionCount),
             blockSections(sectionCount),
             biomeSections(sectionCount),
             info(SegmentStates{}),
-            tileEntities({}),
-            supportBiomes(supportBiomes) {}
+            tileEntities({}) {}
     };
 
     class Region {
