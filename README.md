@@ -6,7 +6,7 @@ Minecraft Anvil format (mca) in general. The ZVCR file formats officially suppor
 
 # Compression
 ZVCR files use [Zstd](https://github.com/facebook/zstd) compression alongside 
-[packed data using palettes](#packing-and-unpacking) tricks to minimize the compression ratio. For historical data,
+[packed data using palettes](#packing-and-unpacking) to minimize the compression ratio. For historical data,
 [deltas](#packed-delta-data) are used, such that older snapshots can be easily reconstructed, instead of duplicating 
 large amounts of almost equal data.
 
