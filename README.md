@@ -79,9 +79,13 @@ parentDirectory
 
 \
 \
-(*) The bitshift operator `>>` at a lower level may be platform-dependent. When portability is an important 
-consideration, the expected result for zvcr sectors should be equivalent to 
-`floorDiv(regionCoordinate, 32)`, or `floorDiv32(regionCoordinate)` defined as the following:
+(*) The signed bitshift operator `>>` behavior may be implementation-defined in C and C++. In particular, right-shifting
+a negative signed integer may perform either an arithmetic shift (sign-extending) or a logical shift, depending on the 
+implementation.
+
+When portability is important, sector division should be performed using a floor division operation equivalent to 
+`floorDiv(regionCoordinate, 32)`, or the following function, computing `floor(regionCoordinate, 32)` for all 
+signed integers:
 ```cpp
 int32_t floorDiv32(const int32_t regionCoordinate) {
     if (regionCoordinate >= 0) {
@@ -92,9 +96,11 @@ int32_t floorDiv32(const int32_t regionCoordinate) {
 }
 ```
 As such, each sector contains a maximum of 32 * 32 = 1024 regions. It is very important to use `floorDiv32`, 
-5-right-bitshift or an equivalent mathematical expression to properly divide negative region coordinates into sectors. 
-Using the integer division operator `/` in most languages yields a result rounded up to the nearest integer, which is 
-not the expected behavior for this calculation. For example, `-1 / 32 = -0.03125` becomes `0` in integer division. The
+an arithmetic 5-right-bitshift on signed integers, or an equivalent mathematical expression when converting region 
+coordinates to sector coordinates.
+
+Using the integer division operator `/` in most languages yields a result truncating toward zero, which is not the 
+expected behavior for this calculation. For example, `-1 / 32 = -0.03125` becomes `0` in integer division. The
 expected value, however, is `floorDiv(-1, 32) = floor(-1.0 / -32.0) = -1`.
 
 ## Compression
