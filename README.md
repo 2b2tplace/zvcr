@@ -99,9 +99,9 @@ As such, each sector contains a maximum of 32 * 32 = 1024 regions. It is very im
 an arithmetic 5-right-bitshift on signed integers, or an equivalent mathematical expression when converting region 
 coordinates to sector coordinates.
 
-Using the integer division operator `/` in most languages yields a result truncating toward zero, which is not the 
-expected behavior for this calculation. For example, `-1 / 32 = -0.03125` becomes `0` in integer division. The
-expected value, however, is `floorDiv(-1, 32) = floor(-1.0 / -32.0) = -1`.
+Simply using the integer division operator `/` in most languages yields a result truncating toward zero, which is not 
+the expected behavior for this calculation. For example, `-1 / 32 = -0.03125` becomes `0` in integer division, truncated
+toward zero. The expected value, however, is `floorDiv(-1, 32) = floor(-1.0 / -32.0) = -1`.
 
 ## Compression
 Files as shown below are compressed with [Zstd](https://github.com/facebook/zstd). The entire file\* is compressed, with a
