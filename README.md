@@ -68,13 +68,13 @@ When storing a large amount of ZVCR files for a Minecraft world however, followi
 having standardized positional file names is very much required. All official ZVCR-related tooling expects files to be 
 placed in a directory that looks something like this:
 
-- Each ZVCR region file is located in `parentDirectory/{dimension}/{sectorX}/{sectorZ}/r.{regionX}.{regionZ}.zvcr{3 or 2}d`.
+- Each ZVCR region file is located in `parentDirectory/{dimension}/{sectorX}/{sectorZ}/r.{regionX}.{regionZ}.zvcr{3|2}d`.
 - There are three standard dimension directory names corresponding to the dimensions found in vanilla Minecraft: 
 `overworld`, `nether`, and `end`. Modded dimensions are currently not supported by the ZVCR file format. A ZVCR 
 directory may not necesarily contain all vanilla dimensions.
 - Sector coordinates `sector{X|Z}` are calculated using `floor(region{X|Z} / 32)` (commonly denoted as 
 `floorDiv(region{X|Z}, 32)`, usually calculated with `region{X|Z} >> 5` (*not always, see below)).
-- Region coordinates are equivalent to 
+- ZVCR Region coordinates are equivalent to 
 [Minecraft Anvil region coordinates](https://minecraft.tools/en/coordinate-calculator.php). A region located at
 `(regionX, regionZ)` contains all blocks in an area between `(regionX * 512, regionZ * 512)` and
 `((regionX + 1) * 512 - 1, (regionZ + 1) * 512 - 1)`, corresponding to absolute block coordinates X and Z in the given
