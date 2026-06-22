@@ -49,7 +49,7 @@ namespace zvcr {
 
     [[nodiscard]]
     inline auto dimensionMinSectionY(const DimensionType type) -> int32_t {
-        return dimensionProperties(type).minY / SEGMENT_SIDELENGTH_BLOCKS;
+        return dimensionProperties(type).minY / static_cast<int32_t>(SEGMENT_SIDELENGTH_BLOCKS);
     }
 
     [[nodiscard]]
