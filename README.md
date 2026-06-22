@@ -141,7 +141,11 @@ integer, that numeric ID refers to the particular entry with that ID in the regi
 be generated using [data generators](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Data_Generators),
 extracting information from Minecraft server/client JAR files. These numeric IDs usually are not found explicitly within
 Minecraft source code, and are rather implied from the order the entries were defined in. Furthermore, biome type IDs
-only refer to default biomes as provided on a vanilla Java Edition Minecraft server
+only refer to default biomes as provided on a vanilla Java Edition Minecraft server. Any additional content added via
+data packs or mods is currently unsupported by zvcr. 
+
+Example registries for Minecraft version 1.21.4 (Protocol version number 769) can be found
+[here](https://github.com/2b2tplace/mc-cpp/tree/main/registries/769).
 
 The version being specified at the region-level instead of within individual chunks prevents version mismatches within 
 a single ZVCR world save. This implies partially upgrading some chunks but not others in ZVCR is not possible, and instead 
