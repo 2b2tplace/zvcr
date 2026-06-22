@@ -1,4 +1,5 @@
-#include <zvcr/region/segment/tile_entities.hpp>
+#include <zvcr/region/tile_entities.hpp>
+#include <zvcr/time_utils.hpp>
 
 namespace zvcr {
 
@@ -28,6 +29,10 @@ namespace zvcr {
         return type == other.type && pos == other.pos && nbt == other.nbt;
     }
 
+    auto TileEntityListDelta::operator==(const TileEntityListDelta &other) const -> bool {
+        return timestamp == other.timestamp && deltas == other.deltas;
+    }
+
     auto DeltaTileEntityData::latestSnapshot() const -> result::OptionCRef<TileEntityListDelta> {
         return delta(0);
     }
@@ -36,47 +41,7 @@ namespace zvcr {
         return deltaIndex >= reverseDeltas.size() ? result::None : result::OptionCRef<TileEntityListDelta>{reverseDeltas[deltaIndex]};
     }
 
-    auto DeltaTileEntityData::insertSnapshot(const time_t timestamp, const std::vector<TileEntity> &tileEntityListSnapshot) -> DeltaInsertionResult {
-        const auto latestOpt = latestSnapshot();
-        if (!latestOpt) {
-            auto &[_, deltas] = reverseDeltas.emplace_back(timestamp);
-            deltas.reserve(tileEntityListSnapshot.size());
-
-            for (const auto &tileEntity : tileEntityListSnapshot)
-                deltas[tileEntity.pos] = tileEntity;
-
-            return deltas.size();
-        }
-        const auto &latest = latestOpt->get();
-        if (timestamp <= latest.timestamp) return ERR(DeltaInsertionStatus::SNAPSHOT_OLDER_THAN_LATEST);
-
-        TileEntityListDelta newLatest{.timestamp = timestamp};
-        newLatest.deltas.reserve(tileEntityListSnapshot.size());
-
-        for (const auto &tileEntity : tileEntityListSnapshot)
-            newLatest.deltas[tileEntity.pos] = tileEntity;
-
-        TileEntityListDelta deltas{.timestamp = latest.timestamp};
-        for (const auto &tileEntity : tileEntityListSnapshot) {
-            if (const auto &found = latest.deltas.find(tileEntity.pos); found == latest.deltas.end()) {
-                deltas.deltas[tileEntity.pos] = std::monostate{};
-            } else if (std::holds_alternative<TileEntity>(found->second) && std::get<TileEntity>(found->second) != tileEntity) {
-                deltas.deltas[tileEntity.pos] = found->second;
-            }
-        }
-        for (const auto &[pos, delta] : latest.deltas) {
-            if (!newLatest.deltas.contains(pos) && std::holds_alternative<TileEntity>(delta))
-                deltas.deltas[pos] = delta;
-        }
-        if (deltas.deltas.empty()) return ERR(DeltaInsertionStatus::NO_CHANGES_MADE);
-
-        reverseDeltas.erase(reverseDeltas.begin());
-        reverseDeltas.emplace(reverseDeltas.begin(), deltas);
-        reverseDeltas.emplace(reverseDeltas.begin(), newLatest);
-        return deltas.deltas.size();
-    }
-
-    auto DeltaTileEntityData::snapshotFrom(const time_t timestamp) const -> result::Option<TileEntityList> {
+    auto DeltaTileEntityData::snapshotBefore(const time_t timestamp) const -> result::Option<TileEntityList> {
         const auto latestOpt = latestSnapshot();
         if (!latestOpt) return result::None;
 
@@ -105,5 +70,9 @@ namespace zvcr {
             if (timestamp >= deltaTimestamp) break;
         }
         return snapshot;
+    }
+
+    auto DeltaTileEntityData::snapshotFrom(const time_t timestamp) const -> result::Option<TileEntityList> {
+        return snapshotBefore(findNearestTimestamp(reverseDeltas, timestamp));
     }
 }
