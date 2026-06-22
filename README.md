@@ -1,51 +1,40 @@
 # Zstd-compressed Version Controlled Region (ZVCR)
 A C++ library for handling the ZVCR-2D and ZVCR-3D file formats, enabling a more feature-rich and efficient storage of 
-Minecraft region files and top-down map data, in a Minecraft Java Edition large-scale world data archival context.
+3D world data and 2D top-down map data.
 
-# What does ZVCR have that mca doesn't?
-The most important difference is a form of version control for region files. The ZVCR-3D file format stores older snapshots
-of data within the same region using a reverse delta algorithm. The newest snapshot is always stored in its full form,
-any previous snapshot from an older time can be created by applying deltas in reverse.
+The intended use case of ZVCR is limited to Minecraft Java Edition world data archival, rather than replacing the
+Minecraft Anvil format (mca) in general. The ZVCR file formats officially support Minecraft versions 1.20.4 and above.
 
-Other differences include:
-- the storage of the state each chunk was in when it was saved (newly generated or already existing),
-- Zstd compression, achieving more than a 50% reduction in filesize, or a 95% reduction in the end dimension, at Zstd 
-  compression level 22.
+# Compression
+ZVCR files use [Zstd](https://github.com/facebook/zstd) compression alongside 
+[packed data using palettes](#packing-and-unpacking) tricks to minimize the compression ratio. For historical data,
+[deltas](#packed-delta-data) are used, such that older snapshots can be easily reconstructed, instead of duplicating 
+large amounts of almost equal data.
 
-Additionally, the ZVCR-2D file format was created to only store top-down information (also with reverse deltas) about a 
-region (for map rendering or similar) and it also includes chunk states (old/new). Any ZVCR-3D file can be easily flattened
-into a ZVCR-2D file.
+ZVCR file headers are left uncompressed. The [Region Container](#region-container) is compressed with a Zstd level of 8
+by default (compared to the Anvil region format traditionally compressing individual chunks). The decision to compress 
+the entire region, instead of individual chunks, was made specifically to benefit the compression ratio. Higher
+levels of Zstd can reduce the filesize by small amounts, although they come with a great performance penalty. Zstd level
+8 was chosen as a default as it was the perfect compression ratio to compression speed tradeoff.
 
-The ZVCR file formats officially support Minecraft versions 1.20.4 and above.
+The ZVCR file format was never intended for use in a full Minecraft server, where actively reading and writing individual
+chunks on demand is common, and was instead created purely for long term data archival. The side effects of this 
+(in memory usage) when used in a world downloader server, or in a 
+[PlaceViewer](https://github.com/2b2tplace/PlaceViewer) server, are minimal.
 
-# Why?
-We wanted a long-term solution to keep adding new features and ideas to compress world data even more. One of those ideas
-was delta storage, but this won't be the only benefit of this file format. We are open to ideas to make this even more 
-efficient and feature-rich.
-
-## Compression
-ZVCR files are compressed with [Zstd](https://github.com/facebook/zstd). The entire file\* is compressed, with a
-Zstd level of 10 by default (compared to the Anvil region format traditionally compressing individual chunks). The decision
-to compress the entire file instead of individual chunks was made specifically to benefit the compression ratio. Higher
-levels of Zstd can still bring down the file size of ZVCR region files by a significant amount, however these will come
-with greater performance losses.
-
-The ZVCR file format was never intended for use in a full Minecraft server, which actively reads and writes chunks on
-demand, and was instead created purely for long term data archival. The side effects of this (in memory usage) when used
-in a world downloader server, or in the PlaceViewer server are minimal.
-
-Testing of region-level Zstd compression has also proven successful in the [Linear region format](https://github.com/xymb-endcrystalme/LinearRegionFileFormatTools),
+Testing of region-level Zstd compression has also proven successful in the 
+[Linear region format](https://github.com/xymb-endcrystalme/LinearRegionFileFormatTools),
 seeing similar benefits, even though that file format was created for use in running actual Minecraft servers.
 
-\*There are plans to exclude the header from compression, and only compressing the Region container. This change will be
-implemented before release 1.0.0.0 of ZVCR.
+The ZVCR-2D file format was created to only store top-down information about a region (for map rendering
+or similar use cases). Any ZVCR-3D file can be easily flattened into a ZVCR-2D file.
 
-## Endianness
+# Endianness
 Most of ZVCR is explicitly stored in little-endian. The only exception is NBT data found in tile entities, which is
 serialized in big-endian. This decision was made purely for a standard NBT implementation that can easily interoperate
 with Minecraft.
 
-## Include it in your project
+# Include it in your project
 Add the following to your CMakeLists.txt:
 ```cmake
 include(FetchContent)
@@ -62,7 +51,7 @@ target_link_libraries(my_project
 )
 ```
 
-# The ZVCR Directory Structure
+# ZVCR Directory Structure Specification
 Files in the ZVCR format can technically be stored in any arbitrary directory, and can technically have any file name. 
 When storing a large amount of ZVCR files for a Minecraft world however, following a standardized directory structure and
 having standardized positional file names is very much required. All official ZVCR-related tooling expects files to be 
@@ -125,14 +114,14 @@ Simply using the integer division operator `/` in most languages yields a result
 the expected behavior for this calculation. For example, `-1 / 32 = -0.03125` becomes `0` in integer division, truncated
 toward zero. The expected value, however, is `floorDiv(-1, 32) = floor(-1.0 / -32.0) = -1`.
 
-## File Content
-| Field               | Type                                                                                                                              | Support                               | Bound                                                     |
-|---------------------|-----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------|-----------------------------------------------------------|
-| ZVCR Magic Prefix   | `uint8 array` with length 8 (fixed-size `string` without a length prefix)                                                         |                                       | Must be "ZVRegion" for ZVCR-3D, or "ZPRegion" for ZVCR-2D |
-| ZVCR Version Number | `uint8`, see [Version Numbers](#zvcr-versions-and-version-numbers)                                                                |                                       |                                                           |
-| Dimension Type      | `uint8`, see [Dimension Type Encoding](#dimension-type-encoding)                                                                  |                                       |                                                           |
-| Protocol Version\*  | `uint16`, see [Protocol Version Numbers](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_version_numbers) | ≥ ZVCR-3D 0.1.1.0 / ≥ ZVCR-2D 0.1.1.0 |                                                           |
-| Region Container    | [Region Container](#region-container)                                                                                             |                                       |                                                           |
+# ZVCR File Format Specification
+| Field               | Type                                                                                                                              | Support                               | Bound                                                 |
+|---------------------|-----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------|-------------------------------------------------------|
+| ZVCR Magic Prefix   | `uint8 array` with length 8 (fixed-size `string` without a length prefix)                                                         |                                       | Must be "zvcr3d" for ZVCR-3D, or "zvcr2d" for ZVCR-2D |
+| ZVCR Version Number | `uint8`, see [Version Numbers](#zvcr-versions-and-version-numbers)                                                                |                                       |                                                       |
+| Dimension Type      | `uint8`, see [Dimension Type Encoding](#dimension-type-encoding)                                                                  |                                       |                                                       |
+| Protocol Version\*  | `uint16`, see [Protocol Version Numbers](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_version_numbers) | ≥ ZVCR-3D 0.1.1.0 / ≥ ZVCR-2D 0.1.1.0 |                                                       |
+| Region Container    | [Region Container](#region-container), Zstd-compressed at level 8 by default                                                      |                                       |                                                       |
 
 ### Registries
 (\*) The Protocol Version is used to determine which registries of the game are used. This importantly dictates which block
