@@ -73,7 +73,7 @@ placed in a directory that looks something like this:
 `overworld`, `nether`, and `end`. Modded dimensions are currently not supported by the ZVCR file format. A ZVCR 
 directory may not necesarily contain all vanilla dimensions.
 - Sector coordinates `sector{X|Z}` are calculated using `floor(region{X|Z} / 32)` (commonly denoted as 
-`floorDiv(region{X|Z}, 32)`, usually calculated with `region{X|Z} >> 5` (*not always, see below)).
+`floorDiv(region{X|Z}, 32)`, usually calculated with `region{X|Z} >> 5` (\*not always, see below)).
 - ZVCR Region coordinates are equivalent to 
 [Minecraft Anvil region coordinates](https://minecraft.tools/en/coordinate-calculator.php). A region located at
 `(regionX, regionZ)` contains all blocks in an area between `(regionX * 512, regionZ * 512)` and
@@ -101,7 +101,7 @@ parentDirectory
 
 \
 \
-(*) The signed bitshift operator `>>` behavior may be implementation-defined in C and C++. In particular, right-shifting
+(\*) The signed bitshift operator `>>` behavior may be implementation-defined in C and C++. In particular, right-shifting
 a negative signed integer may perform either an arithmetic shift (sign-extending) or a logical shift, depending on the 
 implementation.
 
@@ -134,7 +134,8 @@ toward zero. The expected value, however, is `floorDiv(-1, 32) = floor(-1.0 / -3
 | Protocol Version\*  | `uint16`, see [Protocol Version Numbers](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_version_numbers) | ≥ ZVCR-3D 0.1.1.0 / ≥ ZVCR-2D 0.1.1.0 |                                                           |
 | Region Container    | [Region Container](#region-container)                                                                                             |                                       |                                                           |
 
-\*The Protocol Version is used to determine which registries of the game are used. This importantly dictates which block
+### Registries
+(\*) The Protocol Version is used to determine which registries of the game are used. This importantly dictates which block
 state IDs (note: not block IDs, but specifically numeric block state IDs), biome type IDs and tile entity IDs/NBT formats
 to use. Whenever the ZVCR documentation states block state ID, biome type ID, or tile entity ID, encoded as an unsigned
 integer, that numeric ID refers to the particular entry with that ID in the registry of the given context. Registries can
@@ -157,10 +158,10 @@ read-only context.
 ZVCR versions follow an extended form of Semantic Versioning ([SemVer](https://github.com/semver/semver/blob/master/semver.md)), 
 represented as `RELEASE.MAJOR.MINOR.PATCH`. The `RELEASE` component is incremented only in rare cases involving
 fundamental changes to the format that affect the entire specification. Note that ZVCR-3D and ZVCR-2D versions are
-incremented individually as two separate specifications.
+incremented individually as they are two separate specifications.
 
-The Git tags for this sample implementation follow the versioning scheme. These versions apply to the implementation 
-itself and should not be interpreted as versions of the ZVCR file format.
+The Git tags for this sample implementation repository follow the same versioning scheme. These versions apply to the 
+implementation itself and should not be interpreted as versions of the ZVCR file format.
 
 The `RELEASE` number was increased to `1` upon finalization of the first public release of ZVCR. Versions preceding
 `1.X.X.X` were experimental and used exclusively for internal development, and they are no longer supported.
@@ -196,12 +197,12 @@ the latest ZVCR version.
 - The ZVCR file headers are no longer compressed. ZVCR Magic Prefix, ZVCR Version Number, Dimension Type and Protocol 
 Version are written directly. The Palette Table + all Segments are compressed into one Zstd buffer.
 - The ZVCR Magic Prefix in ZVCR headers was changed from ZVRegion/ZPRegion to zvcr3d/zvcr2d respectively.
-- Bits per index is now rounded up to the nearest multiple of 4. Use 4 bits if the palette has 1..=16 unique values, 
-8 bits if it has 17..=256 unique values. For palettes requiring more than 8 bits to represent, bits per index is still
+- Bits per entry is now rounded up to the nearest multiple of 4. Use 4 bits if the palette has 1..=16 unique values, 
+8 bits if it has 17..=256 unique values. For palettes requiring more than 8 bits to represent, bits per entry is still
 rounded up to 16 bits, switching to direct palette mode as before.
 - There are now 2 distinct Palette Tables for Blocks and Biomes, instead of being one combined Palette Table.
 - The default Zstd level was changed from 10 to 8. Levels above 8 are substantially lower for write operations, with
-negligible gains to compression ratio. This is especially true for the changed bits per index rounding.
+negligible gains to compression ratio. This is especially true for the changed bits per entry rounding.
 
 Changes have also been made to the ZVCR file extensions and directory structure:
 - File extensions were previously `.zvcr3` and `.zvcr2` respectively, now they have been renamed to `.zvcr3d` and `.zvcr2d`.
@@ -224,7 +225,7 @@ event when writing code that handles converting ZVCR and Minecraft Y levels.
 | Nether         | 1      | 16            | 0                           | 256                  |
 | The End        | 2      | 16            | 0                           | 256                  |
 
-\*World Block Height here refers to the actual height of the world in blocks (section count \* 16), and not the maximum 
+(\*) World Block Height here refers to the actual height of the world in blocks (section count \* 16), and not the maximum 
 block Y level in Minecraft (which is 320 = 384 + (-64) in the Overworld for instance).
 
 ### Region container
@@ -240,27 +241,108 @@ size_t segmentIndex(const uint8_t x, const uint8_t z) {
 
 | Field                  | Type                                                              |
 |------------------------|-------------------------------------------------------------------|
-| Palette Table          | [Palette Table](#palette-table)                                   |
+| Block Palette Table    | [Indirect Palette Table](#indirect-palette-table)                 |
+| Biome Palette Table    | [Indirect Palette Table](#indirect-palette-table)                 |
 | 1024 Optional Segments | `array` of [Optional Segment](#optional-segment) with length 1024 |
 
 ## Paletted storage
-Block state and biome data is compressed per snapshot by packing the data using palettes, similar to the mca file format.
+### Packing and Unpacking
+Data is packed per section snapshot using palettes, similar to the Minecraft Anvil file format. There are still some key
+differences.
 
-### Palette Table
-| Field                  | Type                                         |
-|------------------------|----------------------------------------------|
-| Palette Table Length n | `uint32`                                     |
-| n Palettes             | `array` of [Palette](#palette) with length n |
-Direct and single-value palettes are not stored in this table; See [Direct Palettes](#direct-palettes) for more info.
+Unpacked data is stored as a `uint16 array` of size `unpacked size`. Entries within an unpacked data buffer are referred
+to as "atoms" in this sample implementation, as these are used to represent various building blocks depending on the
+context (Blockstate IDs, Biome IDs, height values in ZVCR-2D Heightmap layers, ...).
 
-### Palette
+Packed data is stored as packed `uint64 array`, where each `uint64` can be divided into several entries, each referring
+either to an index within the indirect palette associated with the packed data, or a direct value, corresponding to an
+atom directly.
+
+The number of bits per entry is calculated as such:
+```cpp
+size_t bitsPerEntry(size_t paletteLength) {
+    if (paletteLength <= 16) return 4;
+    if (paletteLength <= 256) return 8;
+
+    return 16;
+}
+```
+Intuitively, more storage could be saved by choosing bits per entry = `max(1, ceil(log2(paletteLength)))` for 
+`paletteLength > 1`, and as such, packing many more values per `uint64`. Instead, ZVCR rounds up the bits per entry to
+the nearest multiple of 4, as Zstd tends to perform better on byte-aligned data, and counter-intuitively, this actually
+yields a better compression ratio (roughly a 14% reduction on real-world Minecraft terrain data). This also substantially
+simplifies the core logic for packing/unpacking in general.
+
+The number of entries per `uint64`, as well as the packed `uint64 array` length is calculated as such:
+```cpp
+size_t valuesPerLong = 64 / bitsPerEntry;
+size_t packedArrayLength = (unpackedSize + valuesPerLong - 1) / valuesPerLong;
+```
+
+### Indirect Palette
+A Palette may contain Blockstate IDs, Biome IDs, or other values depending on the context, such as height values in 
+ZVCR-2D Heightmap Layers. Palette entries are stored as `uint16`.
+
+For IDs referring to in-game content, [game registries](#registries) are used to refer to specific Blockstates, Biomes, etc.
+
 | Field            | Type                         |
 |------------------|------------------------------|
 | Palette Length n | `uint16`                     |
 | Palette Data     | `uint16 array` with length n |
 
+### Direct Palette
+If the bits per entry of a palette exceeds 8, storing the packed data + the palette results in actually wasting storage.
+To combat this, direct mode is used for any palette with bits per entry > 8.
+Direct mode uses a 1:1 mapping of `uint16_t` entries to values rather than palette indices, and avoids palette usage
+altogether. The entries are still packed in a `uint64 array`, and the bits per entry is hard coded to 16.
+
+### Packed Delta Data
+| Field              | Type                                                         |
+|--------------------|--------------------------------------------------------------|
+| Delta Length n     | `uint64`                                                     |
+| n Packed Snapshots | `array` of [Packed Snapshot](#packed-snapshot) with length n |
+
+### Packed Snapshot
+A snapshot represents a palette packed delta data snapshot with a given fixed `unpacked size` when unpacked.
+The latest snapshot (the first one read in delta data) contains all data in this snapshot. All snapshots after it are 
+represented with reverse deltas, which allows for the full recreation of older data by applying deltas on top of the
+latest snapshot.
+
+To reconstruct a snapshot before a specific timestamp, the steps are simple:
+- Start at the latest snapshot (always located at index = 0 in the list of `reverse deltas`). Store this in a temporary
+unpacked data buffer (`uint16 array`) of size `unpacked size`.
+- Iterate through `reverse deltas` until the desired timestamp has been reached or exceeded.
+- For each `reverse delta` snapshot, unpack the packed snapshot. For each atom not equal to `0xFFFF` (representing an 
+unchanged atom) in this unpacked buffer, overwrite the atom at its index in the temporary buffer with the atom found in
+this particular unpacked buffer.
+- The temporary buffer after all required iterations should be precisely equal to the snapshot before a given timestamp.
+
+See [the implementation of paletted data storage](/zvcr_lib/src/zvcr/common/data_storage.cpp)
+for a sample implementation of packing/unpacking, as well as the reverse delta algorithm.
+
+| Field           | Type                                                                                                                             |
+|-----------------|----------------------------------------------------------------------------------------------------------------------------------|
+| Timestamp       | `uint64` (Unix time, seconds)                                                                                                    |
+| Palette Type    | `uint8`, = 0 indicates a single-value palette, = 1 indicates section palette                                                     |
+| Palette Value   | `uint16`, only present if single-value palette was used                                                                          |  
+| Packed Length n | `uint64`, only present if section palette was used                                                                               |
+| Packed Data     | `uint64 array` of length n, only present if section palette was used                                                             |
+| Palette Index   | `uint32`, only present if section palette was used, index in the given palette table, `UINT32_MAX` to encode direct palette mode |
+
+### Indirect Palette Table
+A Palette Table contains an array of all unique Indirect Palettes used in this ZVCR file. Palettes with equal entries
+but different entry order are treated as two unique palettes.
+
+| Field                           | Type                                                           |
+|---------------------------------|----------------------------------------------------------------|
+| Indirect Palette Table Length n | `uint32`                                                       |
+| n Indirect Palettes             | `array` of [Indirect Palette](#indirect-palette) with length n |
+
+Direct and single-value palettes are not stored in this table.
+
 ## Segments
-Segments describe a Minecraft chunk embedded within the region (16 blocks in sidelength). By their nature, they can be absent if they were not stored in their position.
+Segments describe a Minecraft chunk embedded within the region (16 blocks or 4 biomes in sidelength). A Segment contains
+different data depending on which format it was stored in.
 
 ### Optional Segment
 | Field               | Type                                        | Note                                                                   | Support           |
@@ -272,9 +354,9 @@ Segments describe a Minecraft chunk embedded within the region (16 blocks in sid
 
 ## Segment
 ### Segment (ZVCR-3D)
-A segment in ZVCR-3D extends vertically and consists of n block and biome sections 
-(n depending on the [dimension type](#dimension-type-encoding)). The sections are ordered by the section Y level in 
-ascending order, such that section index = `0` corresponds to the lowest section Y in the given dimension 
+A Segment in ZVCR-3D extends vertically and consists of n block and biome sections
+(n depending on the [dimension type](#dimension-type-encoding)). The sections are ordered by the section Y level in
+ascending order, such that section index = `0` corresponds to the lowest section Y in the given dimension
 (e.g. section Y = -4 in overworld), and section index = `n - 1` corresponds to the highest section Y in the given
 dimension (e.g. section Y = 19 in overworld).
 
@@ -284,64 +366,13 @@ dimension (e.g. section Y = 19 in overworld).
 | n Biome Sections | [Packed Delta Data](#packed-delta-data) with `unpacked size` = 4x4x4 = 64      | ≥ ZVCR-3D 0.1.0.0 |
 
 ### Segment (ZVCR-2D)
-A segment in ZVCR-2D describes several layers of top-down block and biome data.
+A Segment in ZVCR-2D describes several layers of top-down block and biome data.
 
 | Field           | Type                                               | Support           |
 |-----------------|----------------------------------------------------|-------------------|
 | Layers Length n | `uint64`                                           |                   |
 | n Block Layers  | [Layer](#layer) with `unpacked size` = 16x16 = 256 |                   |
 | n Biome Layers  | [Layer](#layer) with `unpacked size` = 4x4 = 16    | ≥ ZVCR-2D 0.1.0.0 |
-
-### Packed Delta Data
-| Field              | Type                                                         |
-|--------------------|--------------------------------------------------------------|
-| Delta Length n     | `uint64`                                                     |
-| n Packed Snapshots | `array` of [Packed Snapshot](#packed-snapshot) with length n |
-
-### Packed Snapshot
-A snapshot represents a batch of a palette packed delta data snapshot with a given fixed `unpacked size` when unpacked.
-The latest snapshot (the first one read in delta data) contains all data in this snapshot. All snapshots after it are 
-represented with reverse deltas, which allows for the full recreation of older data by applying deltas on top of the
-latest snapshot.
-
-Unpacked data is stored as a `uint16 array`. Regular entries within an unpacked data buffer are referred to as "atoms"
-in the zvcr sample implementation, as these are used to represent various things depending on the context 
-(block state IDs, biome IDs, height values in heightmap layers, ...). Unchanged entries, when unpacked, are represented
-with `0xFFFF`. Packed data is stored as packed `uint64 array` with `unpacked size` palette entry indices, all being the
-same length; the minimum number of bits required to represent the largest index in the palette:
-```cpp
-uint64_t getBitsPerIndex(size_t paletteSize) {
-    return max(bit_width(max(paletteSize, 1UL) - 1), 1UL);
-}
-```
-
-With this in mind, to reconstruct a snapshot before a specific timestamp, the steps are simple:
-- Start at the latest snapshot (always located at index = 0 in the list of `reverse deltas`). Store this in a temporary
-unpacked data buffer (`uint16 array`) of size `unpacked size`.
-- Iterate through `reverse deltas` until the desired timestamp has been reached or exceeded.
-- For each `reverse delta` snapshot, unpack the packed snapshot. For each atom not equal to `0xFFFF` (representing an 
-unchanged atom) in this unpacked buffer, overwrite the atom at its index in the temporary buffer with the atom found in
-this particular unpacked buffer.
-- The temporary buffer after all required iterations should be precisely equal to the snapshot before a given timestamp.
-See [the implementation of paletted data storage](/zvcr_lib/src/zvcr/common/data_storage.cpp)
-for a sample implementation.
-
-#### Direct Palettes
-If the bits per index of a palette exceeds 8, storing the packed data + the palette results in actually storing more bytes.
-To combat this, direct mode is used for any palette with bits per index > 8.
-Direct mode creates a 1:1 mapping of `uint16_t` entries and avoids palette usage altogether.
-The entries are still packed in a `uint64 array` and the bits per index is hard coded to 16 in this case.
-
-Packed snapshots are formatted as such:
-
-| Field           | Type                                                                                                                             |
-|-----------------|----------------------------------------------------------------------------------------------------------------------------------|
-| Timestamp       | `uint64` (Unix time, seconds)                                                                                                    |
-| Palette Type    | `uint8`, = 0 indicates a single-value palette, = 1 indicates section palette                                                     |
-| Palette Value   | `uint16`, only present if single-value palette was used                                                                          |  
-| Packed Length n | `uint64`, only present if section palette was used                                                                               |
-| Packed Data     | `uint64 array` of length n, only present if section palette was used                                                             |
-| Palette Index   | `uint32`, only present if section palette was used, index in the given palette table, `UINT32_MAX` to encode direct palette mode |
 
 ### Layer
 A layer can describe block or biome information and as such has a fixed given `unpacked size`.
