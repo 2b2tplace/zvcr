@@ -286,7 +286,7 @@ unchanged atom) in this unpacked buffer, overwrite the atom at its index in the 
 this particular unpacked buffer.
 - The temporary buffer after all required iterations should be precisely equal to the snapshot before a given timestamp.
 
-See [the implementation of paletted data storage](/zvcr_lib/src/zvcr/common/data_storage.cpp)
+See [the implementation of paletted data storage](/zvcr_lib/src/zvcr/region/paletted_delta_data.hpp)
 for a sample implementation of packing/unpacking, as well as the reverse delta algorithm.
 
 | Field           | Type                                                                                                                             |
@@ -449,7 +449,7 @@ for (const auto &[pos, tileEntity] : tileEntities) {
 
 In ZVCR, NBT tags are always sorted alphabetically by their keys when found in NBT tag compounds. This alphabetical 
 sorting should occur before serializing NBT to a byte buffer, when passed into a 
-[zvcr::TileEntity](zvcr_lib/src/zvcr/region/segment/tile_entities.hpp) structure. Sorting NBT keys this way is currently 
+[zvcr::TileEntity](zvcr_lib/src/zvcr/region/tile_entities.hpp) structure. Sorting NBT keys this way is currently 
 a requirement, as this ZVCR implementation does not include NBT (de)serialization, and adding NBT comparisons that ignore
 key order would be more expensive, compared to directly checking NBT byte buffers for equality. Disregarding this 
 requirement will result in tile entity deltas being wrongly created, due to serialized NBT byte buffers being different,
