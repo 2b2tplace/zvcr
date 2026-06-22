@@ -1,8 +1,8 @@
 #pragma once
 
-#include <zvcr/common/data_storage.hpp>
-#include <zvcr/region/file_location.hpp>
-#include <zvcr/common/generic_region.hpp>
-#include <zvcr/region/dim2/zvcr2.hpp>
-#include <zvcr/region/dim3/zvcr3.hpp>
-#include <zvcr/serialize/serialization.hpp>
+#include <zvcr/region/paletted_delta_data.hpp>
+#include <zvcr/region/version.hpp>
+#include <zvcr/io/serialize/serialize.hpp>
+#include <zvcr/io/serialize/deserialize.hpp>
+#include <zvcr/io/file_type.hpp>
+#include <zvcr/io/file_location.hpp>
