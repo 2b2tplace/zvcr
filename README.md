@@ -1,6 +1,5 @@
 # Zstd-compressed Version Controlled Region (ZVCR)
-A C++ library for handling the ZVCR-2D and ZVCR-3D file formats, enabling a more feature-rich and efficient storage of 
-3D world data and 2D top-down map data.
+A C++ library for handling the ZVCR-3D file format, enabling a more feature-rich and efficient storage of Minecraft worlds.
 
 The intended use case of ZVCR is limited to Minecraft Java Edition world data archival, rather than replacing the
 Minecraft Anvil format (mca) in general. The ZVCR file formats officially support Minecraft versions 1.20.4 and above.
@@ -25,9 +24,6 @@ chunks on demand is common, and was instead created purely for long term data ar
 Testing of region-level Zstd compression has also proven successful in the 
 [Linear region format](https://github.com/xymb-endcrystalme/LinearRegionFileFormatTools),
 seeing similar benefits, even though that file format was created for use in running actual Minecraft servers.
-
-The ZVCR-2D file format was created to only store top-down information about a region (for map rendering
-or similar use cases). Any ZVCR-3D file can be easily flattened into a ZVCR-2D file.
 
 # Endianness
 Most of ZVCR is explicitly stored in little-endian. The only exception is NBT data found in tile entities, which is
@@ -57,7 +53,7 @@ When storing a large amount of ZVCR files for a Minecraft world however, followi
 having standardized positional file names is very much required. All official ZVCR-related tooling expects files to be 
 placed in a directory that looks something like this:
 
-- Each ZVCR region file is located in `parentDirectory/{dimension}/{sectorX}/{sectorZ}/r.{regionX}.{regionZ}.zvcr{3|2}d`.
+- Each ZVCR region file is located in `parentDirectory/{dimension}/{sectorX}/{sectorZ}/r.{regionX}.{regionZ}.zvcr3d`.
 - There are three standard dimension directory names corresponding to the dimensions found in vanilla Minecraft: 
 `overworld`, `nether`, and `end`. Modded dimensions are currently not supported by the ZVCR file format. A ZVCR 
 directory may not necesarily contain all vanilla dimensions.
@@ -68,8 +64,6 @@ directory may not necesarily contain all vanilla dimensions.
 `(regionX, regionZ)` contains all blocks in an area between `(regionX * 512, regionZ * 512)` and
 `((regionX + 1) * 512 - 1, (regionZ + 1) * 512 - 1)`, corresponding to absolute block coordinates X and Z in the given
 dimension.
-- By default, official ZVCR tooling uses two separate parent directories to store ZVCR-3D and ZVCR-2D files individually. 
-A single ZVCR directory may contain both sets of ZVCR-3D and ZVCR-2D files if necessary, although not recommended.
 
 For example, ZVCR-3D regions `0.0`, `0.-1`, `-1.0`, `-1.-1` in the overworld dimension, corresponding to a square area 
 defined by the corner block coordinates `(-512, -512)` and `(511, 511)`:
@@ -117,22 +111,20 @@ toward zero. The expected value, however, is `floorDiv(-1, 32) = floor(-1.0 / -3
 # ZVCR File Format Specification
 | Field                 | Type                                                                                                                              |
 |-----------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| ZVCR Magic Prefix     | `uint8 array` with length 8 (fixed-size `string` without a length prefix)                                                         |
+| ZVCR Magic Prefix     | fixed-size `string` without a length prefix; Always be equal to `zvcr3d`.                                                         |
 | ZVCR Version Number   | `uint8`, see [Version Numbers](#zvcr-versions-and-version-numbers)                                                                |
 | Dimension Type        | `uint8`, see [Dimension Type Encoding](#dimension-type-encoding)                                                                  |
 | Protocol Version (\*) | `uint16`, see [Protocol Version Numbers](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_version_numbers) |
 | Region Container      | [Region Container](#region-container), Zstd-compressed at level 8 by default                                                      |
 
-The ZVCR Magic Prefix is "zvcr3d" for ZVCR-3D, or "zvcr2d" for ZVCR-2D.
-
 ### Registries
 (\*) The Protocol Version is used to determine which registries of the game are used. This importantly dictates which block
-state IDs (note: not block IDs, but specifically numeric block state IDs), biome type IDs and tile entity IDs/NBT formats
-to use. Whenever the ZVCR documentation states block state ID, biome type ID, or tile entity ID, encoded as an unsigned
+state IDs (note: not Block IDs, but specifically numeric Blockstate IDs), Biome IDs and tile entity IDs/NBT formats
+to use. Whenever the ZVCR documentation states Blockstate ID, Biome ID, or tile entity ID, encoded as an unsigned
 integer, that numeric ID refers to the particular entry with that ID in the registry of the given context. Registries can
 be generated using [data generators](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Data_Generators),
 extracting information from Minecraft server/client JAR files. These numeric IDs usually are not found explicitly within
-Minecraft source code, and are rather implied from the order the entries were defined in. Furthermore, biome type IDs
+Minecraft source code, and are rather implied from the order the entries were defined in. Furthermore, Biome IDs
 only refer to default biomes as provided on a vanilla Java Edition Minecraft server. Any additional content added via
 data packs or mods is currently unsupported by zvcr. 
 
@@ -148,8 +140,7 @@ read-only context.
 ## ZVCR Versions and Version Numbers
 ZVCR versions follow an extended form of Semantic Versioning ([SemVer](https://github.com/semver/semver/blob/master/semver.md)), 
 represented as `RELEASE.MAJOR.MINOR.PATCH`. The `RELEASE` component is incremented only in rare cases involving
-fundamental changes to the format that affect the entire specification. Note that ZVCR-3D and ZVCR-2D versions are
-incremented individually as they are two separate specifications.
+fundamental changes to the format that affect the entire specification.
 
 The Git tags for this sample implementation repository follow the same versioning scheme. These versions apply to the 
 implementation itself and should not be interpreted as versions of the ZVCR file format.
@@ -160,7 +151,7 @@ The `RELEASE` number was increased to `1` upon finalization of the first public 
 Support for older versions is limited to be read-only. Any files written using this implementation will always use 
 the latest ZVCR version.
 
-### Version Number Encoding (ZVCR-3D)
+### Version Number Encoding
 | Version number | Version | Changes                                         | Supported |
 |----------------|---------|-------------------------------------------------|-----------|
 | 7              | 1.0.0.0 | See [Release 1 Changelog](#release-1-changelog) | Yes       |
@@ -172,31 +163,20 @@ the latest ZVCR version.
 | 1              | 0.0.0.1 |                                                 | No        |
 | 0              | 0.0.0.0 |                                                 | No        |
 
-### Version Number Encoding (ZVCR-2D)
-| Version number | Version | Changes                                         | Supported |
-|----------------|---------|-------------------------------------------------|-----------|
-| 7              | 1.0.0.0 | See [Release 1 Changelog](#release-1-changelog) | Yes       |
-| 6              | 0.1.4.0 |                                                 | No        |
-| 5              | 0.1.3.0 |                                                 | No        |
-| 4              | 0.1.2.0 |                                                 | No        |
-| 3              | 0.1.1.1 |                                                 | No        |
-| 2              | 0.1.1.0 |                                                 | No        |
-| 1              | 0.1.0.0 |                                                 | No        |
-| 0              | 0.0.0.0 |                                                 | No        |
-
 ### Release 1 Changelog
-- The ZVCR file headers are no longer compressed. ZVCR Magic Prefix, ZVCR Version Number, Dimension Type and Protocol 
+- The ZVCR file header is no longer compressed. ZVCR Magic Prefix, ZVCR Version Number, Dimension Type and Protocol 
 Version are written directly. The Palette Table + all Segments are compressed into one Zstd buffer.
-- The ZVCR Magic Prefix in ZVCR headers was changed from ZVRegion/ZPRegion to zvcr3d/zvcr2d respectively.
+- The ZVCR Magic Prefix in the ZVCR header was changed from ZVRegion to zvcr3d.
 - Bits per entry is now rounded up to the nearest multiple of 4. Use 4 bits if the palette has 1..=16 unique values, 
 8 bits if it has 17..=256 unique values. For palettes requiring more than 8 bits to represent, bits per entry is still
 rounded up to 16 bits, switching to direct palette mode as before.
 - There are now 2 distinct Palette Tables for Blocks and Biomes, instead of being one combined Palette Table.
 - The default Zstd level was changed from 10 to 8. Levels above 8 are substantially lower for write operations, with
 negligible gains to compression ratio. This is especially true for the changed bits per entry rounding.
+- All ZVCR-2D file format support has been dropped.
 
 Changes have also been made to the ZVCR file extensions and directory structure:
-- File extensions were previously `.zvcr3` and `.zvcr2` respectively, now they have been renamed to `.zvcr3d` and `.zvcr2d`.
+- The File extension was previously `.zvcr3`, now it has been renamed to `.zvcr3d`.
 - The old directory structure code used integer division by 32 to calculate sector coordinates (`regionCoordinate / 32`).
 This has been updated to the intended logic of using `floorDiv32(regionCoordinate)` instead.
 
@@ -206,7 +186,7 @@ hard-coded for each of the vanilla Minecraft dimension types, but support for mo
 
 ### Unsigned Y Levels
 Importantly, Y levels defined all throughout ZVCR are unsigned, with Y = 0 always being the bottom of the world. 
-Converting Y levels between the base game and ZVCR is trivial (ZVCR_y + min_y = minecraft_y). This was an intentional
+Converting Y levels between the base game and ZVCR is trivial (zvcr_y + min_y = minecraft_y). This was an intentional
 design choice to make handling ZVCR files alone a little easier. The potential for confusion only appears in the
 event when writing code that handles converting ZVCR and Minecraft Y levels.
 
@@ -243,7 +223,7 @@ differences.
 
 Unpacked data is stored as a `uint16 array` of size `unpacked size`. Entries within an unpacked data buffer are referred
 to as "atoms" in this sample implementation, as these are used to represent various building blocks depending on the
-context (Blockstate IDs, Biome IDs, height values in ZVCR-2D Heightmap layers, ...).
+context (Blockstate IDs or Biome IDs).
 
 Packed data is stored as packed `uint64 array`, where each `uint64` can be divided into several entries, each referring
 either to an index within the indirect palette associated with the packed data, or a direct value, corresponding to an
@@ -271,10 +251,8 @@ size_t packedArrayLength = (unpackedSize + valuesPerLong - 1) / valuesPerLong;
 ```
 
 ### Indirect Palette
-A Palette may contain Blockstate IDs, Biome IDs, or other values depending on the context, such as height values in 
-ZVCR-2D Heightmap Layers. Palette entries are stored as `uint16`.
-
-For IDs referring to in-game content, [game registries](#registries) are used to refer to specific Blockstates, Biomes, etc.
+A Palette may contain Blockstate IDs or Biome IDs depending on the context. Palette entries are stored as `uint16`.
+For IDs referring to in-game content, [game registries](#registries) are used to refer to specific Blockstates or Biomes.
 
 | Field            | Type                         |
 |------------------|------------------------------|
@@ -336,14 +314,13 @@ Segments describe a Minecraft chunk embedded within the region (16 blocks or 4 b
 different data depending on which format it was stored in.
 
 ## Optional Segment
-| Field               | Type                                        | Note                                                                        |
-|---------------------|---------------------------------------------|-----------------------------------------------------------------------------|
-| Segment Indicator   | `uint8`                                     | Boolean, zero indicating the absence of this segment                        |
-| Segment             | [Segment](#segment)                         | Only present if the segment indicator was nonzero                           |
+| Field               | Type                | Note                                                 |
+|---------------------|---------------------|------------------------------------------------------|
+| Segment Indicator   | `uint8`             | Boolean, zero indicating the absence of this segment |
+| Segment             | [Segment](#segment) | Only present if the segment indicator was nonzero    |
 
 ## Segment
-### Segment (ZVCR-3D)
-A Segment in ZVCR-3D extends vertically and consists of n block and biome sections
+A Segment extends vertically and consists of n block and biome sections
 (n depending on the [dimension type](#dimension-type-encoding)). The sections are ordered by the section Y level in
 ascending order, such that section index = `0` corresponds to the lowest section Y in the given dimension
 (e.g. section Y = -4 in overworld), and section index = `n - 1` corresponds to the highest section Y in the given
@@ -356,19 +333,9 @@ dimension (e.g. section Y = 19 in overworld).
 | Segment Info        | [Segment Info](#segment-info)                                                  |
 | Tile Entity History | [Tile Entity History](#tile-entity-history)                                    |
 
-### Segment (ZVCR-2D)
-A Segment in ZVCR-2D describes several layers of top-down block and biome data.
-
-| Field           | Type                                               |
-|-----------------|----------------------------------------------------|
-| Layers Length n | `uint64`                                           |
-| n Block Layers  | [Layer](#layer) with `unpacked size` = 16x16 = 256 |
-| n Biome Layers  | [Layer](#layer) with `unpacked size` = 4x4 = 16    |
-| Segment Info    | [Segment Info](#segment-info)                      |
-
 ### Segment Info
-Additional segment info is stored across both ZVCR-2D and ZVCR-3D for miscellaneous applications. This currently includes
-seeing whether chunks on a Minecraft server have been newly generated or if they were loaded from disk.
+Additional segment info is stored for miscellaneous applications. This currently includes seeing whether chunks on a 
+Minecraft server have been newly generated or if they were loaded from disk.
 
 | Field                         | Type                                                     |
 |-------------------------------|----------------------------------------------------------|
@@ -402,13 +369,13 @@ seeing whether chunks on a Minecraft server have been newly generated or if they
 | n Tile Entities           | `array` of [Tile Entity](#tile-entity) length n |
 
 ### Tile Entity
-| Field             | Type                      | Note                                            |
-|-------------------|---------------------------|-------------------------------------------------|
-| Packed Position   | `uint32`                  | Calculated as below (\*)                        |
-| Operation         | `uint8`                   | 1 indicating "put", 0 indicating "erase" (\*\*) |
-| Tile Entity Type  | `uint32`                  | Only present if Operation was nonzero           |
-| NBT Data Length n | `uint64`                  | Only present if Operation was nonzero           |
-| NBT Data Buffer   | `uint8 array` of length n | Only present if Operation was nonzero. (\*\*\*) |
+| Field               | Type                      | Note                                              |
+|---------------------|---------------------------|---------------------------------------------------|
+| Packed Position     | `uint32`                  | Calculated as below (\*)                          |
+| Operation           | `uint8`                   | 1 indicating "put", 0 indicating "erase" (\*\*)   |
+| Tile Entity Type ID | `uint32`                  | Only present if Operation was nonzero (\*\*\*)    |
+| NBT Data Length n   | `uint64`                  | Only present if Operation was nonzero             |
+| NBT Data Buffer     | `uint8 array` of length n | Only present if Operation was nonzero. (\*\*\*\*) |
 
 (\*) The packed position consists out of the local x/z coordinates (both internally stored as `uint8`) of the tile 
 entity block within the chunk, and the y coordinate (internally as `uint16`) ranging from 0 to full world block height.
@@ -444,7 +411,10 @@ naming convention here may be subject to change, as it requires thinking in reve
 
 More Operations are planned, where individual NBT tags could be modified, to save on storage.
 
-(\*\*\*) NBT data is stored as a raw byte buffer following the
+(\*\*\*) The Tile Entity Type ID refers to the specific tile entity in the selected protocol version, and can be found
+in the [game registries](#registries).
+
+(\*\*\*\*) NBT data is stored as a raw byte buffer following the
 [NBT specification, as seen on the Minecraft wiki](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/NBT#Specification).
 Specifically, the NBT dialect from the Java Edition of Minecraft (1.20.4+) is used, where data is stored in big endian.
 An important distinction here is the use of [modified UTF-8](https://docs.oracle.com/javase/8/docs/api/java/io/DataInput.html#modified-utf-8)
@@ -488,22 +458,3 @@ filesize. This is a temporary fix in the current implementation of ZVCR, and wil
 library and doing proper NBT compound comparisons. 
 
 The NBT data buffer also remains uncompressed (may change in the future, signaling this by using a different Operation number).
-
-### Layer
-A Layer can describe top-down Block, Biome, as well as Heightmap information.
-
-| Field             | Type                                                               |
-|-------------------|--------------------------------------------------------------------|
-| Layer Type ID     | `uint8` (See [Layer Type ID Encoding](#layer-type-id-encoding))    |
-| Packed Delta Data | [Packed Delta Data](#packed-delta-data) with given `unpacked size` |
-
-### Layer Type ID Encoding
-| Layer type name   | ID      | Note                                                                                                 |
-|-------------------|---------|------------------------------------------------------------------------------------------------------|
-| Normal            | 0       | Top down view of blocks or biomes                                                                    |
-| Terrain           | 1       | Top down view of blocks, excluding obsidian (commonly used for sky art on anarchy Minecraft servers) |
-| Heightmap         | 2       | Y levels of each block within the Normal layer                                                       |
-| Terrain Heightmap | 3       | Y levels of each block within the Terrain layer                                                      |
-| Drained           | 4       | Top down view of blocks, excluding liquids                                                           |
-| Drained Heightmap | 5       | Y levels of each block within the Drained layer                                                      |
-| Custom            | 6...255 | Custom layer ids used should start at high numbers, as new reserved layers are incrementally added   |
