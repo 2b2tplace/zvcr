@@ -266,22 +266,33 @@ The latest snapshot (the first one read in delta data) contains all data in this
 represented with reverse deltas, which allows for the full recreation of older data by applying deltas on top of the
 latest snapshot.
 
-Unpacked data is stored as a `uint16 array`. Unchanged entries, when unpacked, are represented with `0xFFFF`.
-Packed data is stored as packed `uint64 array` with `unpacked size` palette entry indices, all being the same length; 
-the minimum number of bits required to represent the largest index in the palette:
+Unpacked data is stored as a `uint16 array`. Regular entries within an unpacked data buffer are referred to as "atoms"
+in the zvcr sample implementation, as these are used to represent various things depending on the context 
+(block state IDs, biome IDs, height values in heightmap layers, ...). Unchanged entries, when unpacked, are represented
+with `0xFFFF`. Packed data is stored as packed `uint64 array` with `unpacked size` palette entry indices, all being the
+same length; the minimum number of bits required to represent the largest index in the palette:
 ```cpp
 uint64_t getBitsPerIndex(size_t paletteSize) {
     return max(bit_width(max(paletteSize, 1UL) - 1), 1UL);
 }
 ```
 
+With this in mind, to reconstruct a snapshot before a specific timestamp, the steps are simple:
+- Start at the latest snapshot (always located at index = 0 in the list of `reverse deltas`). Store this in a temporary
+unpacked data buffer (`uint16 array`) of size `unpacked size`.
+- Iterate through `reverse deltas` until the desired timestamp has been reached or exceeded.
+- For each `reverse delta` snapshot, unpack the packed snapshot. For each atom not equal to `0xFFFF` (representing an 
+unchanged atom) in this unpacked buffer, overwrite the atom at its index in the temporary buffer with the atom found in
+this particular unpacked buffer.
+- The temporary buffer after all required iterations should be precisely equal to the snapshot before a given timestamp.
+See [the implementation of paletted data storage](/zvcr_lib/src/zvcr/common/data_storage.cpp)
+for a sample implementation.
+
 #### Direct Palettes
 If the bits per index of a palette exceeds 8, storing the packed data + the palette results in actually storing more bytes.
 To combat this, direct mode is used for any palette with bits per index > 8.
 Direct mode creates a 1:1 mapping of `uint16_t` entries and avoids palette usage altogether.
 The entries are still packed in a `uint64 array` and the bits per index is hard coded to 16 in this case.
-
-See [the implementation of paletted data storage](/zvcr_lib/src/zvcr/common/data_storage.cpp) for more details.
 
 Packed snapshots are formatted as such:
 
