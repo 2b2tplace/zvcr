@@ -171,7 +171,7 @@ Version are written directly. The Palette Table + all Segments are compressed in
 8 bits if it has 17..=256 unique values. For palettes requiring more than 8 bits to represent, bits per entry is still
 rounded up to 16 bits, switching to direct palette mode as before.
 - There are now 2 distinct Palette Tables for Blocks and Biomes, instead of being one combined Palette Table.
-- The default Zstd level was changed from 10 to 8. Levels above 8 are substantially lower for write operations, with
+- The default Zstd level was changed from 10 to 8. Levels above 8 are substantially slower for write operations, with
 negligible gains to compression ratio. This is especially true for the changed bits per entry rounding.
 - All ZVCR-2D file format support has been dropped.
 
