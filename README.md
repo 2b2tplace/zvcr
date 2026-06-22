@@ -41,8 +41,62 @@ target_link_libraries(my_project
 )
 ```
 
-# The zvcr File Structure
-TODO: Explain the zvcr directory structure when dealing with a world save (collection of region files).
+# The zvcr Directory Structure
+Files in the zvcr format can technically be stored in any arbitrary directory, and can technically have any file name. 
+When storing a large amount of zvcr files for a Minecraft world however, following a standardized directory structure and
+having standardized positional file names is very much required. All official zvcr-related tooling expects files to be 
+placed in a directory that looks something like this:
+
+- Each zvcr region file is located in `parentDirectory/{dimension}/{sectorX}/{sectorZ}/r.{regionX}.{regionZ}.zvcr{3 or 2}d`.
+- There are three standard dimension directory names corresponding to the dimensions found in vanilla Minecraft: 
+`overworld`, `nether`, and `end`. Modded dimensions are currently not supported by the zvcr file format. A zvcr 
+directory may not necesarily contain all vanilla dimensions.
+- Sector coordinates `sector{X|Z}` are calculated using `floor(region{X|Z} / 32)` (commonly denoted as 
+`floorDiv(region{X|Z}, 32)`, usually calculated with `region{X|Z} >> 5` (*not always, see below)).
+- Region coordinates are equivalent to 
+[Minecraft Anvil region coordinates](https://minecraft.tools/en/coordinate-calculator.php). A region located at
+`(regionX, regionZ)` contains all blocks in an area between `(regionX * 512, regionZ * 512)` and
+`((regionX + 1) * 512 - 1, (regionZ + 1) * 512 - 1)`, corresponding to absolute block coordinates X and Z in the given
+dimension.
+- By default, official zvcr tooling uses two separate parent directories to store zvcr3d and zvcr2d files individually. 
+A single zvcr directory may contain both sets of zvcr3d and zvcr2d files if necessary, although not recommended.
+
+For example, zvcr3d regions `0.0`, `0.-1`, `-1.0`, `-1.-1` in the overworld dimension, corresponding to a square area 
+defined by the corner block coordinates `(-512, -512)` and `(511, 511)`:
+```
+parentDirectory
+└── overworld
+    ├── 0
+    │   ├── 0
+    │   │   └── r.0.0.zvcr3d
+    │   └── -1
+    │       └── r.0.-1.zvcr3d
+    └── -1
+        ├── 0
+        │   └── r.-1.0.zvcr3d
+        └── -1
+            └── r.-1.-1.zvcr3d
+```
+
+\
+\
+(*) The bitshift operator `>>` at a lower level may be platform-dependent. When portability is an important 
+consideration, the expected result for zvcr sectors should be equivalent to 
+`floorDiv(regionCoordinate, 32)`, or `floorDiv32(regionCoordinate)` defined as the following:
+```cpp
+int32_t floorDiv32(const int32_t regionCoordinate) {
+    if (regionCoordinate >= 0) {
+        return regionCoordinate / 32;
+    } else {
+        return (regionCoordinate - 31) / 32;
+    }
+}
+```
+As such, each sector contains a maximum of 32 * 32 = 1024 regions. It is very important to use `floorDiv32`, 
+5-right-bitshift or an equivalent mathematical expression to properly divide negative region coordinates into sectors. 
+Using the integer division operator `/` in most languages yields a result rounded up to the nearest integer, which is 
+not the expected behavior for this calculation. For example, `-1 / 32 = -0.03125` becomes `0` in integer division. The
+expected value, however, is `floorDiv(-1, 32) = floor(-1.0 / -32.0) = -1`.
 
 ## Compression
 Files as shown below are compressed with [Zstd](https://github.com/facebook/zstd). The entire file\* is compressed, with a
