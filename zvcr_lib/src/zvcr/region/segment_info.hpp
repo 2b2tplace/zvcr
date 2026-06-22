@@ -15,6 +15,8 @@ namespace zvcr {
     struct SegmentState {
         SegmentStateType type;
         time_t timestamp;
+
+        auto operator==(const SegmentState &other) const -> bool ;
     };
 
     using SegmentStates = std::vector<SegmentState>;
@@ -23,23 +25,26 @@ namespace zvcr {
     public:
         SegmentStates segmentStates{};
 
-        explicit SegmentInfo(const SegmentState& initialState);
+        explicit SegmentInfo(const SegmentState &initialState);
 
-        explicit SegmentInfo(const SegmentStates& chunkStates);
+        explicit SegmentInfo(const SegmentStates &segmentStates);
 
         SegmentInfo() = default;
 
         [[nodiscard]]
-        auto latestState() const -> result::OptionCRef<SegmentState>;
+        auto latestSnapshot() const -> result::OptionCRef<SegmentState>;
 
         [[nodiscard]]
         auto delta(size_t deltaIndex) const -> result::OptionCRef<SegmentState>;
 
         [[nodiscard]]
-        auto stateFrom(time_t timestamp) const -> result::Option<SegmentState>;
+        auto snapshotBefore(time_t timestamp) const -> result::Option<SegmentState>;
 
         [[nodiscard]]
-        auto updateState(const SegmentState& newState) -> bool;
+        auto snapshotFrom(time_t timestamp) const -> result::Option<SegmentState>;
+
+        [[nodiscard]]
+        auto insertSnapshot(const SegmentState &newState) -> bool;
     };
 
 }

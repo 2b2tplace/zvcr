@@ -1,8 +1,6 @@
-#include <zvcr/common/data_storage.hpp>
-
+#include <zvcr/region/paletted_delta_data.hpp>
 #include <cassert>
 #include <tuple>
-#include <absl/container/flat_hash_map.h>
 
 namespace zvcr {
 
@@ -43,7 +41,7 @@ namespace zvcr {
         assert(value <= mask);
 
         const size_t cellIdx = cellIndex(index);
-        uint64_t& cell = data[cellIdx];
+        uint64_t &cell = data[cellIdx];
         const size_t bitIndex = (index - cellIdx * valuesPerLong) * bits;
         cell = cell & ~(mask << bitIndex) | (value & mask) << bitIndex;
     }
