@@ -235,7 +235,10 @@ Segments describe a Minecraft chunk embedded within the region (16 blocks in sid
 ## Segment
 ### Segment (ZVCR-3D)
 A segment in ZVCR-3D extends vertically and consists of n block and biome sections 
-(n depending on the [dimension type](#dimension-type-encoding)).
+(n depending on the [dimension type](#dimension-type-encoding)). The sections are ordered by the section Y level in 
+ascending order, such that section index = `0` corresponds to the lowest section Y in the given dimension 
+(e.g. section Y = -4 in overworld), and section index = `n - 1` corresponds to the highest section Y in the given
+dimension (e.g. section Y = 19 in overworld).
 
 | Field            | Type                                                                             | Support           |
 |------------------|----------------------------------------------------------------------------------|-------------------|
