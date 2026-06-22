@@ -335,13 +335,11 @@ Direct and single-value palettes are not stored in this table.
 Segments describe a Minecraft chunk embedded within the region (16 blocks or 4 biomes in sidelength). A Segment contains
 different data depending on which format it was stored in.
 
-### Optional Segment
+## Optional Segment
 | Field               | Type                                        | Note                                                                        |
 |---------------------|---------------------------------------------|-----------------------------------------------------------------------------|
 | Segment Indicator   | `uint8`                                     | Boolean, zero indicating the absence of this segment                        |
 | Segment             | [Segment](#segment)                         | Only present if the segment indicator was nonzero                           |
-| Segment Info        | [Segment Info](#segment-info)               | Only present if the segment indicator was nonzero                           |
-| Tile Entity History | [Tile Entity History](#tile-entity-history) | Only present if the segment indicator was nonzero. Only present in ZVCR-3D. |
 
 ## Segment
 ### Segment (ZVCR-3D)
@@ -351,10 +349,12 @@ ascending order, such that section index = `0` corresponds to the lowest section
 (e.g. section Y = -4 in overworld), and section index = `n - 1` corresponds to the highest section Y in the given
 dimension (e.g. section Y = 19 in overworld).
 
-| Field            | Type                                                                           |
-|------------------|--------------------------------------------------------------------------------|
-| n Block Sections | [Packed Delta Data](#packed-delta-data) with `unpacked size` = 16x16x16 = 4096 |
-| n Biome Sections | [Packed Delta Data](#packed-delta-data) with `unpacked size` = 4x4x4 = 64      |
+| Field               | Type                                                                           |
+|---------------------|--------------------------------------------------------------------------------|
+| n Block Sections    | [Packed Delta Data](#packed-delta-data) with `unpacked size` = 16x16x16 = 4096 |
+| n Biome Sections    | [Packed Delta Data](#packed-delta-data) with `unpacked size` = 4x4x4 = 64      |
+| Segment Info        | [Segment Info](#segment-info)                                                  |
+| Tile Entity History | [Tile Entity History](#tile-entity-history)                                    |
 
 ### Segment (ZVCR-2D)
 A Segment in ZVCR-2D describes several layers of top-down block and biome data.
@@ -364,6 +364,7 @@ A Segment in ZVCR-2D describes several layers of top-down block and biome data.
 | Layers Length n | `uint64`                                           |
 | n Block Layers  | [Layer](#layer) with `unpacked size` = 16x16 = 256 |
 | n Biome Layers  | [Layer](#layer) with `unpacked size` = 4x4 = 16    |
+| Segment Info    | [Segment Info](#segment-info)                      |
 
 ### Segment Info
 Additional segment info is stored across both ZVCR-2D and ZVCR-3D for miscellaneous applications. This currently includes
