@@ -65,7 +65,7 @@ directory may not necesarily contain all vanilla dimensions.
 `((regionX + 1) * 512 - 1, (regionZ + 1) * 512 - 1)`, corresponding to absolute block coordinates X and Z in the given
 dimension.
 
-For example, ZVCR-3D regions `0.0`, `0.-1`, `-1.0`, `-1.-1` in the overworld dimension, corresponding to a square area 
+For example, ZVCR regions `0.0`, `0.-1`, `-1.0`, `-1.-1` in the overworld dimension, corresponding to a square area 
 defined by the corner block coordinates `(-512, -512)` and `(511, 511)`:
 ```
 parentDirectory
