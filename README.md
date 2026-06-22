@@ -234,7 +234,8 @@ Segments describe a Minecraft chunk embedded within the region (16 blocks in sid
 
 ## Segment
 ### Segment (ZVCR-3D)
-A segment in ZVCR-3D extends vertically and consists of n block and biome sections (n depending on the dimension type).
+A segment in ZVCR-3D extends vertically and consists of n block and biome sections 
+(n depending on the [dimension type](#dimension-type-encoding)).
 
 | Field            | Type                                                                             | Support           |
 |------------------|----------------------------------------------------------------------------------|-------------------|
