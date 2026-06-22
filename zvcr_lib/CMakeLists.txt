@@ -19,6 +19,13 @@ FetchContent_Declare(zstd
         SOURCE_SUBDIR build/cmake
 )
 FetchContent_MakeAvailable(zstd)
+FetchContent_Declare(fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt
+        GIT_TAG 12.1.0
+        GIT_PROGRESS TRUE
+        GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(fmt)
 FetchContent_Declare(result
         GIT_REPOSITORY git@github.com:2b2tplace/result-cpp.git
         GIT_TAG        main
@@ -34,6 +41,7 @@ target_link_libraries(zvcr_lib
         PUBLIC absl::flat_hash_map
         PUBLIC result_cpp
         PUBLIC libzstd_static
+        PUBLIC fmt
 )
 target_include_directories(zvcr_lib
         PUBLIC ${zstd_SOURCE_DIR}/lib
