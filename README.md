@@ -232,7 +232,7 @@ A ZVCR region consists out of 32 * 32 = 1024 Segments, or "Chunks" in common ter
 regions. For a given segment with local coordinates `segment{X|Z}` in the range of `0..32`, the index of this segment in
 the segment array can be calculated using the following:
 ```cpp
-size_t unpackedIndex(const uint8_t x, const uint8_t z) {
+size_t segmentIndex(const uint8_t x, const uint8_t z) {
     assert(x < 32 && z < 32);
     return static_cast<size_t>(x) * 32 + static_cast<size_t>(z);
 }
