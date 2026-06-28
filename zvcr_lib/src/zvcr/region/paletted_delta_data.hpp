@@ -71,9 +71,9 @@ namespace zvcr {
 
         [[nodiscard]]
         auto unpackedIndex(const uint8_t x, const uint8_t y, const uint8_t z) const -> size_t {
-            assert(x < sidelength && "X coordinate out of bounds");
-            assert(y < sidelength && "Y coordinate out of bounds");
-            assert(z < sidelength && "Z coordinate out of bounds");
+            assert(x < sidelength_ && "X coordinate out of bounds");
+            assert(y < sidelength_ && "Y coordinate out of bounds");
+            assert(z < sidelength_ && "Z coordinate out of bounds");
 
             return static_cast<size_t>(y) * sidelength_ * sidelength_
                  + static_cast<size_t>(z) * sidelength_
