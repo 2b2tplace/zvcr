@@ -36,7 +36,7 @@ Add the following to your CMakeLists.txt:
 include(FetchContent)
 
 FetchContent_Declare(zvcr
-        GIT_REPOSITORY git@github.com:2b2tplace/zvcr.git
+        GIT_REPOSITORY https://github.com/2b2tplace/zvcr.git
         GIT_TAG main
         GIT_PROGRESS TRUE
         GIT_SHALLOW TRUE
