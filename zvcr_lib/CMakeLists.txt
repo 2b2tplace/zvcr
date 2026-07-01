@@ -27,7 +27,7 @@ FetchContent_Declare(fmt
 )
 FetchContent_MakeAvailable(fmt)
 FetchContent_Declare(result
-        GIT_REPOSITORY git@github.com:2b2tplace/result-cpp.git
+        GIT_REPOSITORY https://github.com/2b2tplace/result-cpp.git
         GIT_TAG        main
         GIT_PROGRESS TRUE
         GIT_SHALLOW TRUE
