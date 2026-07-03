@@ -19,20 +19,20 @@ namespace zvcr {
 
     public:
         int compressionLevel{ZSTD_COMPRESSION_LEVEL_DEFAULT};
-        uint compressionThreads{ZSTD_COMPRESSION_THREADS_DEFAULT};
+        unsigned int compressionThreads{ZSTD_COMPRESSION_THREADS_DEFAULT};
         Context ctx{};
         std::vector<uint8_t> data;
 
         explicit WriteHandle(const Context &ctx,
                              const int compressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
-                             const uint compressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT):
+                             const unsigned int compressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT):
             compressionLevel(compressionLevel),
             compressionThreads(compressionThreads),
             ctx(ctx) {}
 
         explicit WriteHandle(const uint16_t protocolVersion,
                              const int compressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
-                             const uint compressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT):
+                             const unsigned int compressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT):
             WriteHandle(Context{.protocolVersion = protocolVersion}, compressionLevel, compressionThreads) {}
 
         [[nodiscard]]
@@ -154,9 +154,9 @@ namespace zvcr {
 
     auto writeFile(const File &file, const fs::path &filepath,
                    int compressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
-                   uint compressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT) -> WriteResult;
+                   unsigned int compressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT) -> WriteResult;
 
     auto writeFileAt(const File &file, const fs::path &parentDirectory, const RegionLocation &location,
                      int compressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
-                     uint compressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT) -> WriteResult;
+                     unsigned int compressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT) -> WriteResult;
 }

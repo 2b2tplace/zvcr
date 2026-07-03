@@ -5,7 +5,7 @@ namespace zvcr {
 
     auto compressZstd(const std::vector<uint8_t> &in, std::vector<uint8_t> &out,
                       const int compressionLevel,
-                      const uint compressionThreads) -> ZstdResult {
+                      const unsigned int compressionThreads) -> ZstdResult {
         ZSTD_CCtx *cctx = ZSTD_createCCtx();
         if (!cctx)
             return ERR("Failed to create ZSTD_CCtx");
