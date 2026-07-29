@@ -4,6 +4,7 @@
 #include <thread>
 #include <cstdint>
 #include <result.hpp>
+#include <variant>
 
 namespace zvcr {
 
