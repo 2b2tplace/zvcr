@@ -3,6 +3,7 @@
 #include <zvcr/definitions.hpp>
 #include <cstdint>
 #include <ctime>
+#include <ranges>
 #include <unordered_map>
 #include <vector>
 #include <variant>
