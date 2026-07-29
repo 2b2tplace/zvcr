@@ -7,7 +7,7 @@
 
 namespace zvcr {
 
-    static constexpr size_t MAX_SECTION_COUNT = 24;
+    inline constexpr size_t MAX_SECTION_COUNT = 24;
 
     template<size_t unpackedSize>
     class DeltaSections {
@@ -26,8 +26,8 @@ namespace zvcr {
             SegmentSnapshot snapshots;
             snapshots.reserve(sectionCount);
 
-            for (const auto &section : this->sections) {
-                const auto snapshot = section.snapshotFrom(timestamp);
+            for (size_t i = 0; i < sectionCount; ++i) {
+                const auto &snapshot = sections[i].snapshotFrom(timestamp);
                 if (!snapshot) return result::None;
 
                 snapshots.push_back(*snapshot);
@@ -40,8 +40,8 @@ namespace zvcr {
             SegmentSnapshot snapshots;
             snapshots.reserve(sectionCount);
 
-            for (const auto &section : this->sections) {
-                const auto snapshot = section.latestSnapshot();
+            for (size_t i = 0; i < sectionCount; ++i) {
+                const auto &snapshot = sections[i].latestSnapshot();
                 if (!snapshot) return result::None;
 
                 if (const auto timestamp = snapshot->get().timestamp; getEarliestTimestamp && timestamp < *getEarliestTimestamp)
@@ -55,7 +55,7 @@ namespace zvcr {
         [[nodiscard]]
         auto updateSections(const SegmentPackedSnapshot &sectionUpdates) -> size_t {
             size_t changes = 0;
-            for (size_t section = 0; section < sectionUpdates.size(); ++section)
+            for (size_t section = 0; section < sectionUpdates.size() && section < sectionCount; ++section)
                 changes += sections[section].insertSnapshot(sectionUpdates[section]).value_or(0);
 
             return changes;
