@@ -3,6 +3,8 @@
 #include <vector>
 #include <thread>
 #include <cstdint>
+#include <string>
+#include <variant>
 #include <result.hpp>
 #include <variant>
 
@@ -15,7 +17,7 @@ namespace zvcr {
 
     auto compressZstd(const std::vector<uint8_t> &in, std::vector<uint8_t> &out,
                       int compressionLevel = ZSTD_COMPRESSION_LEVEL_DEFAULT,
-                      uint compressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT) -> ZstdResult;
+                      unsigned int compressionThreads = ZSTD_COMPRESSION_THREADS_DEFAULT) -> ZstdResult;
 
     auto decompressZstd(const std::vector<uint8_t> &in, std::vector<uint8_t> &out) -> ZstdResult;
 

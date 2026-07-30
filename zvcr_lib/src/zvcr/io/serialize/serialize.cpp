@@ -77,7 +77,7 @@ namespace zvcr {
         return serializeRegion(file.region);
     }
 
-    auto writeFile(const File &file, const fs::path &filepath, const int compressionLevel, const uint compressionThreads) -> WriteResult {
+    auto writeFile(const File &file, const fs::path &filepath, const int compressionLevel, const unsigned int compressionThreads) -> WriteResult {
         WriteHandle handle{file.protocolVersion, compressionLevel, compressionThreads};
         if (const auto result = handle.serializeFile(file); !result)
             return ERR(result.error());
@@ -91,7 +91,7 @@ namespace zvcr {
     }
 
     auto writeFileAt(const File &file, const fs::path &parentDirectory, const RegionLocation &location,
-        const int compressionLevel, const uint compressionThreads) -> WriteResult {
+        const int compressionLevel, const unsigned int compressionThreads) -> WriteResult {
         fs::create_directories(location.directory(parentDirectory));
         return writeFile(file, location.filePath(parentDirectory), compressionLevel, compressionThreads);
     }
